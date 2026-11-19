@@ -1,0 +1,98 @@
+{
+  "anonymized": "FAKTURA VAT nr FV/2026/09/128\n\nSprzedawca:\n<FIRMA_1>\n<ADRES_1>, <KOD_POCZTOWY_1> Katowice\nNIP: <NIP_1>\nREGON: <REGON_1>\nKonto: <IBAN_1>\n\nNabywca:\n<FIRMA_2>\n<ADRES_2>, <KOD_POCZTOWY_2> Kraków\nNIP: <NIP_2>\n\nOsoba kontaktowa: <OSOBA_1>, tel. <TELEFON_1>, <EMAIL_1>\n\nPozycje:\n1. Usługa spedycyjna, trasa Katowice-Gdańsk    4 500,00 PLN\n2. Magazynowanie, wrzesień 2026                1 200,00 PLN\n\nRazem do zapłaty: 5 700,00 PLN\nTermin płatności: 14 dni\n",
+  "spans": [
+    {
+      "start": 43,
+      "end": 65,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 66,
+      "end": 83,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 85,
+      "end": 91,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 106,
+      "end": 116,
+      "entity_type": "NIP",
+      "score": 1.0
+    },
+    {
+      "start": 124,
+      "end": 133,
+      "entity_type": "REGON",
+      "score": 1.0
+    },
+    {
+      "start": 141,
+      "end": 169,
+      "entity_type": "IBAN",
+      "score": 1.0
+    },
+    {
+      "start": 180,
+      "end": 206,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 207,
+      "end": 220,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 222,
+      "end": 228,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 241,
+      "end": 251,
+      "entity_type": "NIP",
+      "score": 1.0
+    },
+    {
+      "start": 271,
+      "end": 287,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 294,
+      "end": 306,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 308,
+      "end": 343,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    }
+  ],
+  "mapping": {
+    "<FIRMA_1>": "Malinowski Handel S.A.",
+    "<ADRES_1>": "ul. Przemysłowa 7",
+    "<KOD_POCZTOWY_1>": "40-020",
+    "<NIP_1>": "5270810728",
+    "<REGON_1>": "141707919",
+    "<IBAN_1>": "PL61109010140000071219812874",
+    "<FIRMA_2>": "Nowak Transport Sp. z o.o.",
+    "<ADRES_2>": "ul. Długa 145",
+    "<KOD_POCZTOWY_2>": "31-147",
+    "<NIP_2>": "8992611767",
+    "<OSOBA_1>": "Tomasz Kowalczyk",
+    "<TELEFON_1>": "71 345 22 10",
+    "<EMAIL_1>": "t.kowalczyk@nowak-transport.example"
+  }
+}

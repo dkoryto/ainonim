@@ -1,0 +1,105 @@
+{
+  "anonymized": "UMOWA O PRACĘ\n\nzawarta 1 października 2026 r. w Poznaniu pomiędzy:\n\n<FIRMA_1> z siedzibą w Krakowie, <ADRES_1>, <KOD_POCZTOWY_1> Kraków,\nNIP <NIP_1>, REGON <REGON_1>, reprezentowaną przez <OSOBA_1>,\nzwaną dalej Pracodawcą,\n\na\n\nPanią <OSOBA_2>, zamieszkałą <ADRES_2>, <KOD_POCZTOWY_2> Poznań,\nlegitymującą się dowodem osobistym <DOWOD_1>, PESEL <PESEL_1>,\nzwaną dalej Pracownikiem.\n\n§1 Pracownik zostaje zatrudniony na stanowisku specjalisty do spraw logistyki.\n§2 Wynagrodzenie przekazywane będzie na rachunek <IBAN_1>.\n§3 Kontakt w sprawach kadrowych: <EMAIL_1>, tel. <TELEFON_1>.\n\nPodpisy stron\n",
+  "spans": [
+    {
+      "start": 68,
+      "end": 94,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 118,
+      "end": 131,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 133,
+      "end": 139,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 152,
+      "end": 162,
+      "entity_type": "NIP",
+      "score": 1.0
+    },
+    {
+      "start": 170,
+      "end": 179,
+      "entity_type": "REGON",
+      "score": 1.0
+    },
+    {
+      "start": 202,
+      "end": 220,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 256,
+      "end": 277,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 291,
+      "end": 305,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 307,
+      "end": 313,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 357,
+      "end": 366,
+      "entity_type": "PL_ID",
+      "score": 1.0
+    },
+    {
+      "start": 374,
+      "end": 385,
+      "entity_type": "PESEL",
+      "score": 1.0
+    },
+    {
+      "start": 542,
+      "end": 570,
+      "entity_type": "IBAN",
+      "score": 1.0
+    },
+    {
+      "start": 605,
+      "end": 634,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    },
+    {
+      "start": 641,
+      "end": 653,
+      "entity_type": "PHONE",
+      "score": 1.0
+    }
+  ],
+  "mapping": {
+    "<FIRMA_1>": "Nowak Transport Sp. z o.o.",
+    "<ADRES_1>": "ul. Długa 145",
+    "<KOD_POCZTOWY_1>": "31-147",
+    "<NIP_1>": "8992611767",
+    "<REGON_1>": "519301889",
+    "<OSOBA_1>": "Tomasza Kowalczyka",
+    "<OSOBA_2>": "Katarzyną Lewandowską",
+    "<ADRES_2>": "ul. Ogrodowa 3",
+    "<KOD_POCZTOWY_2>": "61-004",
+    "<DOWOD_1>": "ABC412345",
+    "<PESEL_1>": "51871109879",
+    "<IBAN_1>": "PL27114020040000300201355387",
+    "<EMAIL_1>": "kadry@nowak-transport.example",
+    "<TELEFON_1>": "12 430 88 21"
+  }
+}

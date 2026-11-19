@@ -1,0 +1,70 @@
+{
+  "anonymized": "Wiadomości wpisane do czatu tak, jak piszą je ludzie: małymi literami, bez ogonków, bez kropek.\n\nmam sprawę sądową z panem <OSOBA_1>, nie chce zapłacić za naprawę auta. co teraz?\n\nnapisz maila do <OSOBA_2> z ksiegowosci ze faktura przyjdzie w piatek\n\n<OSOBA_3> dzwonił w sprawie umowy, oddzwoń do niego na <TELEFON_1>\n\nprzygotuj grzeczną odpowiedź dla pani <OSOBA_4> na reklamację z zeszłego tygodnia\n\nspotkanie z doktorem <OSOBA_5> przesunięte na czwartek, daj znać <OSOBA_6>\n\nKLIENT: <OSOBA_7>, <EMAIL_1>\n\nnie ma ani polskiej, ani angielskiej wersji cennika, a pola formularza są puste.\nnasza marka ma premierę 3 maja i klienci mają już polską wersję strony.\n",
+  "spans": [
+    {
+      "start": 123,
+      "end": 141,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 205,
+      "end": 219,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 265,
+      "end": 281,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 327,
+      "end": 338,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 378,
+      "end": 384,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 441,
+      "end": 449,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 484,
+      "end": 488,
+      "entity_type": "PERSON",
+      "score": 0.8
+    },
+    {
+      "start": 498,
+      "end": 513,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 515,
+      "end": 541,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    }
+  ],
+  "mapping": {
+    "<OSOBA_1>": "kamilem bednarkiem",
+    "<OSOBA_2>": "ani kowalskiej",
+    "<OSOBA_3>": "tomek wiśniewski",
+    "<TELEFON_1>": "604 223 118",
+    "<OSOBA_4>": "wróbel",
+    "<OSOBA_5>": "nowakiem",
+    "<OSOBA_6>": "kasi",
+    "<OSOBA_7>": "MAREK ZIELIŃSKI",
+    "<EMAIL_1>": "m.zielinski@poczta.example"
+  }
+}

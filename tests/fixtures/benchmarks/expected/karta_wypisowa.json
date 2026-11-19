@@ -1,0 +1,118 @@
+{
+  "anonymized": "KARTA INFORMACYJNA LECZENIA SZPITALNEGO\n\n<FIRMA_1>\nOddział Chorób Wewnętrznych\n<ADRES_1>, <KOD_POCZTOWY_1> Białystok\ntel. <TELEFON_1>, e-mail: <EMAIL_1>\n\nPacjentka: <OSOBA_1>\nPESEL: <PESEL_1>\nData urodzenia: <DATA_URODZENIA_1>\nAdres: <ADRES_2>, <KOD_POCZTOWY_2> Choroszcz\nTelefon: <TELEFON_2>\nOsoba upoważniona do informacji o stanie zdrowia: córka <OSOBA_2>, tel. <TELEFON_3>\n\nOkres hospitalizacji: od 04.03.2024 do 11.03.2024\n\nRozpoznanie zasadnicze: zaostrzenie przewlekłej niewydolności serca (I50.0).\nRozpoznania współistniejące: migotanie przedsionków utrwalone (I48.2), cukrzyca typu 2 (E11).\n\nEpikryza: pacjentkę <OSOBA_1:biernik> przyjęto z powodu narastającej duszności i obrzęków kończyn\ndolnych. W leczeniu zastosowano diuretyki dożylnie, uzyskując poprawę. Echo serca: EF 35%.\nW trakcie pobytu bez powikłań. Wypisana do domu w stanie ogólnym dobrym.\n\nZalecenia: furosemid 40 mg rano, bisoprolol 5 mg wieczorem, kontrola w poradni kardiologicznej\nza 4 tygodnie, codzienna kontrola masy ciała. W razie duszności zgłosić się do lekarza.\n\nLekarz prowadzący: lek. <OSOBA_3>\nOrdynator oddziału: dr n. med. <OSOBA_4>\n",
+  "spans": [
+    {
+      "start": 41,
+      "end": 86,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 115,
+      "end": 130,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 132,
+      "end": 138,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 154,
+      "end": 166,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 176,
+      "end": 201,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    },
+    {
+      "start": 214,
+      "end": 228,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 236,
+      "end": 247,
+      "entity_type": "PESEL",
+      "score": 1.0
+    },
+    {
+      "start": 264,
+      "end": 274,
+      "entity_type": "BIRTH_DATE",
+      "score": 1.0
+    },
+    {
+      "start": 282,
+      "end": 299,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 301,
+      "end": 307,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 327,
+      "end": 338,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 395,
+      "end": 413,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 420,
+      "end": 431,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 676,
+      "end": 690,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 1124,
+      "end": 1140,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 1172,
+      "end": 1184,
+      "entity_type": "PERSON",
+      "score": 0.9
+    }
+  ],
+  "mapping": {
+    "<FIRMA_1>": "Szpital Specjalistyczny Lipowy Gaj Sp. z o.o.",
+    "<ADRES_1>": "ul. Szpitalna 8",
+    "<KOD_POCZTOWY_1>": "15-276",
+    "<TELEFON_1>": "85 740 21 00",
+    "<EMAIL_1>": "interna@lipowygaj.example",
+    "<OSOBA_1>": "Halina Sobczak",
+    "<PESEL_1>": "47832208149",
+    "<DATA_URODZENIA_1>": "22.03.1847",
+    "<ADRES_2>": "ul. Brzozowa 14/2",
+    "<KOD_POCZTOWY_2>": "16-070",
+    "<TELEFON_2>": "604 318 552",
+    "<OSOBA_2>": "Marta Sobczak-Wilk",
+    "<TELEFON_3>": "698 207 115",
+    "<OSOBA_3>": "Tomasz Kaczmarek",
+    "<OSOBA_4>": "Ewa Zawadzka"
+  }
+}

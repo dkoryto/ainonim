@@ -1,0 +1,28 @@
+{
+  "anonymized": "<OSOBA_1> dzwoniła wczoraj.\n<OSOBA_2> dzwonił wczoraj.\n<OSOBA_3> dzwoniła wczoraj.\n10 marek w ofercie.\n",
+  "spans": [
+    {
+      "start": 0,
+      "end": 10,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 29,
+      "end": 40,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 58,
+      "end": 70,
+      "entity_type": "PERSON",
+      "score": 0.9
+    }
+  ],
+  "mapping": {
+    "<OSOBA_1>": "maja nowak",
+    "<OSOBA_2>": "marek nowak",
+    "<OSOBA_3>": "kalina mazur"
+  }
+}
