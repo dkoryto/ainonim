@@ -1,23 +1,44 @@
-// T2 spike only: lets a local test page send text through the extension and read the result back.
-// Limited to localhost; the real field watcher replaces this in a later task.
+// Test bridge only: lets a local test page send text through the extension and read the result
+// back. Limited to localhost; the real field watcher replaces this in a later task.
 import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
-import type { AnalyzeRequest, AnalyzeResponse } from '~/lib/messages';
+import { analyzeText, restoreText } from '~/lib/client';
+import { isMapping } from '~/lib/messages';
 
+/**
+ * - `analyze` / `restore` go through the client in lib/client.ts, like the real content script.
+ * - `raw` sends `message` to the service worker as is, so tests can reach its own checks.
+ */
 interface PageRequest {
-  type: 'ainonim-test/analyze';
+  type: 'ainonim-test/request';
   id: string;
-  text: string;
+  operation: 'analyze' | 'restore' | 'raw';
+  text?: string;
+  mapping?: unknown;
+  message?: unknown;
 }
 
 function isPageRequest(value: unknown): value is PageRequest {
   if (typeof value !== 'object' || value === null) return false;
   const data = value as Record<string, unknown>;
   return (
-    data.type === 'ainonim-test/analyze' &&
+    data.type === 'ainonim-test/request' &&
     typeof data.id === 'string' &&
-    typeof data.text === 'string'
+    (data.operation === 'analyze' || data.operation === 'restore' || data.operation === 'raw')
   );
+}
+
+async function run(request: PageRequest): Promise<unknown> {
+  const text = request.text ?? '';
+  const mapping = isMapping(request.mapping) ? request.mapping : {};
+  switch (request.operation) {
+    case 'analyze':
+      return analyzeText(text, mapping);
+    case 'restore':
+      return restoreText(text, mapping);
+    case 'raw':
+      return browser.runtime.sendMessage(request.message);
+  }
 }
 
 export default defineContentScript({
@@ -25,16 +46,16 @@ export default defineContentScript({
   main() {
     window.addEventListener('message', (event) => {
       if (event.source !== window || !isPageRequest(event.data)) return;
-      const request: AnalyzeRequest = {
-        type: 'ainonim/analyze',
-        id: event.data.id,
-        text: event.data.text,
-      };
-      void browser.runtime
-        .sendMessage<AnalyzeRequest, AnalyzeResponse>(request)
-        .then((response) => {
-          window.postMessage({ type: 'ainonim-test/result', response }, window.location.origin);
-        });
+      const { id } = event.data;
+      void run(event.data).then(
+        (response) => {
+          window.postMessage({ type: 'ainonim-test/result', id, response }, window.location.origin);
+        },
+        (error: unknown) => {
+          const response = { ok: false, error: String(error) };
+          window.postMessage({ type: 'ainonim-test/result', id, response }, window.location.origin);
+        },
+      );
     });
   },
 });

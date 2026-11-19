@@ -3,24 +3,18 @@
 import type { PyodideAPI, loadPyodide as LoadPyodide } from 'pyodide';
 import { browser } from 'wxt/browser';
 import bridgeSource from '~/python/ainonim_bridge.py?raw';
-import {
-  type AnalyzeResponse,
-  type OffscreenAnalyzeRequest,
-  isOffscreenAnalyzeRequest,
-  parseAnalyzeResult,
-} from '~/lib/messages';
+import contractShimSource from '~/python/t6_contract_shim.py?raw';
+import { type Engine, createEngineHandler } from '~/lib/engine';
+import { failure, isAinonimMessage, isOffscreenRequest } from '~/lib/messages';
 import { POLANON_WHEEL, PYODIDE_DIR, PYODIDE_LOCK_FILE } from '~/lib/runtime-files';
 
-interface Runtime {
-  analyze: (text: string) => string;
-  loadMs: number;
-}
+type BridgeFunction = (text: string, mappingJson: string) => string;
 
 function packageUrl(path: string): string {
   return browser.runtime.getURL(`/${path}` as '/');
 }
 
-async function loadRuntime(): Promise<Runtime> {
+async function loadEngine(): Promise<Engine> {
   const started = performance.now();
   const indexURL = packageUrl(PYODIDE_DIR);
   // Loaded from the package at runtime rather than bundled, so Pyodide finds its sibling files.
@@ -38,26 +32,26 @@ async function loadRuntime(): Promise<Runtime> {
 
   const namespace = pyodide.toPy({}) as InstanceType<PyodideAPI['ffi']['PyDict']>;
   pyodide.runPython(bridgeSource, { globals: namespace });
-  const analyze = namespace.get('analyze') as (text: string) => string;
-  return { analyze, loadMs: performance.now() - started };
+  pyodide.runPython(contractShimSource, { globals: namespace });
+  return {
+    analyze: namespace.get('analyze') as BridgeFunction,
+    restore: namespace.get('restore') as BridgeFunction,
+    loadMs: performance.now() - started,
+  };
 }
 
-const runtime = loadRuntime();
-
-async function handle(request: OffscreenAnalyzeRequest): Promise<AnalyzeResponse> {
-  try {
-    const { analyze, loadMs } = await runtime;
-    const started = performance.now();
-    const result = parseAnalyzeResult(analyze(request.text));
-    return { id: request.id, ok: true, result, analyzeMs: performance.now() - started, loadMs };
-  } catch (error) {
-    return { id: request.id, ok: false, error: String(error) };
-  }
-}
+const handle = createEngineHandler(loadEngine());
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Content scripts reach every extension page too; only the service worker (no tab) may ask.
-  if (!isOffscreenAnalyzeRequest(message) || sender.tab) return;
+  if (sender.tab || !isAinonimMessage(message) || !message.type.startsWith('ainonim/offscreen-')) {
+    return;
+  }
+  if (!isOffscreenRequest(message)) {
+    const id = typeof message.id === 'string' ? message.id : '';
+    sendResponse(failure(id, 'invalid-request', `Malformed request of type ${message.type}.`));
+    return;
+  }
   void handle(message).then(sendResponse);
   return true;
 });
