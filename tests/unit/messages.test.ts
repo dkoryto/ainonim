@@ -53,6 +53,15 @@ describe('isContentRequest', () => {
       'restore',
       { type: 'ainonim/restore', id: '1', text: '<OSOBA_1>', mapping: { '<OSOBA_1>': 'Jan' } },
     ],
+    [
+      'analyze in a conversation',
+      { type: 'ainonim/analyze', id: '1', text: 'a', conversationKey: 'chatgpt:x', persist: true },
+    ],
+    ['mapping-get', { type: 'ainonim/mapping-get', id: '1', conversationKey: 'chatgpt:x' }],
+    [
+      'mapping-rename',
+      { type: 'ainonim/mapping-rename', id: '1', fromKey: 'chatgpt:a', toKey: 'chatgpt:b' },
+    ],
   ])('accepts %s', (_case, message) => {
     expect(isContentRequest(message)).toBe(true);
   });
@@ -66,6 +75,19 @@ describe('isContentRequest', () => {
     [
       'an offscreen request',
       { type: 'ainonim/offscreen-analyze', id: '1', text: 'a', mapping: {} },
+    ],
+    [
+      'a conversation key with a mapping',
+      { type: 'ainonim/analyze', id: '1', text: 'a', conversationKey: 'chatgpt:x', mapping: {} },
+    ],
+    [
+      'persist without a conversation',
+      { type: 'ainonim/analyze', id: '1', text: 'a', persist: true },
+    ],
+    ['a numeric conversation key', { type: 'ainonim/mapping-get', id: '1', conversationKey: 1 }],
+    [
+      'a rename without a target',
+      { type: 'ainonim/mapping-rename', id: '1', fromKey: 'chatgpt:a' },
     ],
     ['null', null],
   ])('rejects %s', (_case, message) => {

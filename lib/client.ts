@@ -1,4 +1,4 @@
-// Client for content scripts: sends analyze/restore requests to the service worker.
+// Client for content scripts: sends analyze/restore/mapping requests to the service worker.
 import { browser } from 'wxt/browser';
 import {
   type AnalyzeResponse,
@@ -6,11 +6,13 @@ import {
   ENGINE_READY_TIMEOUT_MS,
   type Failure,
   type Mapping,
+  type MappingResponse,
   REQUEST_TIMEOUT_MS,
   type RestoreResponse,
   checkTextLength,
   failure,
   isAnalyzeResponse,
+  isMappingResponse,
   isRestoreResponse,
 } from './messages';
 import { TimeoutError, errorMessage, withTimeout } from './timeout';
@@ -26,8 +28,21 @@ export const CLIENT_TIMEOUT_MS = ENGINE_READY_TIMEOUT_MS + REQUEST_TIMEOUT_MS + 
 export interface Client {
   /** Mask personal data in `text`. Pass the mapping of earlier calls to keep tokens stable. */
   analyzeText: (text: string, mapping?: Mapping) => Promise<AnalyzeResponse>;
+  /**
+   * Mask `text` within a chat conversation whose mapping the service worker keeps. With `persist`
+   * the new tokens are stored and `result.mapping` is the conversation's whole mapping.
+   */
+  analyzeInConversation: (
+    text: string,
+    conversationKey: string,
+    persist: boolean,
+  ) => Promise<AnalyzeResponse>;
   /** Replace the tokens in `text` with the original values from `mapping`. */
   restoreText: (text: string, mapping: Mapping) => Promise<RestoreResponse>;
+  /** The stored mapping of a conversation of this page's chat site. */
+  getConversationMapping: (conversationKey: string) => Promise<MappingResponse>;
+  /** Move a new chat's mapping from its temporary key to its real one. */
+  renameConversation: (fromKey: string, toKey: string) => Promise<MappingResponse>;
 }
 
 // crypto.randomUUID needs a secure context; content scripts also run on plain http pages.
@@ -42,7 +57,7 @@ async function request<R extends { id: string }>(
   isValid: (value: unknown) => value is R,
 ): Promise<R | Failure> {
   const { id } = message;
-  const tooLong = checkTextLength(id, message.text);
+  const tooLong = 'text' in message ? checkTextLength(id, message.text) : undefined;
   if (tooLong) return tooLong;
   try {
     const response = await withTimeout(
@@ -68,15 +83,37 @@ export function createClient(send: SendMessage): Client {
         { type: 'ainonim/analyze', id: newRequestId(), text, mapping },
         isAnalyzeResponse,
       ),
+    analyzeInConversation: (text, conversationKey, persist) =>
+      request(
+        send,
+        { type: 'ainonim/analyze', id: newRequestId(), text, conversationKey, persist },
+        isAnalyzeResponse,
+      ),
     restoreText: (text, mapping) =>
       request(
         send,
         { type: 'ainonim/restore', id: newRequestId(), text, mapping },
         isRestoreResponse,
       ),
+    getConversationMapping: (conversationKey) =>
+      request(
+        send,
+        { type: 'ainonim/mapping-get', id: newRequestId(), conversationKey },
+        isMappingResponse,
+      ),
+    renameConversation: (fromKey, toKey) =>
+      request(
+        send,
+        { type: 'ainonim/mapping-rename', id: newRequestId(), fromKey, toKey },
+        isMappingResponse,
+      ),
   };
 }
 
-export const { analyzeText, restoreText } = createClient((message) =>
-  browser.runtime.sendMessage(message),
-);
+export const {
+  analyzeText,
+  analyzeInConversation,
+  restoreText,
+  getConversationMapping,
+  renameConversation,
+} = createClient((message) => browser.runtime.sendMessage(message));

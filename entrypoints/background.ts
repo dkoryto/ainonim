@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { failure, isAinonimMessage, isContentRequest } from '~/lib/messages';
+import { getMapping, mergeMapping, renameMapping } from '~/lib/mapping/store';
 import { createOffscreenKeeper } from '~/lib/offscreen-document';
 import { type WorkerDeps, handleContentRequest } from '~/lib/worker';
 
@@ -28,6 +29,8 @@ export default defineBackground(() => {
     ensureOffscreen: offscreen.ensure,
     closeOffscreen: offscreen.close,
     sendToOffscreen: (message) => browser.runtime.sendMessage(message),
+    // storage.session keeps its default TRUSTED_CONTEXTS access: only this worker reads mappings.
+    mappings: { get: getMapping, merge: mergeMapping, rename: renameMapping },
   };
 
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -38,7 +41,8 @@ export default defineBackground(() => {
       sendResponse(failure(id, 'invalid-request', `Malformed request of type ${message.type}.`));
       return;
     }
-    void handleContentRequest(message, deps).then(sendResponse);
+    // sender.url is the sending frame's URL as the browser knows it; mappings are checked against it.
+    void handleContentRequest(message, deps, sender.url).then(sendResponse);
     return true;
   });
 });

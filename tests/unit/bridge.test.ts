@@ -96,6 +96,13 @@ describe('mapping and restore', () => {
     );
   });
 
+  // The content script restores a cased token alone, with only its base token in the mapping.
+  it('declines a single cased token with only the base token mapped', () => {
+    const mapping = JSON.stringify({ '<OSOBA_1>': 'Jana Kowalskiego' });
+
+    expect(restore('<OSOBA_1:wołacz>', mapping)).toBe('Janie Kowalski');
+  });
+
   it('rejects a mapping that is not an object of strings', () => {
     expect(() => analyzeJson('Jan Kowalski', '[]')).toThrow('mapping_json');
     expect(() => restore('<OSOBA_1>', '{"<OSOBA_1>": 1}')).toThrow('mapping_json');

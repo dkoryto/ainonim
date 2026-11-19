@@ -6,7 +6,11 @@ import {
   type OffscreenRequest,
   REQUEST_TIMEOUT_MS,
 } from '~/lib/messages';
-import { handleContentRequest } from '~/lib/worker';
+import { MappingConflictError } from '~/lib/mapping/store';
+import { type MappingStore, handleContentRequest } from '~/lib/worker';
+
+const PAGE = 'http://127.0.0.1/';
+const CHATGPT = 'https://chatgpt.com/c/abc';
 
 const analyzeResult = { anonymized: '<OSOBA_1>', spans: [], mapping: { '<OSOBA_1>': 'Jan' } };
 
@@ -14,11 +18,37 @@ function delay<T>(ms: number, value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(resolve, ms, value));
 }
 
+/** An in-memory conversation store with the real store's conflict rule. */
+function fakeStore(initial: Record<string, Record<string, string>> = {}) {
+  const conversations = new Map(Object.entries(initial));
+  const store: MappingStore = {
+    get: vi.fn((key: string) => Promise.resolve({ ...conversations.get(key) })),
+    merge: vi.fn((key: string, mapping: Record<string, string>) => {
+      const current = conversations.get(key) ?? {};
+      const conflicts = Object.keys(mapping).filter(
+        (token) => token in current && current[token] !== mapping[token],
+      );
+      if (conflicts.length > 0) return Promise.reject(new MappingConflictError(conflicts));
+      const merged = { ...current, ...mapping };
+      conversations.set(key, merged);
+      return Promise.resolve({ ...merged });
+    }),
+    rename: vi.fn((fromKey: string, toKey: string) => {
+      const merged = { ...conversations.get(toKey), ...conversations.get(fromKey) };
+      conversations.delete(fromKey);
+      conversations.set(toKey, merged);
+      return Promise.resolve({ ...merged });
+    }),
+  };
+  return { store, conversations };
+}
+
 /** An offscreen document that answers each request after the given delay. */
-function fakeWorker({ readyMs = 0, workMs = 0 } = {}) {
+function fakeWorker({ readyMs = 0, workMs = 0 } = {}, mappings = fakeStore().store) {
   const sent: OffscreenRequest[] = [];
   return {
     sent,
+    mappings,
     ensureOffscreen: vi.fn(() => Promise.resolve()),
     closeOffscreen: vi.fn(() => Promise.resolve()),
     sendToOffscreen: vi.fn((message: OffscreenRequest): Promise<unknown> => {
@@ -56,7 +86,7 @@ describe('handleContentRequest', () => {
   it('waits for the engine, then forwards analyze with an empty mapping', async () => {
     const deps = fakeWorker();
 
-    const response = await settle(handleContentRequest(analyze, deps));
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
 
     expect(response).toMatchObject({ id: 'r1', ok: true, result: analyzeResult });
     expect(deps.sent).toEqual([
@@ -70,7 +100,11 @@ describe('handleContentRequest', () => {
     const mapping = { '<OSOBA_1>': 'Jan' };
 
     const response = await settle(
-      handleContentRequest({ type: 'ainonim/restore', id: 'r2', text: '<OSOBA_1>', mapping }, deps),
+      handleContentRequest(
+        { type: 'ainonim/restore', id: 'r2', text: '<OSOBA_1>', mapping },
+        deps,
+        PAGE,
+      ),
     );
 
     expect(response).toEqual({ id: 'r2', ok: true, text: 'Jan' });
@@ -88,6 +122,7 @@ describe('handleContentRequest', () => {
     const response = await handleContentRequest(
       { ...analyze, text: 'a'.repeat(MAX_TEXT_LENGTH + 1) },
       deps,
+      PAGE,
     );
 
     expect(response).toMatchObject({ ok: false, code: 'too-long' });
@@ -100,7 +135,7 @@ describe('handleContentRequest', () => {
       workMs: REQUEST_TIMEOUT_MS - 100,
     });
 
-    const response = await settle(handleContentRequest(analyze, deps));
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
 
     expect(response.ok).toBe(true);
   });
@@ -108,7 +143,7 @@ describe('handleContentRequest', () => {
   it('times out a request that takes longer than the limit and closes the engine', async () => {
     const deps = fakeWorker({ workMs: REQUEST_TIMEOUT_MS + 1 });
 
-    const response = await settle(handleContentRequest(analyze, deps));
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
 
     expect(response).toEqual({
       id: 'r1',
@@ -122,7 +157,7 @@ describe('handleContentRequest', () => {
   it('times out an engine that does not start', async () => {
     const deps = fakeWorker({ readyMs: ENGINE_READY_TIMEOUT_MS + 1 });
 
-    const response = await settle(handleContentRequest(analyze, deps));
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
 
     expect(response).toMatchObject({ ok: false, code: 'timeout' });
     expect(deps.sent).toHaveLength(1);
@@ -137,7 +172,7 @@ describe('handleContentRequest', () => {
       error: 'The anonymization engine failed to load: no wheel',
     });
 
-    const response = await settle(handleContentRequest(analyze, deps));
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
 
     expect(response).toEqual({
       id: 'r1',
@@ -158,7 +193,11 @@ describe('handleContentRequest', () => {
     deps.sendToOffscreen.mockResolvedValueOnce(reply);
 
     const response = await settle(
-      handleContentRequest({ type: 'ainonim/restore', id: 'r1', text: 'a', mapping: {} }, deps),
+      handleContentRequest(
+        { type: 'ainonim/restore', id: 'r1', text: 'a', mapping: {} },
+        deps,
+        PAGE,
+      ),
     );
 
     expect(response).toEqual({
@@ -175,7 +214,7 @@ describe('handleContentRequest', () => {
       new Error('Could not establish connection. Receiving end does not exist.'),
     );
 
-    const response = await settle(handleContentRequest(analyze, deps));
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
 
     expect(response).toEqual({
       id: 'r1',
@@ -183,5 +222,139 @@ describe('handleContentRequest', () => {
       code: 'engine',
       error: 'Could not establish connection. Receiving end does not exist.',
     });
+  });
+});
+
+describe('handleContentRequest with conversations', () => {
+  const key = 'chatgpt:abc';
+
+  it('analyses with the stored mapping and does not store anything by default', async () => {
+    const { store, conversations } = fakeStore({ [key]: { '<OSOBA_1>': 'Jan' } });
+    const deps = fakeWorker({}, store);
+
+    const response = await settle(
+      handleContentRequest({ ...analyze, conversationKey: key }, deps, CHATGPT),
+    );
+
+    expect(response).toMatchObject({ ok: true, result: analyzeResult });
+    expect(deps.sent.at(-1)).toMatchObject({ mapping: { '<OSOBA_1>': 'Jan' } });
+    expect(store.merge).not.toHaveBeenCalled();
+    expect(conversations.get(key)).toEqual({ '<OSOBA_1>': 'Jan' });
+  });
+
+  it('stores new tokens with persist and answers with the whole mapping', async () => {
+    const { store, conversations } = fakeStore({ [key]: { '<PESEL_1>': '50810112354' } });
+    const deps = fakeWorker({}, store);
+
+    const response = await settle(
+      handleContentRequest({ ...analyze, conversationKey: key, persist: true }, deps, CHATGPT),
+    );
+
+    const whole = { '<PESEL_1>': '50810112354', '<OSOBA_1>': 'Jan' };
+    expect(response).toMatchObject({ ok: true, result: { mapping: whole } });
+    expect(conversations.get(key)).toEqual(whole);
+  });
+
+  it('reports a conflict without any value', async () => {
+    const { store } = fakeStore({ [key]: { '<OSOBA_1>': 'Anna' } });
+    const deps = fakeWorker({}, store);
+
+    const response = await settle(
+      handleContentRequest({ ...analyze, conversationKey: key, persist: true }, deps, CHATGPT),
+    );
+
+    expect(response).toMatchObject({ ok: false, code: 'conflict' });
+    expect(JSON.stringify(response)).not.toMatch(/Anna|Jan\b/);
+  });
+
+  it.each([
+    ['a page on another site', 'https://example.com/c/abc'],
+    ['the other chat site', 'https://claude.ai/chat/abc'],
+    ['a sender without a URL', undefined],
+  ])('refuses %s', async (_case, senderUrl) => {
+    const { store } = fakeStore({ [key]: { '<OSOBA_1>': 'Jan' } });
+    const deps = fakeWorker({}, store);
+
+    const responses = await settle(
+      Promise.all([
+        handleContentRequest({ ...analyze, conversationKey: key }, deps, senderUrl),
+        handleContentRequest(
+          { type: 'ainonim/mapping-get', id: 'g', conversationKey: key },
+          deps,
+          senderUrl,
+        ),
+        handleContentRequest(
+          { type: 'ainonim/mapping-rename', id: 'n', fromKey: key, toKey: 'chatgpt:x' },
+          deps,
+          senderUrl,
+        ),
+      ]),
+    );
+
+    for (const response of responses) {
+      expect(response).toMatchObject({ ok: false, code: 'forbidden' });
+      expect(JSON.stringify(response)).not.toContain('Jan');
+    }
+    expect(store.get).not.toHaveBeenCalled();
+    expect(store.rename).not.toHaveBeenCalled();
+    expect(deps.ensureOffscreen).not.toHaveBeenCalled();
+  });
+
+  it('refuses a key without a known site, even from a chat site', async () => {
+    const deps = fakeWorker();
+
+    const response = await handleContentRequest(
+      { type: 'ainonim/mapping-get', id: 'g', conversationKey: 'unknown:abc' },
+      deps,
+      CHATGPT,
+    );
+
+    expect(response).toMatchObject({ ok: false, code: 'forbidden' });
+  });
+
+  it('refuses a rename into another site', async () => {
+    const deps = fakeWorker();
+
+    const response = await handleContentRequest(
+      { type: 'ainonim/mapping-rename', id: 'n', fromKey: key, toKey: 'claude:abc' },
+      deps,
+      CHATGPT,
+    );
+
+    expect(response).toMatchObject({ ok: false, code: 'forbidden' });
+  });
+
+  it('reads and renames mappings for its own site', async () => {
+    const { store, conversations } = fakeStore({ 'chatgpt:tmp~1': { '<OSOBA_1>': 'Jan' } });
+    const deps = fakeWorker({}, store);
+
+    const renamed = await handleContentRequest(
+      { type: 'ainonim/mapping-rename', id: 'n', fromKey: 'chatgpt:tmp~1', toKey: key },
+      deps,
+      CHATGPT,
+    );
+    const read = await handleContentRequest(
+      { type: 'ainonim/mapping-get', id: 'g', conversationKey: key },
+      deps,
+      CHATGPT,
+    );
+
+    expect(renamed).toEqual({ id: 'n', ok: true, mapping: { '<OSOBA_1>': 'Jan' } });
+    expect(read).toEqual({ id: 'g', ok: true, mapping: { '<OSOBA_1>': 'Jan' } });
+    expect(conversations.has('chatgpt:tmp~1')).toBe(false);
+  });
+
+  it('answers an invalid key with invalid-request', async () => {
+    const { store } = fakeStore();
+    vi.mocked(store.get).mockRejectedValueOnce(new TypeError('Invalid conversation key'));
+    const deps = fakeWorker({}, store);
+
+    const response = await handleContentRequest(
+      { type: 'ainonim/mapping-get', id: 'g', conversationKey: `chatgpt:${'x'.repeat(600)}` },
+      deps,
+      CHATGPT,
+    );
+
+    expect(response).toMatchObject({ ok: false, code: 'invalid-request' });
   });
 });
