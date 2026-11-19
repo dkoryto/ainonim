@@ -1,7 +1,7 @@
 // Messages between the content script, the service worker and the offscreen document.
 
 export interface Span {
-  /** Start offset in Python code points (equal to UTF-16 offsets only for BMP-only text). */
+  /** Offsets into the analyzed text in UTF-16 code units, i.e. JavaScript string indices. */
   start: number;
   end: number;
   entity_type: string;

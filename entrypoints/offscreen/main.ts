@@ -12,7 +12,7 @@ import {
 import { POLANON_WHEEL, PYODIDE_DIR, PYODIDE_LOCK_FILE } from '~/lib/runtime-files';
 
 interface Runtime {
-  analyze: (text: string) => string;
+  analyze: (text: string, mappingJson: string) => string;
   loadMs: number;
 }
 
@@ -38,7 +38,7 @@ async function loadRuntime(): Promise<Runtime> {
 
   const namespace = pyodide.toPy({}) as InstanceType<PyodideAPI['ffi']['PyDict']>;
   pyodide.runPython(bridgeSource, { globals: namespace });
-  const analyze = namespace.get('analyze') as (text: string) => string;
+  const analyze = namespace.get('analyze') as Runtime['analyze'];
   return { analyze, loadMs: performance.now() - started };
 }
 
@@ -48,7 +48,7 @@ async function handle(request: OffscreenAnalyzeRequest): Promise<AnalyzeResponse
   try {
     const { analyze, loadMs } = await runtime;
     const started = performance.now();
-    const result = parseAnalyzeResult(analyze(request.text));
+    const result = parseAnalyzeResult(analyze(request.text, '{}'));
     return { id: request.id, ok: true, result, analyzeMs: performance.now() - started, loadMs };
   } catch (error) {
     return { id: request.id, ok: false, error: String(error) };
