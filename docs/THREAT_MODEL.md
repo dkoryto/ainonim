@@ -5,9 +5,8 @@ Ograniczenia samej biblioteki wykrywającej opisuje
 [model zagrożeń polanon](https://github.com/boromat/polanon/blob/main/docs/THREAT_MODEL.md); tu
 jest to, co dokłada rozszerzenie i przeglądarka.
 
-Stan: część opisanego projektu jest dopiero integrowana (content script na wszystkich stronach,
-mapowania tylko w service workerze, mostek testowy poza buildem produkcyjnym). Takie miejsca są
-oznaczone **(planowane, do weryfikacji)**.
+Stan (20.11.2026): opisany projekt jest zaimplementowany i pokryty testami e2e na stronach
+testowych; nie był jeszcze sprawdzony na żywych ChatGPT i Claude.ai.
 
 ## Do czego służy rozszerzenie
 
@@ -53,8 +52,7 @@ pełny dostęp do DOM-u, który content script czyta i zmienia.
 - **Mapowanie poza zasięgiem strony.** Mapowania są w `storage.session` z domyślnym poziomem
   dostępu `TRUSTED_CONTEXTS`, więc content scripty nie czytają ich bezpośrednio, a skrypty strony
   w ogóle. Service worker oddaje mapowanie tylko dla rozmowy, której klucz zaczyna się od
-  identyfikatora strony nadawcy (np. `chatgpt:` dla karty chatgpt.com) **(planowane, do
-  weryfikacji)**. Content script z chatgpt.com nie dostanie mapowania rozmowy z Claude.ai.
+  identyfikatora strony nadawcy (np. `chatgpt:` dla karty chatgpt.com) (`lib/mapping/access.ts`). Content script z chatgpt.com nie dostanie mapowania rozmowy z Claude.ai.
 
 ## Czego nie chroni
 
@@ -150,8 +148,8 @@ Przed wydaniem selektory sprawdza ręczna lista z [release.md](release.md).
 - Mapowania są w `storage.session`: w pamięci, znikają po zamknięciu przeglądarki (także po
   wyłączeniu lub aktualizacji rozszerzenia). Po tym czasie odpowiedzi zostają ze znacznikami.
 - Najwyżej 50 rozmów; najdawniej używane są usuwane.
-- Moduł `lib/mapping/store.ts` ma działać tylko w service workerze, a content script dostaje
-  mapowanie przez wiadomości ze sprawdzeniem prefiksu strony **(planowane, do weryfikacji)**.
+- Moduł `lib/mapping/store.ts` działa tylko w service workerze, a content script dostaje
+  mapowanie przez wiadomości ze sprawdzeniem prefiksu strony.
 - Mapowanie bieżącej rozmowy jest też w pamięci content scriptu (izolowany świat), bo przywracanie
   odbywa się w karcie.
 - Poza zakresem: inne rozszerzenie z szerokimi uprawnieniami, złośliwe oprogramowanie na
@@ -173,8 +171,9 @@ Przed wydaniem selektory sprawdza ręczna lista z [release.md](release.md).
   Emscripten z `eval` nie działają (zob. [spike T2](spikes/T2-pyodide.md)).
 - Kod Pythona wykonywany w Pyodide to tylko polanon i `python/ainonim_bridge.py`; tekst
   użytkownika jest przekazywany jako dane (JSON), nie jako kod.
-- Mostek testowy (`entrypoints/content/index.ts`, `window.postMessage` na `localhost`) jest
-  wyłączony z buildu produkcyjnego **(planowane, do weryfikacji)**.
+- Mostek testowy (`entrypoints/test-bridge.content.ts`, `window.postMessage` na `localhost`) jest
+  budowany tylko w trybie `--mode e2e`; `scripts/check-production-build.js` przerywa `npm run build`,
+  jeśli trafiłby do paczki.
 
 ### Prawo
 

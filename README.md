@@ -6,8 +6,9 @@ trafią do czatu AI albo formularza. Wykrywaniem zajmuje się biblioteka
 [Pyodide](https://pyodide.org). Wszystko działa lokalnie: Pyodide i polanon są w paczce
 rozszerzenia, nic nie jest pobierane z sieci.
 
-Stan: szkielet projektu i spike T2 (Pyodide + polanon w dokumencie offscreen). Wyniki pomiarów:
-[docs/spikes/T2-pyodide.md](docs/spikes/T2-pyodide.md).
+Stan: MVP zintegrowane (wykrywanie i maskowanie w polach na każdej stronie, przywracanie odpowiedzi
+w ChatGPT i Claude.ai), przetestowane na stronach testowych; przed wydaniem test na żywych czatach.
+Pomiary: [docs/spikes/T2-pyodide.md](docs/spikes/T2-pyodide.md).
 
 ## Jak to działa
 
