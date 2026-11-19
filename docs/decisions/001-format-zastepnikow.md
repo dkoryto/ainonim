@@ -14,11 +14,11 @@ Jedna wiadomość z fikcyjnymi danymi, wysłana w ChatGPT i Claude.ai (19.11.202
 > Napisz krótki e-mail (3 zdania) do klienta w sprawie korekty faktury. Klient: <OSOBA_1>, PESEL <PESEL_1>.
 > Osoba kontaktowa: [OSOBA_2], numer konta [IBAN_1]. W powitaniu zwróć się do [OSOBA_2:wołacz].
 
-| | ChatGPT | Claude.ai |
-|---|---|---|
-| `<…>` widoczne w wiadomości i odpowiedzi | tak | tak |
-| `[…]` widoczne w wiadomości i odpowiedzi | tak | tak |
-| Model zachował wszystkie zastępniki dosłownie, także `[OSOBA_2:wołacz]` | tak | tak |
+|                                                                         | ChatGPT | Claude.ai |
+| ----------------------------------------------------------------------- | ------- | --------- |
+| `<…>` widoczne w wiadomości i odpowiedzi                                | tak     | tak       |
+| `[…]` widoczne w wiadomości i odpowiedzi                                | tak     | tak       |
+| Model zachował wszystkie zastępniki dosłownie, także `[OSOBA_2:wołacz]` | tak     | tak       |
 
 ## Uwagi do kolejnych zadań
 
