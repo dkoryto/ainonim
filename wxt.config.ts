@@ -19,7 +19,7 @@ export default defineConfig({
     name: 'AInonim',
     description:
       'Maskuje polskie dane osobowe w czatach AI i formularzach, lokalnie w przeglądarce.',
-    permissions: ['offscreen'],
+    permissions: ['offscreen', 'storage', 'activeTab'],
     content_security_policy: {
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
     },

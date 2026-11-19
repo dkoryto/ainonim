@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <title>AInonim</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <h1>AInonim</h1>
+    <p id="host" class="host"></p>
+    <fieldset id="level" hidden>
+      <legend>Na tej stronie</legend>
+      <label><input type="radio" name="level" value="warn" /> Ostrzegaj</label>
+      <label><input type="radio" name="level" value="off" /> Wyłączone</label>
+    </fieldset>
+    <p id="note" class="note" hidden></p>
+    <p class="info">Wykrywanie działa lokalnie w przeglądarce, tekst nigdzie nie jest wysyłany.</p>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
