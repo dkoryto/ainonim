@@ -20,14 +20,32 @@ content script ──runtime.sendMessage──▶ service worker ──runtime.s
 Pyodide działa w dokumencie offscreen, bo service worker MV3 jest usypiany po ok. 30 s
 bezczynności i interpreter trzeba by ładować od nowa.
 
-W obecnym etapie content script działa tylko na `localhost` / `127.0.0.1` i służy testom e2e.
+Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkich ramkach:
+
+- Czyta poziom strony z popupu (`lib/settings.ts`); przy `off` nic nie robi i usuwa wszystko,
+  co dodał.
+- Po przerwie w pisaniu (`lib/fields/watch.ts`) wysyła tekst pola do analizy. Gdy coś znajdzie,
+  pokazuje plakietkę w rogu pola z liczbą i rodzajami danych oraz przyciskiem „Zamaskuj”, a w
+  edytorach contenteditable podświetla znalezione fragmenty (`lib/ui/`). „Zamaskuj” wpisuje w
+  pole tekst z zastępnikami (`<OSOBA_1>`), „×” chowa plakietkę do następnej zmiany tekstu.
+- Na ChatGPT i Claude.ai (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
+  „zastępnik → oryginał” trzyma service worker w `storage.session` (tylko w pamięci), a strona
+  dostaje je tylko dla własnej witryny. Nowa rozmowa ma klucz tymczasowy, który po nadaniu
+  identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu zastępniki są
+  zamieniane na oryginały tylko na ekranie (`lib/restore/`), także w odmianie
+  (`<OSOBA_1:wołacz>` → „Janie Kowalski”).
+- Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane.
 
 ### Komunikacja
 
-- Content scripty wołają `analyzeText(text, mapping?)` i `restoreText(text, mapping)` z
-  `lib/client.ts`. Obie funkcje nigdy nie rzucają wyjątku: zwracają `{ ok: true, … }` albo
-  `{ ok: false, code, error }`, gdzie `code` to `invalid-request`, `too-long`, `timeout` lub
-  `engine`.
+- Content scripty wołają `analyzeText(text, mapping?)`, `analyzeInConversation(text, key,
+persist)`, `restoreText(text, mapping)`, `getConversationMapping(key)` i
+  `renameConversation(from, to)` z `lib/client.ts`. Żądania z kluczem rozmowy service worker
+  przyjmuje tylko wtedy, gdy witryna klucza (`chatgpt:`) zgadza się z adresem ramki, która je
+  wysłała (`lib/mapping/access.ts`); inaczej odpowiada `forbidden`. Żadna z tych funkcji nie rzuca wyjątku: zwracają
+  `{ ok: true, … }` albo `{ ok: false, code, error }`, gdzie `code` to `invalid-request`,
+  `too-long`, `timeout`, `engine`, `forbidden` lub `conflict` (zastępnik w tej rozmowie oznacza
+  już inną wartość).
 - Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/messages.ts`) po każdej
   stronie. Service worker przyjmuje żądania tylko z kart, dokument offscreen tylko spoza kart.
 - Limit tekstu: 50 000 znaków (`string.length`), sprawdzany w kliencie, w service workerze i w
@@ -45,16 +63,16 @@ W obecnym etapie content script działa tylko na `localhost` / `127.0.0.1` i sł
 
 ## Polecenia
 
-| Polecenie           | Co robi                                                              |
-| ------------------- | -------------------------------------------------------------------- |
-| `npm run dev`       | WXT w trybie deweloperskim                                           |
-| `npm run build`     | buduje `.output/chrome-mv3`                                          |
-| `npm run zip`       | buduje paczkę `.output/ainonim-<wersja>-chrome.zip`                  |
-| `npm test`          | testy jednostkowe (Vitest)                                           |
-| `npm run test:e2e`  | build + testy e2e (Playwright, Chromium z załadowanym rozszerzeniem) |
-| `npm run measure`   | build + pomiary spike'u T2 (czas zimnego startu, opóźnienie)         |
-| `npm run lint`      | ESLint + Prettier                                                    |
-| `npm run typecheck` | `tsc --noEmit`                                                       |
+| Polecenie           | Co robi                                                             |
+| ------------------- | ------------------------------------------------------------------- |
+| `npm run dev`       | WXT w trybie deweloperskim                                          |
+| `npm run build`     | buduje `.output/chrome-mv3` i sprawdza, że nie ma w nim kodu testów |
+| `npm run zip`       | buduje paczkę `.output/ainonim-<wersja>-chrome.zip`                 |
+| `npm test`          | testy jednostkowe (Vitest)                                          |
+| `npm run test:e2e`  | build `--mode e2e` (z mostkiem testowym) + testy e2e (Playwright)   |
+| `npm run measure`   | build + pomiary spike'u T2 (czas zimnego startu, opóźnienie)        |
+| `npm run lint`      | ESLint + Prettier                                                   |
+| `npm run typecheck` | `tsc --noEmit`                                                      |
 
 Ręczne załadowanie: `chrome://extensions` → tryb dewelopera → „Załaduj rozpakowane” →
 `.output/chrome-mv3`.
