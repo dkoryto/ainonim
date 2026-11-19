@@ -14,17 +14,28 @@ function emptyPyodideLock(): string {
   return JSON.stringify({ info: lock.info, packages: {} });
 }
 
+/** The build mode the e2e tests use; only it includes the test bridge content script. */
+const E2E_MODE = 'e2e';
+const TEST_ONLY_ENTRYPOINTS = new Set(['test-bridge']);
+
 export default defineConfig({
   manifest: {
     name: 'AInonim',
     description:
-      'Maskuje polskie dane osobowe w czatach AI i formularzach, lokalnie w przeglądarce.',
+      'Wykrywa i maskuje polskie dane osobowe (PESEL, NIP, IBAN, imiona) w czatach AI i formularzach. Działa lokalnie, nic nie wysyła.',
     permissions: ['offscreen', 'storage', 'activeTab'],
     content_security_policy: {
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
     },
   },
   hooks: {
+    // The test bridge lets any localhost page talk to the service worker; it must never ship.
+    'entrypoints:resolved': (wxt, entrypoints) => {
+      if (wxt.config.mode === E2E_MODE) return;
+      for (const entrypoint of entrypoints) {
+        if (TEST_ONLY_ENTRYPOINTS.has(entrypoint.name)) entrypoint.skipped = true;
+      }
+    },
     // Pyodide and the polanon wheel are bundled into the package; nothing is fetched at runtime.
     'build:publicAssets': (_wxt, files) => {
       for (const name of PYODIDE_FILES) {

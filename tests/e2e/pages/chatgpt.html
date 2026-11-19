@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- A stand-in for chatgpt.com, served by the e2e tests through context.route. Its structure follows
+     tests/fixtures/sites/chatgpt-conversation.html. Fictitious data. -->
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <title>ChatGPT (test)</title>
+    <style>
+      body {
+        font: 16px sans-serif;
+        margin: 24px;
+      }
+      [contenteditable] {
+        width: 480px;
+        min-height: 80px;
+        border: 1px solid #888;
+        padding: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <form>
+        <div
+          contenteditable="true"
+          role="textbox"
+          data-composer-markdown="true"
+          class="ProseMirror"
+          aria-label="Zapytaj ChatGPT"
+        ></div>
+        <button type="button" data-testid="send-button">Wyślij</button>
+      </form>
+    </main>
+  </body>
+</html>

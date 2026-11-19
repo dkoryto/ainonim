@@ -35,6 +35,18 @@ export interface AnalyzeRequest {
   text: string;
   /** Mapping from earlier calls, so tokens for already seen values stay the same. */
   mapping?: Mapping;
+  /**
+   * The chat conversation the text belongs to (`chatgpt:<id>`, see lib/mapping/store.ts). The
+   * service worker then uses that conversation's stored mapping instead of `mapping`, which
+   * must be absent. Only a page of the matching chat site may name a conversation.
+   */
+  conversationKey?: string;
+  /**
+   * With `conversationKey`: store the new tokens in the conversation and answer with its whole
+   * mapping. Without it the analysis only reads the stored mapping, so text that is analysed
+   * while being typed ("Jan Kow") does not use up token numbers.
+   */
+  persist?: boolean;
 }
 
 /** Content script -> service worker. */
@@ -45,7 +57,27 @@ export interface RestoreRequest {
   mapping: Mapping;
 }
 
-export type ContentRequest = AnalyzeRequest | RestoreRequest;
+/** Content script -> service worker: the stored mapping of a conversation (`{}` if none). */
+export interface MappingGetRequest {
+  type: 'ainonim/mapping-get';
+  id: string;
+  conversationKey: string;
+}
+
+/**
+ * Content script -> service worker: a new chat got its id, so its mapping moves from the
+ * temporary key to the real one. Answered with the mapping under `toKey`.
+ */
+export interface MappingRenameRequest {
+  type: 'ainonim/mapping-rename';
+  id: string;
+  fromKey: string;
+  toKey: string;
+}
+
+export type MappingRequest = MappingGetRequest | MappingRenameRequest;
+
+export type ContentRequest = AnalyzeRequest | RestoreRequest | MappingRequest;
 
 /** Service worker -> offscreen document: answered once Pyodide and polanon are loaded. */
 export interface OffscreenReadyRequest {
@@ -77,9 +109,12 @@ export type OffscreenRequest =
  * - `invalid-request`: the message did not match the protocol,
  * - `too-long`: the text is longer than MAX_TEXT_LENGTH,
  * - `timeout`: the engine did not answer in time,
- * - `engine`: Pyodide, polanon or the messaging between contexts failed.
+ * - `engine`: Pyodide, polanon or the messaging between contexts failed,
+ * - `forbidden`: the sender may not use the conversation it named,
+ * - `conflict`: a token is already stored for a different value in that conversation.
  */
-export type ErrorCode = 'invalid-request' | 'too-long' | 'timeout' | 'engine';
+export type ErrorCode =
+  'invalid-request' | 'too-long' | 'timeout' | 'engine' | 'forbidden' | 'conflict';
 
 export interface Failure {
   id: string;
@@ -101,6 +136,8 @@ export type AnalyzeResponse =
   | Failure;
 
 export type RestoreResponse = { id: string; ok: true; text: string } | Failure;
+
+export type MappingResponse = { id: string; ok: true; mapping: Mapping } | Failure;
 
 export type ReadyResponse = { id: string; ok: true; loadMs: number } | Failure;
 
@@ -135,14 +172,28 @@ export function isAinonimMessage(value: unknown): value is { type: string; id?: 
   return isRecord(value) && typeof value.type === 'string' && value.type.startsWith('ainonim/');
 }
 
+function isAnalyzeRequest(value: Record<string, unknown>): boolean {
+  if (value.persist !== undefined && typeof value.persist !== 'boolean') return false;
+  if (value.conversationKey === undefined) {
+    return value.persist === undefined && (value.mapping === undefined || isMapping(value.mapping));
+  }
+  return typeof value.conversationKey === 'string' && value.mapping === undefined;
+}
+
 export function isContentRequest(value: unknown): value is ContentRequest {
-  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.text !== 'string') {
-    return false;
+  if (!isRecord(value) || typeof value.id !== 'string') return false;
+  switch (value.type) {
+    case 'ainonim/analyze':
+      return typeof value.text === 'string' && isAnalyzeRequest(value);
+    case 'ainonim/restore':
+      return typeof value.text === 'string' && isMapping(value.mapping);
+    case 'ainonim/mapping-get':
+      return typeof value.conversationKey === 'string';
+    case 'ainonim/mapping-rename':
+      return typeof value.fromKey === 'string' && typeof value.toKey === 'string';
+    default:
+      return false;
   }
-  if (value.type === 'ainonim/analyze') {
-    return value.mapping === undefined || isMapping(value.mapping);
-  }
-  return value.type === 'ainonim/restore' && isMapping(value.mapping);
 }
 
 export function isOffscreenRequest(value: unknown): value is OffscreenRequest {
@@ -160,6 +211,8 @@ const ERROR_CODES: readonly unknown[] = [
   'too-long',
   'timeout',
   'engine',
+  'forbidden',
+  'conflict',
 ] satisfies ErrorCode[];
 
 function isResponse(
@@ -183,6 +236,10 @@ export function isAnalyzeResponse(value: unknown): value is AnalyzeResponse {
 
 export function isRestoreResponse(value: unknown): value is RestoreResponse {
   return isResponse(value, (response) => typeof response.text === 'string');
+}
+
+export function isMappingResponse(value: unknown): value is MappingResponse {
+  return isResponse(value, (response) => isMapping(response.mapping));
 }
 
 export function isReadyResponse(value: unknown): value is ReadyResponse {
