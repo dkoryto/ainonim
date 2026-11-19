@@ -68,6 +68,24 @@ ani od lokalnego repo polanon. Przebudowanie z lokalnej kopii polanon:
 ./scripts/build-polanon-wheel.sh ../polanon
 ```
 
+## Ograniczenia
+
+Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+
+- To pseudonimizacja, nie anonimizacja w rozumieniu RODO.
+- Wykrywanie działa na regułach, bez NER: samo nazwisko, nazwa miejscowości czy firma bez formy
+  prawnej często umykają. Tekst trzeba przeczytać przed wysłaniem.
+- Nic nie jest maskowane automatycznie: w trybie „ostrzegaj” tekst wysłany bez kliknięcia
+  „Zamaskuj” idzie z danymi.
+- Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi, legenda przy bloku edytora
+  ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
+  nie to, co strona wyświetla.
+- Strona widzi treść pola, zanim zostanie zamaskowana.
+- Pliki i obrazy dołączane do czatu, pola w zamkniętych shadow root, edytory na `canvas` i
+  `iframe` z innej domeny nie są obsługiwane.
+- Przycisk kopiowania bloku w ChatGPT kopiuje znaczniki, nie oryginały.
+- Adaptery ChatGPT i Claude.ai zależą od selektorów, które strony zmieniają.
+
 ## Licencje
 
 Zob. [NOTICE](NOTICE) (dołączany do paczki jako `NOTICE.txt`).

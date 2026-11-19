@@ -62,8 +62,15 @@ zasadach. AInonim pomaga ograniczyć dane w tej wiadomości, ale nie kontroluje 
   sobie zgodności z RODO.
 - Żaden detektor nie wykrywa wszystkiego. Bez modelu językowego często umyka np. samo nazwisko lub
   nazwa miejscowości. Przed wysłaniem przeczytaj tekst.
+- AInonim nic nie maskuje sam: tekst wysłany bez kliknięcia „zamaskuj” trafia do strony taki, jaki
+  jest. Pliki i obrazy dołączane do czatu nie są sprawdzane.
 - Mapowanie znacznik → oryginał jest tak samo wrażliwe jak oryginalne dane. Przywrócone oryginały
-  w odpowiedziach ChatGPT i Claude.ai są widoczne tylko na Twoim ekranie.
+  w odpowiedziach ChatGPT i Claude.ai nie są nigdzie wysyłane przez rozszerzenie, ale są
+  wyświetlane w samej stronie, więc jej skrypty mogą je odczytać, tak jak wszystko inne, co
+  widzisz na tej stronie. AInonim ogranicza dane w wysyłanej wiadomości; nie ukrywa niczego przed
+  stroną, na której piszesz.
+
+Szczegóły: [model zagrożeń](THREAT_MODEL.md).
 
 ### Kontakt i zmiany
 
@@ -129,8 +136,15 @@ its terms. AInonim helps you reduce personal data in that message but does not c
   itself make any processing GDPR-compliant.
 - No detector catches everything. Without a language model, e.g. a surname on its own or a city name
   is often missed. Read your text before sending it.
+- AInonim masks nothing by itself: text sent without clicking "mask" reaches the site as it is.
+  Files and images attached to a chat are not checked.
 - The token → original mapping is as sensitive as the original data. Originals restored in ChatGPT
-  and Claude.ai answers are shown on your screen only.
+  and Claude.ai answers are never sent anywhere by the extension, but they are displayed inside the
+  page itself, so the page's scripts can read them, like anything else you see on that page.
+  AInonim reduces the data in the message you send; it does not hide anything from the site you
+  are typing on.
+
+Details (in Polish): [threat model](THREAT_MODEL.md).
 
 ### Contact and changes
 
