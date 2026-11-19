@@ -1,5 +1,7 @@
-// Test bridge only: lets a local test page send text through the extension and read the result
-// back. Limited to localhost; the real field watcher replaces this in a later task.
+// Test bridge for the e2e tests: lets a local test page send requests through the extension and
+// read the answers back. It exists only in `wxt build --mode e2e` (.output/chrome-mv3-e2e):
+// wxt.config.ts skips this entrypoint in every other mode, and `npm run build` checks that no
+// `ainonim-test` code ended up in the package.
 import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { analyzeText, restoreText } from '~/lib/client';

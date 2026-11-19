@@ -10,7 +10,8 @@ import {
 } from '@playwright/test';
 import type { AnalyzeResponse, Mapping, RestoreResponse } from '~/lib/messages';
 
-const EXTENSION_PATH = resolve(import.meta.dirname, '../../.output/chrome-mv3');
+// The e2e build (`npm run build:e2e`): the production package plus the test bridge content script.
+const EXTENSION_PATH = resolve(import.meta.dirname, '../../.output/chrome-mv3-e2e');
 
 export async function launchWithExtension(): Promise<BrowserContext> {
   // The "chromium" channel runs the new headless mode, which supports extensions.
