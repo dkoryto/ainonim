@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Plain fields</title>
+<textarea id="area"></textarea>
+<input id="line" type="text" />
+<div id="editable" contenteditable="true"></div>
+<input id="other" type="text" value="untouched" />
+<script>
+  // Count the events a page script would see, per field and type.
+  window.fieldEvents = {};
+  for (const type of ['input', 'change']) {
+    document.addEventListener(type, (event) => {
+      const key = `${event.target.id}:${type}`;
+      window.fieldEvents[key] = (window.fieldEvents[key] ?? 0) + 1;
+    });
+  }
+</script>
