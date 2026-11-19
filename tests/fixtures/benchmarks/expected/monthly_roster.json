@@ -1,0 +1,39 @@
+{
+  "anonymized": "Wykaz osób i okresów:\n<OSOBA_1> 03/2024\n<OSOBA_1> 12.2024\nSprawa: <OSOBA_1> 15/2024\n\nKarta pracy: 15.03.2024 <OSOBA_2> 8 h\nW 2023 <OSOBA_2> 2 razy była na urlopie.\n",
+  "spans": [
+    {
+      "start": 22,
+      "end": 36,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 45,
+      "end": 59,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 76,
+      "end": 90,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 124,
+      "end": 128,
+      "entity_type": "PERSON",
+      "score": 0.8
+    },
+    {
+      "start": 140,
+      "end": 144,
+      "entity_type": "PERSON",
+      "score": 0.8
+    }
+  ],
+  "mapping": {
+    "<OSOBA_1>": "Nowak Wiktoria",
+    "<OSOBA_2>": "Anna"
+  }
+}

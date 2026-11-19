@@ -1,0 +1,126 @@
+{
+  "anonymized": "Zgłoszenie serwisowe nr INC-2026-0912\n\nZgłaszający: <OSOBA_1>, dział IT\nKontakt: <EMAIL_1>, tel. <TELEFON_1>\n\nOpis:\nPo aktualizacji serwer aplikacyjny <IP_1> przestał odpowiadać.\nW logu widać próbę połączenia z hosta o adresie MAC <MAC_1>.\nKonfiguracja, którą przysłał dostawca:\n\n  DB_PASSWORD=<SEKRET_1>\n  OPENROUTER_KEY=<SEKRET_2>\n  smtp_login: <EMAIL_2>\n\nDostawca: <FIRMA_1>, NIP <NIP_1>, REGON <REGON_1>\nSamochód serwisowy: nr rej. <REJESTRACJA_1>, VIN <VIN_1>\n\nProsimy o kontakt z panią <OSOBA_2>, PESEL <PESEL_1>,\n<ADRES_1>, <KOD_POCZTOWY_1> Kraków.\n",
+  "spans": [
+    {
+      "start": 52,
+      "end": 67,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 87,
+      "end": 118,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    },
+    {
+      "start": 125,
+      "end": 137,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 180,
+      "end": 190,
+      "entity_type": "IP_ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 264,
+      "end": 281,
+      "entity_type": "MAC_ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 337,
+      "end": 353,
+      "entity_type": "SECRET",
+      "score": 0.9
+    },
+    {
+      "start": 371,
+      "end": 412,
+      "entity_type": "SECRET",
+      "score": 1.0
+    },
+    {
+      "start": 427,
+      "end": 453,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    },
+    {
+      "start": 465,
+      "end": 483,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 489,
+      "end": 499,
+      "entity_type": "NIP",
+      "score": 1.0
+    },
+    {
+      "start": 507,
+      "end": 516,
+      "entity_type": "REGON",
+      "score": 1.0
+    },
+    {
+      "start": 545,
+      "end": 553,
+      "entity_type": "PLATE",
+      "score": 1.0
+    },
+    {
+      "start": 559,
+      "end": 576,
+      "entity_type": "VIN",
+      "score": 1.0
+    },
+    {
+      "start": 604,
+      "end": 619,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 627,
+      "end": 638,
+      "entity_type": "PESEL",
+      "score": 1.0
+    },
+    {
+      "start": 640,
+      "end": 657,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 659,
+      "end": 665,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    }
+  ],
+  "mapping": {
+    "<OSOBA_1>": "Marek Dąbrowski",
+    "<EMAIL_1>": "m.dabrowski@nasza-firma.example",
+    "<TELEFON_1>": "22 610 44 08",
+    "<IP_1>": "10.14.22.7",
+    "<MAC_1>": "3C:22:FB:1A:0B:9E",
+    "<SEKRET_1>": "ZimowyPociag2026",
+    "<SEKRET_2>": "sk-or-v1-8f2c1d9a6b4e7c05a3d18f2b6e9c4a71",
+    "<EMAIL_2>": "serwis@nasza-firma.example",
+    "<FIRMA_1>": "Bud-Mar sp. z o.o.",
+    "<NIP_1>": "5270810728",
+    "<REGON_1>": "360214771",
+    "<REJESTRACJA_1>": "KR 8492J",
+    "<VIN_1>": "WVWZZZ1KZAW123456",
+    "<OSOBA_2>": "Anną Wiśniewską",
+    "<PESEL_1>": "45831523452",
+    "<ADRES_1>": "ul. Kwiatowa 12/4",
+    "<KOD_POCZTOWY_1>": "30-001"
+  }
+}

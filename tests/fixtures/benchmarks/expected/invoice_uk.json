@@ -1,0 +1,145 @@
+{
+  "anonymized": "INVOICE No. HLS-2026-0417\n\nFrom:\n<FIRMA_1>\n<ADRES_1>\nBristol <KOD_POCZTOWY_1>\nUnited Kingdom\nTel: <TELEFON_1>\nEmail: <EMAIL_1>\nVAT Reg No: <NR_PODATKOWY_1>\nCompany Registered in England and Wales No. <NR_REJESTROWY_1>\n\nBill To:\n<FIRMA_2>\n<ADRES_2>, <KOD_POCZTOWY_2> Kraków\nPoland\nVAT: <NIP_1>\n\nAttn: <OSOBA_1>\n\nDescription                          Qty    Unit price    Total\nPallet wrap, 500 mm                   40         12.50   500.00\nDelivery to Kraków                     1        180.00   180.00\n\nSubtotal                                              680.00\nVAT 0% (reverse charge)                                 0.00\nTotal due (GBP)                                       680.00\n\nPayment within 30 days to:\n<FIRMA_3>\nSort Code: <KONTO_1>  Account No: <KONTO_2>\nIBAN: <IBAN_1>\n\nIf you have any questions about this invoice, please contact Mr <OSOBA_2> on <TELEFON_2>.\n\nKind regards,\n<OSOBA_2>\n<FIRMA_1>\n",
+  "spans": [
+    {
+      "start": 33,
+      "end": 58,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 59,
+      "end": 77,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 86,
+      "end": 93,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 114,
+      "end": 130,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 138,
+      "end": 166,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    },
+    {
+      "start": 179,
+      "end": 193,
+      "entity_type": "TAX_ID",
+      "score": 1.0
+    },
+    {
+      "start": 238,
+      "end": 246,
+      "entity_type": "COMPANY_ID",
+      "score": 1.0
+    },
+    {
+      "start": 257,
+      "end": 283,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 284,
+      "end": 297,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 299,
+      "end": 305,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 325,
+      "end": 337,
+      "entity_type": "NIP",
+      "score": 1.0
+    },
+    {
+      "start": 345,
+      "end": 357,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 763,
+      "end": 780,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 792,
+      "end": 800,
+      "entity_type": "BANK_ACCOUNT",
+      "score": 1.0
+    },
+    {
+      "start": 814,
+      "end": 822,
+      "entity_type": "BANK_ACCOUNT",
+      "score": 1.0
+    },
+    {
+      "start": 829,
+      "end": 851,
+      "entity_type": "IBAN",
+      "score": 1.0
+    },
+    {
+      "start": 917,
+      "end": 931,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 935,
+      "end": 948,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 965,
+      "end": 979,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 980,
+      "end": 1005,
+      "entity_type": "ORG",
+      "score": 0.95
+    }
+  ],
+  "mapping": {
+    "<FIRMA_1>": "Harbour Lane Supplies Ltd",
+    "<ADRES_1>": "27 Kingfisher Road",
+    "<KOD_POCZTOWY_1>": "BS1 4DJ",
+    "<TELEFON_1>": "+44 117 496 0321",
+    "<EMAIL_1>": "accounts@harbourlane.example",
+    "<NR_PODATKOWY_1>": "GB 123 4567 82",
+    "<NR_REJESTROWY_1>": "09876543",
+    "<FIRMA_2>": "Nowak Transport Sp. z o.o.",
+    "<ADRES_2>": "ul. Długa 145",
+    "<KOD_POCZTOWY_2>": "31-147",
+    "<NIP_1>": "PL8992611767",
+    "<OSOBA_1>": "Emily Carter",
+    "<FIRMA_3>": "Barclays Bank PLC",
+    "<KONTO_1>": "20-45-77",
+    "<KONTO_2>": "41365870",
+    "<IBAN_1>": "GB33BUKB20201555555555",
+    "<OSOBA_2>": "Oliver Bennett",
+    "<TELEFON_2>": "0117 496 0588"
+  }
+}

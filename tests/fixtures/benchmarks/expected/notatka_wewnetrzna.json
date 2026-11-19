@@ -1,0 +1,119 @@
+{
+  "anonymized": "NOTATKA WEWNĘTRZNA — migracja serwera pocztowego\n\nProwadzi: <OSOBA_1>, dział IT\nZastępstwo: <OSOBA_2> (urlop od poniedziałku)\n\nStan obecny:\nSerwer pocztowy <IP_1> zostanie wyłączony. Nowy adres to\n<IP_2>, a interfejs ma MAC <MAC_1>.\nKonto serwisowe: <EMAIL_1>, hasło <SEKRET_1>.\n\nKontakt do dostawcy:\n<FIRMA_1>, NIP <NIP_1>\nOpiekun: <OSOBA_3>, tel. <TELEFON_1>\nAdres: <ADRES_1>, <KOD_POCZTOWY_1> Katowice\n\nUwagi:\nFaktury wysyłamy na <EMAIL_2>. Samochód serwisowy\nnr rej. <REJESTRACJA_1> stoi na parkingu przy <ADRES_2>.\n",
+  "spans": [
+    {
+      "start": 60,
+      "end": 80,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 103,
+      "end": 124,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 179,
+      "end": 189,
+      "entity_type": "IP_ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 224,
+      "end": 263,
+      "entity_type": "IP_ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 284,
+      "end": 301,
+      "entity_type": "MAC_ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 320,
+      "end": 346,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    },
+    {
+      "start": 354,
+      "end": 372,
+      "entity_type": "SECRET",
+      "score": 0.88
+    },
+    {
+      "start": 396,
+      "end": 414,
+      "entity_type": "ORG",
+      "score": 0.95
+    },
+    {
+      "start": 420,
+      "end": 430,
+      "entity_type": "NIP",
+      "score": 1.0
+    },
+    {
+      "start": 440,
+      "end": 456,
+      "entity_type": "PERSON",
+      "score": 0.9
+    },
+    {
+      "start": 463,
+      "end": 476,
+      "entity_type": "PHONE",
+      "score": 1.0
+    },
+    {
+      "start": 484,
+      "end": 501,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    },
+    {
+      "start": 503,
+      "end": 509,
+      "entity_type": "POSTAL_CODE",
+      "score": 1.0
+    },
+    {
+      "start": 547,
+      "end": 576,
+      "entity_type": "EMAIL",
+      "score": 1.0
+    },
+    {
+      "start": 605,
+      "end": 613,
+      "entity_type": "PLATE",
+      "score": 1.0
+    },
+    {
+      "start": 636,
+      "end": 651,
+      "entity_type": "ADDRESS",
+      "score": 1.0
+    }
+  ],
+  "mapping": {
+    "<OSOBA_1>": "Maria Nowak-Kowalska",
+    "<OSOBA_2>": "Katarzyna Lewandowska",
+    "<IP_1>": "10.14.22.7",
+    "<IP_2>": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+    "<MAC_1>": "3C:22:FB:1A:0B:9E",
+    "<EMAIL_1>": "serwis@nasza-firma.example",
+    "<SEKRET_1>": "Zimowy-Pociag-2026",
+    "<FIRMA_1>": "Bud-Mar sp. z o.o.",
+    "<NIP_1>": "5270810728",
+    "<OSOBA_3>": "Tomasz Kowalczyk",
+    "<TELEFON_1>": "0048601234567",
+    "<ADRES_1>": "ul. Przemysłowa 7",
+    "<KOD_POCZTOWY_1>": "40-020",
+    "<EMAIL_2>": "kadry@nowak-transport.example",
+    "<REJESTRACJA_1>": "KR 8492J",
+    "<ADRES_2>": "ul. Długiej 145"
+  }
+}
