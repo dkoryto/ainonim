@@ -1,54 +1,44 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
-import {
-  type AnalyzeRequest,
-  type AnalyzeResponse,
-  type OffscreenAnalyzeRequest,
-  isAnalyzeRequest,
-} from '~/lib/messages';
+import { failure, isAinonimMessage, isContentRequest } from '~/lib/messages';
+import { createOffscreenKeeper } from '~/lib/offscreen-document';
+import { type WorkerDeps, handleContentRequest } from '~/lib/worker';
 
 const OFFSCREEN_PATH = '/offscreen.html';
 
-let creating: Promise<void> | undefined;
-
-// Created on the first request and reused afterwards; it survives service worker restarts.
-async function ensureOffscreenDocument(): Promise<void> {
-  const url = browser.runtime.getURL(OFFSCREEN_PATH);
-  const existing = await browser.runtime.getContexts({
-    contextTypes: [browser.runtime.ContextType.OFFSCREEN_DOCUMENT],
-    documentUrls: [url],
-  });
-  if (existing.length > 0) return;
-  creating ??= browser.offscreen
-    .createDocument({
-      url: OFFSCREEN_PATH,
-      reasons: [browser.offscreen.Reason.WORKERS],
-      justification: 'Runs the polanon PII detector in Pyodide (WebAssembly).',
-    })
-    .finally(() => {
-      creating = undefined;
-    });
-  await creating;
-}
-
-async function forward(request: AnalyzeRequest): Promise<AnalyzeResponse> {
-  try {
-    await ensureOffscreenDocument();
-    const message: OffscreenAnalyzeRequest = {
-      type: 'ainonim/offscreen-analyze',
-      id: request.id,
-      text: request.text,
-    };
-    return await browser.runtime.sendMessage<OffscreenAnalyzeRequest, AnalyzeResponse>(message);
-  } catch (error) {
-    return { id: request.id, ok: false, error: String(error) };
-  }
-}
-
 export default defineBackground(() => {
+  const offscreen = createOffscreenKeeper({
+    async hasDocument() {
+      const contexts = await browser.runtime.getContexts({
+        contextTypes: [browser.runtime.ContextType.OFFSCREEN_DOCUMENT],
+        documentUrls: [browser.runtime.getURL(OFFSCREEN_PATH)],
+      });
+      return contexts.length > 0;
+    },
+    createDocument: () =>
+      browser.offscreen.createDocument({
+        url: OFFSCREEN_PATH,
+        reasons: [browser.offscreen.Reason.WORKERS],
+        justification: 'Runs the polanon PII detector in Pyodide (WebAssembly).',
+      }),
+    closeDocument: () => browser.offscreen.closeDocument(),
+  });
+
+  const deps: WorkerDeps = {
+    ensureOffscreen: offscreen.ensure,
+    closeOffscreen: offscreen.close,
+    sendToOffscreen: (message) => browser.runtime.sendMessage(message),
+  };
+
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (!isAnalyzeRequest(message) || !sender.tab) return;
-    void forward(message).then(sendResponse);
+    // Requests come from content scripts only; extension pages (the offscreen document) have no tab.
+    if (!sender.tab || !isAinonimMessage(message)) return;
+    if (!isContentRequest(message)) {
+      const id = typeof message.id === 'string' ? message.id : '';
+      sendResponse(failure(id, 'invalid-request', `Malformed request of type ${message.type}.`));
+      return;
+    }
+    void handleContentRequest(message, deps).then(sendResponse);
     return true;
   });
 });

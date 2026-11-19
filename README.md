@@ -22,6 +22,21 @@ bezczynności i interpreter trzeba by ładować od nowa.
 
 W obecnym etapie content script działa tylko na `localhost` / `127.0.0.1` i służy testom e2e.
 
+### Komunikacja
+
+- Content scripty wołają `analyzeText(text, mapping?)` i `restoreText(text, mapping)` z
+  `lib/client.ts`. Obie funkcje nigdy nie rzucają wyjątku: zwracają `{ ok: true, … }` albo
+  `{ ok: false, code, error }`, gdzie `code` to `invalid-request`, `too-long`, `timeout` lub
+  `engine`.
+- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/messages.ts`) po każdej
+  stronie. Service worker przyjmuje żądania tylko z kart, dokument offscreen tylko spoza kart.
+- Limit tekstu: 50 000 znaków (`string.length`), sprawdzany w kliencie, w service workerze i w
+  offscreen, zanim tekst trafi do Pythona.
+- Czas: najpierw service worker czeka na gotowość silnika (utworzenie offscreen + ładowanie
+  Pyodide, do 20 s), dopiero potem liczy 5 s na samo `analyze`/`restore`. Po przekroczeniu
+  czasu zamyka dokument offscreen, bo Pythona nie da się przerwać; następne żądanie tworzy go od
+  nowa.
+
 ## Wymagania
 
 - Node.js 22.12+ (CI: 24)
