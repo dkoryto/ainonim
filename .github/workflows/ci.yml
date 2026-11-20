@@ -23,5 +23,73 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      # The unit tests, failing below 80% line/statement/function/branch coverage of lib/.
+      - run: npm run test:coverage
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The browser build that matches the pinned @playwright/test; the cache key follows it.
+      - id: playwright
+        run: echo "version=$(npx playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - id: browser-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # The tests use the "chromium" channel (new headless, needed for extensions), not the
+      # headless shell. System libraries are not cached, so they are installed on every run.
+      - if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps --no-shell chromium
+      - if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      # Builds the e2e package and runs every spec headless, privacy.spec.ts included.
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: playwright
+        run: echo "version=$(npx playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - id: browser-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps --no-shell chromium
+      - if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      # The production package, whose size the measurement checks.
+      - run: npm run build
+      # Fails only on gross regressions: median cold start >= 5 s, median warm round trip
+      # >= 200 ms per 2000 characters, production package >= 15 MB. The limits and why they are
+      # loose are documented in tests/e2e/measure.spec.ts.
+      - run: npm run measure
+        env:
+          AINONIM_MEASURE_LIMITS: '1'

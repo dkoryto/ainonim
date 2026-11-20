@@ -13,15 +13,23 @@ import type { AnalyzeResponse, Mapping, RestoreResponse } from '~/lib/messages';
 // The e2e build (`npm run build:e2e`): the production package plus the test bridge content script.
 const EXTENSION_PATH = resolve(import.meta.dirname, '../../.output/chrome-mv3-e2e');
 
-export async function launchWithExtension(): Promise<BrowserContext> {
+export interface LaunchOptions {
+  /** Profile directory; a fresh temporary one when empty. */
+  userDataDir?: string;
+  /** Extra Chromium switches. */
+  args?: string[];
+}
+
+export async function launchWithExtension(options: LaunchOptions = {}): Promise<BrowserContext> {
   // The "chromium" channel runs the new headless mode, which supports extensions.
-  return chromium.launchPersistentContext('', {
+  return chromium.launchPersistentContext(options.userDataDir ?? '', {
     channel: 'chromium',
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
       // No DNS except the local test server: a CDN fetch anywhere in the pipeline would fail.
       '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
+      ...(options.args ?? []),
     ],
   });
 }

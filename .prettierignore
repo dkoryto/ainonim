@@ -3,6 +3,7 @@
 node_modules/
 playwright-report/
 test-results/
+coverage/
 vendor/
 package-lock.json
 tests/fixtures/benchmarks/
