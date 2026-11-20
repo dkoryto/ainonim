@@ -17,15 +17,17 @@ fikcyjnych danych.
 npm ci
 npm run lint
 npm run typecheck
-npm test
+npm run test:coverage
 npm run test:e2e
+npm run build
 npm run measure
 ```
 
-- [ ] Wszystko zielone.
-- [ ] `npm run measure`: zimny start < 3 s, ciepłe `analyze` (2000 znaków) < 100 ms, rozmiar
-      `.output/chrome-mv3` < 15 MB. Porównaj z [docs/spikes/T2-pyodide.md](spikes/T2-pyodide.md);
-      wyraźny wzrost wyjaśnij przed wydaniem.
+- [ ] Wszystko zielone. `npm run test:coverage` to testy jednostkowe z progiem 80% pokrycia `lib/`;
+      `npm run test:e2e` obejmuje test prywatności (`tests/e2e/privacy.spec.ts`).
+- [ ] `npm run measure` (po `npm run build`, żeby zmierzyć rozmiar paczki): zimny start < 3 s,
+      ciepłe `analyze` (2000 znaków) < 100 ms, rozmiar `.output/chrome-mv3` < 15 MB. Porównaj z
+      [docs/spikes/T2-pyodide.md](spikes/T2-pyodide.md); wyraźny wzrost wyjaśnij przed wydaniem.
 
 ## 3. Bezpieczeństwo
 
