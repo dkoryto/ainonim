@@ -19,7 +19,8 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "measure": "npm run build:e2e && AINONIM_MEASURE=1 playwright test measure"
+    "measure": "npm run build:e2e && AINONIM_MEASURE=1 playwright test measure",
+    "screenshots": "npm run build:e2e && node scripts/screenshots.js"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

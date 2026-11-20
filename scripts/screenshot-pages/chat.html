@@ -1,0 +1,110 @@
+<!doctype html>
+<!-- A neutral chat page for the store screenshots, served as chatgpt.com by scripts/screenshots.js
+     so the extension's chat adapter runs on it. It copies no site's look or branding; only the
+     element attributes the adapter looks for (lib/sites/chatgpt.ts) are the same. Fictitious data. -->
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <title>Czat</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        font:
+          15px/1.55 system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        color: #1f2328;
+        background: #f6f7f9;
+      }
+      header {
+        padding: 12px 24px;
+        border-bottom: 1px solid #e3e6ea;
+        background: #ffffff;
+        font-weight: 600;
+        color: #3b4250;
+      }
+      main {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 20px 0;
+      }
+      .turn {
+        width: 620px;
+        margin: 0 auto;
+      }
+      .user {
+        display: flex;
+        justify-content: flex-end;
+      }
+      .user p {
+        max-width: 460px;
+        margin: 0;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: #e4e9f2;
+        white-space: pre-wrap;
+      }
+      [data-response-body] p {
+        margin: 0 0 8px;
+      }
+      form {
+        width: 620px;
+        margin: 0 auto 20px;
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+      }
+      [contenteditable] {
+        flex: 1;
+        min-height: 84px;
+        padding: 12px 14px;
+        border: 1px solid #c9ced6;
+        border-radius: 14px;
+        background: #ffffff;
+        outline: none;
+        white-space: pre-wrap;
+      }
+      [contenteditable]:empty::before {
+        content: attr(aria-placeholder);
+        color: #8a919c;
+      }
+      button {
+        padding: 9px 16px;
+        border: 0;
+        border-radius: 10px;
+        background: #3b4250;
+        color: #ffffff;
+        font: inherit;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <header>Czat AI</header>
+    <main></main>
+    <form>
+      <div
+        contenteditable="true"
+        role="textbox"
+        data-composer-markdown="true"
+        aria-label="Wiadomość"
+        aria-placeholder="Napisz wiadomość"
+      ></div>
+      <button type="button" data-testid="send-button">Wyślij</button>
+    </form>
+  </body>
+</html>
