@@ -90,16 +90,32 @@ Adres polityki prywatności: opublikowana wersja `docs/privacy-policy.md` ([adre
 
 ### Zrzuty ekranu (1280×800)
 
-1. **Odznaka w ChatGPT**: wiadomość z „Jan Kowalski, PESEL 50810112354”, odznaka „2: osoba, PESEL”.
+Pliki w `assets/store/`, generowane z prawdziwym rozszerzeniem (build e2e) przez
+`npm run screenshots` (`scripts/screenshots.js`, strony w `scripts/screenshot-pages/`). Strony są
+lokalne i neutralne: czat jest podstawiony pod adres `chatgpt.com` tylko po to, żeby zadziałał
+adapter czatu, ale nie naśladuje wyglądu żadnego serwisu. Odpowiedź „modelu” na zrzucie 3 wstawia
+skrypt (tak jak testy e2e); przywrócenie oryginałów w niej robi już rozszerzenie. Popup na zrzucie 5
+to prawdziwa strona popupu; skrypt podaje jej tylko adres karty, bo popup otwarty ze skryptu nie
+dostaje `activeTab`.
+
+1. `screenshot-1-badge.png`: wiadomość w czacie z „Jan Kowalski”, PESEL i IBAN-em, podkreślone
+   wartości i odznaka „3 · IBAN, osoba, PESEL” z przyciskiem „Zamaskuj”.
    Podpis: „Widzisz dane osobowe, zanim je wyślesz”.
-2. **Po kliknięciu „zamaskuj”**: ta sama wiadomość z `<OSOBA_1>` i `<PESEL_1>`.
+2. `screenshot-2-masked.png`: ta sama wiadomość po kliknięciu „Zamaskuj”: `<OSOBA_1>`,
+   `<PESEL_1>`, `<IBAN_1>`.
    Podpis: „Jedno kliknięcie zamienia dane na znaczniki”.
-3. **Odpowiedź w Claude.ai**: odpowiedź modelu z przywróconym „Jan Kowalski”.
+3. `screenshot-3-restored.png`: wysłana wiadomość ze znacznikami i odpowiedź, w której widać
+   „Janie Kowalski” i numer konta zamiast znaczników.
    Podpis: „Oryginały wracają w odpowiedzi, tylko na Twoim ekranie”.
-4. **Zwykły formularz**: pole „Uwagi” z IBAN-em i e-mailem, odznaka przy polu.
+4. `screenshot-4-form.png`: formularz zwrotu w sklepie, pole „Uwagi” z IBAN-em i e-mailem i odznaka
+   „2 · e-mail, IBAN”; wypełnione pole hasła nie ma odznaki.
    Podpis: „Działa w każdym polu tekstowym, nie tylko w czatach”.
-5. **Przełącznik dla strony**: wybór „ostrzegaj / wyłączone” dla bieżącej strony.
+5. `screenshot-5-site-switch.png`: popup nad tym formularzem z wyborem „Ostrzegaj / Wyłączone” dla
+   `sklep.example.pl`.
    Podpis: „Ty decydujesz, na których stronach działa”.
+
+Mały kafelek promocyjny (440×280): `assets/store/promo-440x280.png`, generowany razem z ikonami
+przez `node scripts/render-icons.js` z `assets/icon.svg`.
 
 Wszystkie dane na zrzutach muszą być fikcyjne.
 

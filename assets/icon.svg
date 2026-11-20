@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>AInonim</title>
+  <!-- A text field whose middle line is covered by a mask bar: text in, personal data out. -->
+  <rect x="5" y="5" width="118" height="118" rx="27" fill="#1d2b4f" stroke="#4a5f96" stroke-width="2"/>
+  <rect x="24" y="28" width="80" height="16" rx="8" fill="#ffffff"/>
+  <rect x="24" y="56" width="18" height="16" rx="8" fill="#ffffff"/>
+  <rect x="50" y="54" width="54" height="20" rx="6" fill="#ff6b4a"/>
+  <rect x="24" y="84" width="52" height="16" rx="8" fill="#ffffff"/>
+</svg>
