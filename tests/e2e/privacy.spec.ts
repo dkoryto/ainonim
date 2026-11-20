@@ -265,7 +265,8 @@ test('typed personal data never leaves the browser', async ({ recording }) => {
   // 1. Nothing went anywhere but the extension package, the local server and the routed stand-in.
   // Chrome fetches a tab's favicon itself, past `context.route`; for the stand-in it is
   // https://chatgpt.com/favicon.ico, a request the real site gets from any visit, and here it ends
-  // in the host resolver rule (no DNS). Its URL, headers and body are still searched below.
+  // in the host resolver rule (no DNS). Chrome's own UI (e.g. the omnibox popup on Linux) loads
+  // chrome:// resources, which never touch the network. Both are still searched for values below.
   const browserFavicon = 'https://chatgpt.com/favicon.ico';
   const outside = seen
     .filter(
@@ -273,7 +274,8 @@ test('typed personal data never leaves the browser', async ({ recording }) => {
         !url.startsWith(`${extensionOrigin}/`) &&
         !url.startsWith(`${serverOrigin}/`) &&
         !routed.has(url) &&
-        url !== browserFavicon,
+        url !== browserFavicon &&
+        !url.startsWith('chrome://'),
     )
     .map((r) => `${r.recorder}/${r.context}: ${r.url}`);
   expect(outside).toEqual([]);

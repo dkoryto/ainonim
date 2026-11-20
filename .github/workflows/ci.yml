@@ -49,7 +49,7 @@ jobs:
       # The tests use the "chromium" channel (new headless, needed for extensions), not the
       # headless shell. System libraries are not cached, so they are installed on every run.
       - if: steps.browser-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps --no-shell chromium
+        run: npx playwright install --with-deps chromium
       - if: steps.browser-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       # Builds the e2e package and runs every spec headless, privacy.spec.ts included.
@@ -82,7 +82,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - if: steps.browser-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps --no-shell chromium
+        run: npx playwright install --with-deps chromium
       - if: steps.browser-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       # The production package, whose size the measurement checks.
