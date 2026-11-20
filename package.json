@@ -15,6 +15,7 @@
     "zip": "wxt zip && node scripts/check-production-build.js",
     "postinstall": "wxt prepare",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "npm run build:e2e && playwright test",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
@@ -29,6 +30,7 @@
     "@types/node": "24.19.2",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
+    "@vitest/coverage-v8": "5.1.1",
     "esbuild": "0.28.2",
     "eslint": "10.15.0",
     "globals": "17.14.0",
@@ -48,5 +50,10 @@
     "typescript-eslint": "8.73.0",
     "vitest": "5.1.1",
     "wxt": "0.21.5"
+  },
+  "overrides": {
+    "@vitest/istanbul-lib-coverage": "2.1.0",
+    "@vitest/istanbul-lib-report": "2.1.0",
+    "ast-v8-to-istanbul": "1.0.7"
   }
 }
