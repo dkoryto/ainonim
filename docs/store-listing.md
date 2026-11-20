@@ -32,7 +32,7 @@ Co wykrywa:
 Jak działa:
 • Odznaka przy edytowanym polu pokazuje liczbę i rodzaje znalezionych danych.
 • Jedno kliknięcie zamienia je na znaczniki, np. „Jan Kowalski” → <OSOBA_1>.
-• W ChatGPT i Claude.ai oryginały wracają w odpowiedzi modelu, tylko na Twoim ekranie.
+• W ChatGPT i Claude.ai oryginały wracają w odpowiedzi modelu na Twoim ekranie; do modelu trafiają tylko znaczniki.
 • Pola haseł, kart i kodów jednorazowych są pomijane.
 • Dla każdej strony możesz wybrać: ostrzegaj albo wyłączone.
 
@@ -106,7 +106,7 @@ dostaje `activeTab`.
    Podpis: „Jedno kliknięcie zamienia dane na znaczniki”.
 3. `screenshot-3-restored.png`: wysłana wiadomość ze znacznikami i odpowiedź, w której widać
    „Janie Kowalski” i numer konta zamiast znaczników.
-   Podpis: „Oryginały wracają w odpowiedzi, tylko na Twoim ekranie”.
+   Podpis: „Model widzi znaczniki, Ty widzisz oryginały”.
 4. `screenshot-4-form.png`: formularz zwrotu w sklepie, pole „Uwagi” z IBAN-em i e-mailem i odznaka
    „2 · e-mail, IBAN”; wypełnione pole hasła nie ma odznaki.
    Podpis: „Działa w każdym polu tekstowym, nie tylko w czatach”.
@@ -147,7 +147,7 @@ What it detects:
 How it works:
 • A badge by the field shows the number and kinds of data found.
 • One click replaces them with tokens, e.g. "Jan Kowalski" → <OSOBA_1>.
-• In ChatGPT and Claude.ai the originals are shown again in the model's answer, on your screen only.
+• In ChatGPT and Claude.ai the originals are shown again in the model's answer on your screen; only tokens are sent to the model.
 • Password, card and one-time-code fields are skipped.
 • Per site you choose: warn or off.
 
@@ -198,6 +198,6 @@ Privacy policy URL: published version of `docs/privacy-policy.md` ([privacy poli
 
 1. "See personal data before you send it"
 2. "One click replaces it with tokens"
-3. "Originals come back in the answer, on your screen only"
+3. "The model sees tokens, you see the originals"
 4. "Works in any text field, not only AI chats"
 5. "You choose the sites where it runs"
