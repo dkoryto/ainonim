@@ -53,6 +53,10 @@ async function init(): Promise<void> {
   const note = element('note', HTMLParagraphElement);
   const stored = element('stored', HTMLElement);
   void initDisplay(element('display', HTMLFieldSetElement));
+  element('settings', HTMLAnchorElement).addEventListener('click', (event) => {
+    event.preventDefault();
+    void browser.runtime.openOptionsPage();
+  });
 
   // The popup is opened by the user's click, so activeTab exposes this tab's URL without `tabs`.
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
