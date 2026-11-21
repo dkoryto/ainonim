@@ -114,28 +114,35 @@ content script ──runtime.sendMessage──▶ service worker ──runtime.s
 Pyodide działa w dokumencie offscreen, bo service worker MV3 jest usypiany po ok. 30 s
 bezczynności i interpreter trzeba by ładować od nowa.
 
-**Content script** (`entrypoints/content/`) działa na każdej stronie, we wszystkich ramkach:
+Kod w `lib/` jest podzielony według kontekstu, w którym działa; podział i reguły importów opisuje
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+**Content script** (`entrypoints/content/`, `lib/content/`) działa na każdej stronie, we wszystkich
+ramkach:
 
 - `lib/sites/access.ts` decyduje, czy ma działać na stronie (`siteScope`, `allowedSites`,
   `siteLevels`), i reaguje na każdą zmianę; po wyłączeniu usuwa wszystko, co dodał.
-- `lib/fields/` obserwuje pola (także edytory contenteditable: ProseMirror, Lexical, Quill),
-  czyta ich tekst i wpisuje wynik maskowania.
+- `lib/content/fields/` obserwuje pola (także edytory contenteditable: ProseMirror, Lexical,
+  Quill), czyta ich tekst i wpisuje wynik maskowania.
 - `lib/content/masking.ts` analizuje tekst po przerwie w pisaniu, prowadzi panel i „Cofnij”;
   `auto-mask.ts` przechwytuje wysyłanie w czatach (faza capture, przed stroną); `typing-mask.ts`
   maskuje po przerwie w pisaniu; `generalise.ts` tworzy wartości „ogólnie”.
-- `lib/sites/` zawiera adaptery czatów: pole wiadomości, odpowiedzi, wysłane wiadomości, przycisk
-  wysyłania i identyfikator rozmowy z adresu.
-- `lib/restore/` zamienia znaczniki na oryginały w odpowiedziach i wysłanych wiadomościach,
-  zmieniając tylko `data` istniejących węzłów tekstu, i podświetla je przez CSS Custom Highlight
-  API. Pola wpisywania wiadomości nigdy nie zmienia.
-- `lib/ui/` rysuje ikonę i panel w zamkniętym shadow root.
+- `lib/sites/` zawiera adaptery czatów (jeden plik na czat): pole wiadomości, odpowiedzi, wysłane
+  wiadomości, przycisk wysyłania i identyfikator rozmowy z adresu.
+- `lib/content/restore/` zamienia znaczniki na oryginały w odpowiedziach i wysłanych
+  wiadomościach, zmieniając tylko `data` istniejących węzłów tekstu, i podświetla je przez CSS
+  Custom Highlight API. Pola wpisywania wiadomości nigdy nie zmienia.
+- `lib/content/ui/` rysuje ikonę i panel w zamkniętym shadow root.
 
-**Service worker** (`entrypoints/background.ts`, `lib/background/worker.ts`) tworzy dokument offscreen przy
-pierwszym żądaniu, stosuje wyłączone kategorie i własne słowa (`lib/detection/`), trzyma mapowania
-rozmów (`lib/mapping/`) i dopisuje wpisy dziennika (`lib/log/`).
+**Service worker** (`entrypoints/background.ts`, `lib/background/`) tworzy dokument offscreen
+przy pierwszym żądaniu, stosuje wyłączone kategorie i własne słowa (`lib/background/refine.ts`),
+trzyma mapowania rozmów (`lib/background/mapping/`) i dopisuje wpisy dziennika (`lib/log/`).
+
+**Dokument offscreen** (`entrypoints/offscreen/`, `lib/offscreen/`) ładuje Pyodide i polanon.
 
 **Strony rozszerzenia**: okienko (`entrypoints/popup/`), ustawienia (`entrypoints/options/`,
-zakładki w `lib/ui/options/`) i raport do druku (`entrypoints/report/`).
+zakładki w `lib/pages/options/`) i raport do druku (`entrypoints/report/`); ich logika jest w
+`lib/pages/`. Ustawienia (`storage.sync`) są w `lib/settings/`, po jednym module na obszar.
 
 ### Komunikacja
 
@@ -145,7 +152,8 @@ zakładki w `lib/ui/options/`) i raport do druku (`entrypoints/report/`).
   `invalid-request`, `too-long`, `timeout`, `engine`, `forbidden` lub `conflict`. Opis błędu
   podaje etap, na którym wystąpił (np. `worker:create-offscreen: Error: …`).
 - Żądania z kluczem rozmowy service worker przyjmuje tylko wtedy, gdy witryna klucza (`chatgpt:`)
-  zgadza się z adresem ramki nadawcy (`lib/background/mapping/access.ts`); inaczej odpowiada `forbidden`.
+  zgadza się z adresem ramki nadawcy (`lib/background/mapping/access.ts`); inaczej odpowiada
+  `forbidden`.
   Listę i usuwanie zapamiętanych danych obsługują tylko strony rozszerzenia.
 - Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/shared/messages.ts`).
 - Limit tekstu: 50 000 znaków, sprawdzany w kliencie, w service workerze i w offscreen.
@@ -173,6 +181,10 @@ przebudowania koła polanon Python 3.11+ i lokalne repozytorium polanon.
 
 Mostek testowy (`entrypoints/test-bridge.content.ts`) jest tylko w buildzie `--mode e2e`;
 `npm run build` sprawdza, że nie trafił do paczki produkcyjnej.
+
+Testy jednostkowe w `tests/unit/` odwzorowują `lib/`: test modułu `lib/<obszar>/<moduł>.ts` jest w
+`tests/unit/<obszar>/<moduł>.test.ts`. Testy e2e są w `tests/e2e/`. `npm run lint` sprawdza też
+granice między obszarami `lib/` ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 
 ### polanon
 
@@ -219,6 +231,7 @@ do [CHANGELOG.md](CHANGELOG.md) i podbija wersję w `package.json`.
 - [CHANGELOG.md](CHANGELOG.md) – historia wersji
 - [docs/privacy-policy.md](docs/privacy-policy.md) – polityka prywatności (PL i EN)
 - [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) – model zagrożeń
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) – struktura kodu i granice między modułami
 - [docs/store-listing.md](docs/store-listing.md) – opis i formularze Chrome Web Store
 - [docs/release.md](docs/release.md) – lista kontrolna wydania
 - [docs/decisions/](docs/decisions/) – decyzje projektowe

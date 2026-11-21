@@ -64,8 +64,8 @@ Pojedyncze próby (ms): zimny start 1432,5 / 1447,8 / 1453,8 / 1425,7 / 1446,2; 
 - Dokument offscreen tworzony leniwie przy pierwszym żądaniu (`chrome.offscreen.createDocument`,
   powód `WORKERS`), potem wykrywany przez `chrome.runtime.getContexts` i używany ponownie;
   równoległe pierwsze żądania czekają na tę samą obietnicę utworzenia.
-- Wiadomości mają typy i `id` żądania (`lib/shared/messages.ts`). Offscreen przyjmuje żądania tylko spoza
-  kart (`sender.tab` puste), bo content scripty też dosięgają stron rozszerzenia.
+- Wiadomości mają typy i `id` żądania (`lib/shared/messages.ts`). Offscreen przyjmuje żądania
+  tylko spoza kart (`sender.tab` puste), bo content scripty też dosięgają stron rozszerzenia.
 
 ## Wątki
 

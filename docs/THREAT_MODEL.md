@@ -53,12 +53,14 @@ pełny dostęp do DOM-u, który content script czyta i zmienia.
 - **Mapowanie poza zasięgiem strony.** Mapowania są w `storage.session` z domyślnym poziomem
   dostępu `TRUSTED_CONTEXTS`, więc content scripty nie czytają ich bezpośrednio, a skrypty strony
   w ogóle. Service worker oddaje mapowanie tylko dla rozmowy, której klucz zaczyna się od
-  identyfikatora strony nadawcy (np. `chatgpt:` dla karty chatgpt.com) (`lib/background/mapping/access.ts`). Content script z chatgpt.com nie dostanie mapowania rozmowy z Claude.ai.
+  identyfikatora strony nadawcy (np. `chatgpt:` dla karty chatgpt.com)
+  (`lib/background/mapping/access.ts`). Content script z chatgpt.com nie dostanie mapowania
+  rozmowy z Claude.ai.
 - **Podgląd i usuwanie mapowań tylko z popupu.** Wiadomości `ainonim/mappings-list`,
   `ainonim/mapping-delete` i `ainonim/mappings-clear` service worker obsługuje tylko wtedy, gdy
   nadawca to strona rozszerzenia: `sender.id` jest identyfikatorem AInonim, a `sender.url` leży
-  w originie `chrome-extension://<id>/` (`isExtensionPage` w `lib/background/mapping/access.ts`). Content
-  script, także na stronie czatu, dostaje `forbidden`, zanim wiadomość zostanie w ogóle
+  w originie `chrome-extension://<id>/` (`isExtensionPage` w
+  `lib/background/mapping/access.ts`). Content script, także na stronie czatu, dostaje `forbidden`, zanim wiadomość zostanie w ogóle
   sprawdzona. Popup wstawia oryginały wyłącznie przez `textContent` i ich nie loguje.
 
 ## Czego nie chroni
@@ -75,8 +77,8 @@ zapisać w historii. Dotyczy to:
 - zakresów podświetlenia (CSS Custom Highlight API, `CSS.highlights`), które wskazują przywrócone
   wartości w tych samych węzłach tekstowych,
 - legendy „znacznik → oryginał” przy edytowalnym bloku ChatGPT („writing block”). Legenda jest w
-  **otwartym** shadow root (`attachShadow({ mode: 'open' })` w `lib/content/restore/observer.ts`), więc
-  skrypt strony dosięga jej przez `element.shadowRoot`.
+  **otwartym** shadow root (`attachShadow({ mode: 'open' })` w
+  `lib/content/restore/observer.ts`), więc skrypt strony dosięga jej przez `element.shadowRoot`.
 
 AInonim chroni przed wysłaniem danych **w prompcie**, nie przed odczytaniem przez stronę tego,
 co wyświetla w swoim własnym DOM-ie. Przywracanie jest wygodą dla użytkownika, nie mechanizmem
@@ -88,8 +90,8 @@ ale nie uniemożliwia odczytu, bo tekst nadal jest renderowany w stronie), pokaz
 w panelu bocznym rozszerzenia (`side_panel`), poza DOM-em strony, zamiast podmiany w odpowiedzi.
 
 Ikona przy polu i panel z listą znalezionych wartości są w zamkniętych shadow root
-(`lib/content/ui/badge.ts`, `lib/content/ui/icon.ts`); skrypty strony nie sięgają do ich treści (a wartości i tak
-widzą w polu, z którego pochodzą).
+(`lib/content/ui/badge.ts`, `lib/content/ui/icon.ts`); skrypty strony nie sięgają do ich treści
+(a wartości i tak widzą w polu, z którego pochodzą).
 
 ### Pole przed maskowaniem
 
