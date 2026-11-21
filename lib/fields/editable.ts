@@ -64,6 +64,8 @@ function hasSecretAutocomplete(field: EditableField): boolean {
 export function isExcluded(field: EditableField): boolean {
   if (field instanceof HTMLInputElement && field.type === 'password') return true;
   if (hasSecretAutocomplete(field)) return true;
+  // Quill (Gemini and many other sites) keeps a hidden contenteditable that only receives pastes.
+  if (field.classList.contains('ql-clipboard')) return true;
   if (
     (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) &&
     (field.disabled || field.readOnly || field.matches(':disabled'))

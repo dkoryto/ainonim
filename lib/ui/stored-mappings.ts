@@ -11,6 +11,9 @@ import { adapterFor } from '~/lib/sites';
 const SITE_NAMES: Readonly<Record<string, string>> = {
   chatgpt: 'ChatGPT',
   claude: 'Claude.ai',
+  gemini: 'Gemini',
+  grok: 'Grok',
+  perplexity: 'Perplexity',
 };
 
 /** Characters of a conversation id shown before the ellipsis. */
