@@ -13,6 +13,8 @@ import {
   type ManageDeps,
   type MappingStore,
   handleContentRequest,
+  type LogDeps,
+  handleLogAppend,
   handleManageMessage,
 } from '~/lib/background/worker';
 
@@ -558,5 +560,66 @@ describe('handleManageMessage', () => {
 
     expect(response).toMatchObject({ id: 'l', ok: false, code: 'engine' });
     expect(JSON.stringify(response)).not.toContain('Jan');
+  });
+});
+
+const REPORT = { source: 'manual', masked: 2, generalised: 1, categories: { PERSON: 2, PESEL: 1 } };
+
+describe('handleLogAppend', () => {
+  function deps(enabled = true): LogDeps & { append: ReturnType<typeof vi.fn> } {
+    return {
+      append: vi.fn(() => Promise.resolve()),
+      isEnabled: () => Promise.resolve(enabled),
+      now: () => 42,
+    };
+  }
+  const message = { type: 'ainonim/log-append', id: 'm1', ...REPORT };
+
+  it('stores the entry under the sender frame host, not one the message names', async () => {
+    const log = deps();
+
+    const forged = { ...message, host: 'bank.pl', at: 1 } as { type: string };
+    const response = await handleLogAppend(forged, 'https://Chatgpt.com:443/c/1', log);
+
+    expect(response).toEqual({ id: 'm1', ok: true });
+    expect(log.append).toHaveBeenCalledWith({ at: 42, host: 'chatgpt.com', ...REPORT });
+  });
+
+  it('answers ok and writes nothing while the log is turned off', async () => {
+    const log = deps(false);
+
+    expect(await handleLogAppend(message, 'https://chatgpt.com/', log)).toEqual({
+      id: 'm1',
+      ok: true,
+    });
+    expect(log.append).not.toHaveBeenCalled();
+  });
+
+  it('refuses a malformed report and a sender without a hostname', async () => {
+    const log = deps();
+
+    expect(
+      await handleLogAppend(
+        { ...message, masked: 'x' } as { type: string },
+        'https://chatgpt.com/',
+        log,
+      ),
+    ).toMatchObject({ id: 'm1', ok: false, code: 'invalid-request' });
+    expect(await handleLogAppend(message, undefined, log)).toMatchObject({ code: 'forbidden' });
+    expect(await handleLogAppend(message, 'file:///tmp/a.html', log)).toMatchObject({
+      code: 'forbidden',
+    });
+    expect(log.append).not.toHaveBeenCalled();
+  });
+
+  it('reports a storage failure without details', async () => {
+    const log = { ...deps(), append: vi.fn(() => Promise.reject(new Error('quota'))) };
+
+    expect(await handleLogAppend(message, 'https://chatgpt.com/', log)).toEqual({
+      id: 'm1',
+      ok: false,
+      code: 'engine',
+      error: 'The masking log could not be written.',
+    });
   });
 });

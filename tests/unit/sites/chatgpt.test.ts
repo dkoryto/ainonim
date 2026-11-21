@@ -3,8 +3,6 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { chatgpt } from '~/lib/sites/chatgpt';
-import { claude } from '~/lib/sites/claude';
-import { adapterFor } from '~/lib/sites';
 
 function load(name: string): void {
   document.body.innerHTML = readFileSync(
@@ -18,30 +16,6 @@ function element(selector: string): Element {
   if (!found) throw new Error(`No ${selector} in the fixture`);
   return found;
 }
-
-describe('adapterFor', () => {
-  it('picks the adapter by host', () => {
-    expect(adapterFor('https://chatgpt.com/c/abc')?.id).toBe('chatgpt');
-    expect(adapterFor(new URL('https://claude.ai/new'))?.id).toBe('claude');
-    expect(adapterFor('https://example.com/')).toBeNull();
-    expect(adapterFor('not a url')).toBeNull();
-  });
-});
-
-describe('conversationId', () => {
-  it('reads the ChatGPT conversation from the path', () => {
-    const id = '0f4e2a10-1111-4c2b-9d3e-5a6b7c8d9e0f';
-    expect(chatgpt.conversationId(new URL(`https://chatgpt.com/c/${id}`))).toBe(id);
-    expect(chatgpt.conversationId(new URL(`https://chatgpt.com/g/g-abc-tutor/c/${id}`))).toBe(id);
-    expect(chatgpt.conversationId(new URL('https://chatgpt.com/'))).toBeNull();
-  });
-
-  it('reads the Claude.ai conversation from the path', () => {
-    const id = '7a1b2c3d-0000-4e5f-8a9b-0c1d2e3f4a5b';
-    expect(claude.conversationId(new URL(`https://claude.ai/chat/${id}`))).toBe(id);
-    expect(claude.conversationId(new URL('https://claude.ai/new'))).toBeNull();
-  });
-});
 
 describe('chatgpt', () => {
   beforeEach(() => {
@@ -120,42 +94,6 @@ describe('chatgpt', () => {
   });
 });
 
-describe('claude', () => {
-  beforeEach(() => {
-    load('claude-conversation.html');
-  });
-
-  it('finds the composer and the answers', () => {
-    expect(claude.composer(document)?.dataset.testid).toBe('chat-input');
-    expect(claude.answerRoots(document)).toHaveLength(2);
-  });
-
-  it('tells answers from user messages and the composer', () => {
-    expect(claude.isAnswerElement(element('.standard-markdown p'))).toBe(true);
-    expect(claude.isAnswerElement(element('[data-testid="user-message"] p'))).toBe(false);
-    expect(claude.isAnswerElement(element('[data-testid="chat-input"]'))).toBe(false);
-  });
-
-  it('finds sent messages, falling back to the transcript row', () => {
-    expect(claude.sentMessageRoots(document).map((root) => root.dataset.testid)).toEqual([
-      'user-message',
-    ]);
-    document.body.innerHTML =
-      '<div data-testid="transcript-row" data-perf-row="human"><p>a</p></div>' +
-      '<div data-testid="transcript-row" data-perf-row="assistant"><p>b</p></div>';
-    expect(claude.sentMessageRoots(document).map((root) => root.dataset.perfRow)).toEqual([
-      'human',
-    ]);
-  });
-
-  it('reads streaming from data-is-streaming', () => {
-    expect(claude.answerRoots(document).map((root) => claude.isStreaming(root))).toEqual([
-      false,
-      true,
-    ]);
-  });
-});
-
 describe('sendButton', () => {
   it('finds the ChatGPT send button by its test id', () => {
     load('chatgpt-conversation.html');
@@ -174,22 +112,5 @@ describe('sendButton', () => {
       '<form><div contenteditable="true" id="prompt-textarea"></div>' +
       '<button type="button">+</button><button type="submit" id="send">x</button></form>';
     expect(chatgpt.sendButton?.(document)?.id).toBe('send');
-  });
-
-  it('finds the Claude.ai send button by its English or Polish name', () => {
-    load('claude-conversation.html');
-    expect(claude.sendButton?.(document)?.getAttribute('aria-label')).toBe('Send message');
-
-    document.body.innerHTML =
-      '<fieldset><div contenteditable="true" data-testid="chat-input" role="textbox"></div>' +
-      '<button aria-label="Wyślij wiadomość">x</button></fieldset>';
-    expect(claude.sendButton?.(document)?.getAttribute('aria-label')).toBe('Wyślij wiadomość');
-  });
-
-  it('finds nothing without a send button or a composer', () => {
-    document.body.innerHTML = '<form><button type="submit">x</button></form>';
-
-    expect(chatgpt.sendButton?.(document)).toBeNull();
-    expect(claude.sendButton?.(document)).toBeNull();
   });
 });

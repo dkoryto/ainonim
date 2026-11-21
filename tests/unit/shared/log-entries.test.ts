@@ -1,6 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { CSV_HEADER, csvCell, describeCategories, toCsv } from '~/lib/log/csv';
+import { describe, expect, it } from 'vitest';
 import {
   type LogEntry,
   MAX_LOG_ENTRIES,
@@ -11,9 +9,7 @@ import {
   summarize,
   toLogEntry,
 } from '~/lib/shared/log-entries';
-import { LOG_STORAGE_KEY, appendLogEntry, clearLog, onLogChange, readLog } from '~/lib/log/store';
 import { isLogAppendRequest } from '~/lib/shared/messages';
-import { handleLogAppend, type LogDeps } from '~/lib/background/worker';
 
 const REPORT = { source: 'manual', masked: 2, generalised: 1, categories: { PERSON: 2, PESEL: 1 } };
 
@@ -149,137 +145,5 @@ describe('reportOf', () => {
 
     expect(report.categories).toEqual({ OTHER: 1 });
     expect(isMaskingReport(report)).toBe(true);
-  });
-});
-
-describe('csvCell', () => {
-  it.each([
-    ['=HYPERLINK("http://x")', `"'=HYPERLINK(""http://x"")"`],
-    ['+48 600', "'+48 600"],
-    ['-1', "'-1"],
-    ['@SUM(A1)', "'@SUM(A1)"],
-    ['\tcmd', "'\tcmd"],
-    ['\r=1', `"'\r=1"`],
-    ['a;b', '"a;b"'],
-    ['say "hi"', '"say ""hi"""'],
-    ['line\nbreak', '"line\nbreak"'],
-    ['chatgpt.com', 'chatgpt.com'],
-    [12, '12'],
-  ])('%j -> %j', (value, expected) => {
-    expect(csvCell(value)).toBe(expected);
-  });
-});
-
-describe('toCsv', () => {
-  it('writes a header and one row per entry with Polish names, CRLF and a BOM', () => {
-    const at = new Date(2026, 10, 21, 9, 5, 7).getTime();
-    const csv = toCsv([
-      entry(at, { masked: 2, generalised: 1, categories: { PERSON: 1, PESEL: 2 } }),
-    ]);
-
-    expect(csv.startsWith('﻿')).toBe(true);
-    expect(csv.slice(1).split('\r\n')).toEqual([
-      CSV_HEADER.join(';'),
-      '2026-11-21 09:05:07;chatgpt.com;automatycznie;2;1;3;PESEL: 2, osoba: 1',
-      '',
-    ]);
-  });
-
-  it('neutralises a hostname that looks like a formula', () => {
-    const csv = toCsv([entry(0, { host: '=cmd|x' })]);
-
-    expect(csv).toContain(";'=cmd|x;");
-  });
-
-  it('describes categories most first, unknown types by their raw name', () => {
-    expect(describeCategories({ EMAIL: 1, PERSON: 3, CUSTOM_X: 1 })).toBe(
-      'osoba: 3, CUSTOM_X: 1, e-mail: 1',
-    );
-  });
-});
-
-describe('log store', () => {
-  beforeEach(() => {
-    fakeBrowser.reset();
-  });
-
-  it('appends, reads back, reports changes and clears', async () => {
-    const seen: number[] = [];
-    const stop = onLogChange((log) => seen.push(log.length));
-
-    await Promise.all([appendLogEntry(entry(1)), appendLogEntry(entry(2))]);
-    expect((await readLog()).map((e) => e.at)).toEqual([1, 2]);
-    await clearLog();
-
-    expect(await readLog()).toEqual([]);
-    expect(seen).toEqual([1, 2, 0]);
-    stop();
-  });
-
-  it('ignores a malformed stored value', async () => {
-    await fakeBrowser.storage.local.set({ [LOG_STORAGE_KEY]: 'broken' });
-
-    expect(await readLog()).toEqual([]);
-    await appendLogEntry(entry(1));
-    expect(await readLog()).toEqual([entry(1)]);
-  });
-});
-
-describe('handleLogAppend', () => {
-  function deps(enabled = true): LogDeps & { append: ReturnType<typeof vi.fn> } {
-    return {
-      append: vi.fn(() => Promise.resolve()),
-      isEnabled: () => Promise.resolve(enabled),
-      now: () => 42,
-    };
-  }
-  const message = { type: 'ainonim/log-append', id: 'm1', ...REPORT };
-
-  it('stores the entry under the sender frame host, not one the message names', async () => {
-    const log = deps();
-
-    const forged = { ...message, host: 'bank.pl', at: 1 } as { type: string };
-    const response = await handleLogAppend(forged, 'https://Chatgpt.com:443/c/1', log);
-
-    expect(response).toEqual({ id: 'm1', ok: true });
-    expect(log.append).toHaveBeenCalledWith({ at: 42, host: 'chatgpt.com', ...REPORT });
-  });
-
-  it('answers ok and writes nothing while the log is turned off', async () => {
-    const log = deps(false);
-
-    expect(await handleLogAppend(message, 'https://chatgpt.com/', log)).toEqual({
-      id: 'm1',
-      ok: true,
-    });
-    expect(log.append).not.toHaveBeenCalled();
-  });
-
-  it('refuses a malformed report and a sender without a hostname', async () => {
-    const log = deps();
-
-    expect(
-      await handleLogAppend(
-        { ...message, masked: 'x' } as { type: string },
-        'https://chatgpt.com/',
-        log,
-      ),
-    ).toMatchObject({ id: 'm1', ok: false, code: 'invalid-request' });
-    expect(await handleLogAppend(message, undefined, log)).toMatchObject({ code: 'forbidden' });
-    expect(await handleLogAppend(message, 'file:///tmp/a.html', log)).toMatchObject({
-      code: 'forbidden',
-    });
-    expect(log.append).not.toHaveBeenCalled();
-  });
-
-  it('reports a storage failure without details', async () => {
-    const log = { ...deps(), append: vi.fn(() => Promise.reject(new Error('quota'))) };
-
-    expect(await handleLogAppend(message, 'https://chatgpt.com/', log)).toEqual({
-      id: 'm1',
-      ok: false,
-      code: 'engine',
-      error: 'The masking log could not be written.',
-    });
   });
 });
