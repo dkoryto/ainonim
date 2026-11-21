@@ -17,6 +17,8 @@ export interface BadgeItem {
   original: string;
   label: string;
   general: string;
+  /** What the value is replaced with until the user picks otherwise; the token when absent. */
+  defaultMode?: MaskMode;
 }
 
 /** What a checked value is replaced with: its token or its generalised text. */
@@ -297,6 +299,7 @@ interface Row {
   key: string;
   spans: Span[];
   checkbox: HTMLInputElement;
+  defaultMode: MaskMode | undefined;
 }
 
 function rowKey(item: BadgeItem): string {
@@ -306,8 +309,10 @@ function rowKey(item: BadgeItem): string {
 /** Equal for item lists that render the same rows, so an unchanged list is not rebuilt. */
 function signature(items: readonly BadgeItem[]): string {
   return items
-    .map(({ span, original, general }) =>
-      [span.start, span.end, span.entity_type, span.token, original, general].join('\u0000'),
+    .map(({ span, original, general, defaultMode }) =>
+      [span.start, span.end, span.entity_type, span.token, original, general, defaultMode].join(
+        '\u0000',
+      ),
     )
     .join('\u0001');
 }
@@ -384,8 +389,8 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
   let focusPanel = false;
   /** Values the user unchecked; they stay unchecked while the text is edited around them. */
   const unchecked = new Set<string>();
-  /** Values set to "ogólnie"; the rest are masked with their token. */
-  const general = new Set<string>();
+  /** Values the user switched to "znacznik" or "ogólnie"; the rest follow their default. */
+  const overrides = new Map<string, MaskMode>();
   let onScreen = true;
   let frame: number | null = null;
   let destroyed = false;
@@ -421,11 +426,12 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
     icon.button.setAttribute('aria-expanded', String(open));
   };
 
-  const modeOf = (key: string): MaskMode => (general.has(key) ? 'general' : 'token');
+  const modeOf = (key: string, defaultMode: MaskMode | undefined): MaskMode =>
+    overrides.get(key) ?? defaultMode ?? 'token';
 
   maskButton.addEventListener('click', () => {
     const choices = checkedRows()
-      .flatMap((row) => row.spans.map((span) => ({ span, mode: modeOf(row.key) })))
+      .flatMap((row) => row.spans.map((span) => ({ span, mode: modeOf(row.key, row.defaultMode) })))
       .sort((a, b) => a.span.start - b.span.start);
     if (choices.length > 0) options.onMask(choices);
   });
@@ -524,7 +530,7 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
     const token = element('button', '', 'znacznik');
     const generalised = element('button', '', 'ogólnie');
     const sync = (): void => {
-      const isGeneral = general.has(key);
+      const isGeneral = modeOf(key, item.defaultMode) === 'general';
       token.setAttribute('aria-pressed', String(!isGeneral));
       generalised.setAttribute('aria-pressed', String(isGeneral));
       out.textContent = `→ ${isGeneral ? item.general : displayToken(item.span.token)}`;
@@ -536,8 +542,7 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
     ] as const) {
       button.type = 'button';
       button.addEventListener('click', () => {
-        if (isGeneral) general.add(key);
-        else general.delete(key);
+        overrides.set(key, isGeneral ? 'general' : 'token');
         sync();
       });
     }
@@ -552,7 +557,7 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = !unchecked.has(key);
-    const row: Row = { key, spans: [item.span], checkbox };
+    const row: Row = { key, spans: [item.span], checkbox, defaultMode: item.defaultMode };
     // A click on a label focuses its checkbox (taking focus from the editor) before toggling it.
     // Toggle it from here instead: a programmatic click toggles without moving focus.
     pick.addEventListener('click', (event) => {
@@ -618,7 +623,7 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
     choicesFor: (items) =>
       items
         .filter((item) => !unchecked.has(rowKey(item)))
-        .map((item) => ({ span: item.span, mode: modeOf(rowKey(item)) }))
+        .map((item) => ({ span: item.span, mode: modeOf(rowKey(item), item.defaultMode) }))
         .sort((a, b) => a.span.start - b.span.start),
     destroy() {
       if (destroyed) return;

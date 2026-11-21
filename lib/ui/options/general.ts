@@ -75,15 +75,27 @@ export const MASKING_MODE_OPTIONS = [
   {
     value: 'manual',
     label: 'Ręcznie',
-    hint: 'Maskujesz z panelu przy polu.',
+    hint:
+      'Nic nie dzieje się samo. AInonim pokazuje przy polu, co znalazł, a Ty maskujesz ' +
+      'przyciskiem „Zamaskuj zaznaczone” w panelu.',
   },
   {
     value: 'auto',
     label: 'Automatycznie przy wysyłce',
     hint:
-      'Przed wysłaniem wiadomości w czacie wszystkie znalezione dane zostają zamienione na ' +
-      'znaczniki (wybory z panelu są uwzględniane). Działa w ChatGPT, Claude, Gemini, Groku i Perplexity; na innych ' +
-      'stronach maskujesz ręcznie z panelu.',
+      'Gdy wysyłasz wiadomość w czacie AI, znalezione dane zostają najpierw zamaskowane, a ' +
+      'dopiero potem wiadomość idzie dalej (wybory z panelu są uwzględniane). Działa w ChatGPT, ' +
+      'Claude, Gemini, Groku i Perplexity; na innych stronach maskujesz ręcznie z panelu.',
+  },
+  {
+    value: 'typing',
+    label: 'Automatycznie podczas pisania',
+    hint:
+      'Chwilę po tym, jak przestaniesz pisać, znalezione dane zostają zamaskowane w polu, bez ' +
+      'klikania, na każdej stronie, na której AInonim działa. Na co je zamienić, decydują ' +
+      'ustawienia w zakładce „Kategorie”. „Cofnij” w panelu przywraca tekst i AInonim nie ' +
+      'maskuje go znowu, dopóki czegoś nie dopiszesz. W czatach AI dane są też maskowane przy ' +
+      'wysyłce, gdyby coś zostało.',
   },
 ] as const;
 

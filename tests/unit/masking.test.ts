@@ -63,8 +63,14 @@ const RESULT: AnalyzeResult = {
 };
 const [JAN, PESEL] = RESULT.spans as [Span, Span];
 const ITEMS = [
-  { span: JAN, original: 'Jan Kowalski', label: 'osoba', general: '[osoba]' },
-  { span: PESEL, original: '50810112354', label: 'PESEL', general: '[PESEL]' },
+  { span: JAN, original: 'Jan Kowalski', label: 'osoba', general: '[osoba]', defaultMode: 'token' },
+  {
+    span: PESEL,
+    original: '50810112354',
+    label: 'PESEL',
+    general: '[PESEL]',
+    defaultMode: 'token',
+  },
 ];
 
 function ok(result: AnalyzeResult): AnalyzeResponse {

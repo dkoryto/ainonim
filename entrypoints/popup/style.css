@@ -79,6 +79,16 @@ fieldset label:last-of-type {
   border-radius: 0 6px 6px 0;
 }
 
+fieldset label + label {
+  border-left: 0;
+}
+
+/* Three segments in the 300 px popup. */
+#mask-mode label {
+  padding: 6px 2px;
+  white-space: nowrap;
+}
+
 fieldset input {
   position: absolute;
   opacity: 0;

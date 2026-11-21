@@ -17,12 +17,14 @@ import {
   type BadgeNotice,
   type BadgeStatus,
   type MaskChoice,
+  type MaskMode,
   type RevertState,
   createBadge,
 } from '~/lib/ui/badge';
 import { replaceAll } from '~/lib/spans';
 import { clearSpans, paintSpans } from '~/lib/ui/highlight';
 import { labelFor } from '~/lib/ui/labels';
+import { type TypingMasker, startTypingMask } from './typing-mask';
 
 export { maskSpans } from '~/lib/spans';
 
@@ -43,6 +45,10 @@ export interface MaskingOptions {
   debounceMs?: number;
   /** Called after each masking that was written into a field, with its counts (for the log). */
   onMasked?: (report: MaskingReport) => void;
+  /** What a value of this type is replaced with unless the panel says otherwise; else its token. */
+  defaultMode?: (entityType: string) => MaskMode;
+  /** Mask on its own once the user pauses typing, while `isActive()` (masking mode `typing`). */
+  typing?: { isActive: () => boolean; pauseMs?: number };
 }
 
 /** What automatic masking did before a send (see `MaskingSession.maskForSend`). */
@@ -68,6 +74,8 @@ export interface MaskingSession {
   maskForSend(field: EditableField, timeoutMs: number): Promise<SendOutcome>;
   /** Tell at the field that a send was held back; another send within `retryMs` goes as is. */
   showSendBlocked(field: EditableField, retryMs: number): void;
+  /** The category defaults changed: list the values found so far with the new ones. */
+  refreshDefaults(): void;
 }
 
 interface FieldState {
@@ -90,15 +98,6 @@ interface FieldState {
 
 /** How long after DOM removals the fields are checked for having left the page. */
 const SWEEP_DELAY_MS = 200;
-
-function itemsOf(text: string, result: AnalyzeResult): BadgeItem[] {
-  return result.spans.map((span) => ({
-    span,
-    original: text.slice(span.start, span.end),
-    label: labelFor(span.entity_type),
-    general: generalise(span, text),
-  }));
-}
 
 /** `text` with each chosen span replaced by its token or by its generalised text. */
 export function applyChoices(text: string, choices: readonly MaskChoice[]): string {
@@ -138,6 +137,15 @@ export function startMasking(options: MaskingOptions): MaskingSession {
   let stopped = false;
   // A function, so checks after an `await` read the current value.
   const isStopped = (): boolean => stopped;
+
+  const itemsOf = (text: string, result: AnalyzeResult): BadgeItem[] =>
+    result.spans.map((span) => ({
+      span,
+      original: text.slice(span.start, span.end),
+      label: labelFor(span.entity_type),
+      general: generalise(span, text),
+      defaultMode: options.defaultMode?.(span.entity_type) ?? 'token',
+    }));
 
   const stateOf = (field: EditableField): FieldState => {
     let state = fields.get(field);
@@ -222,6 +230,7 @@ export function startMasking(options: MaskingOptions): MaskingSession {
     state.items = itemsOf(text, response.result);
     // The panel reports its checked spans through onSelectionChange, which paints them.
     render(field, state);
+    if (state.items.length > 0) typing?.analysed(field, text);
   };
 
   const onTooLong = (field: EditableField): void => {
@@ -329,8 +338,48 @@ export function startMasking(options: MaskingOptions): MaskingSession {
     const items = itemsOf(text, result);
     return state.badge
       ? state.badge.choicesFor(items)
-      : items.map(({ span }) => ({ span, mode: 'token' as const }));
+      : items.map(({ span, defaultMode }) => ({ span, mode: defaultMode ?? 'token' }));
   };
+
+  /** Show at the field that `count` values were masked without a click. */
+  const noteAutoMasked = (state: FieldState, count: number): void => {
+    state.notice = {
+      value: { kind: 'auto-masked', count },
+      forText: state.lastMask?.after ?? '',
+    };
+  };
+
+  /**
+   * Masking mode `typing`: mask what the panel would mask in `text`, the preview's text, once the
+   * user paused. Nothing happens if the field moved on meanwhile or another write is running.
+   */
+  const maskWhileTyping = async (field: EditableField, text: string): Promise<void> => {
+    const state = fields.get(field);
+    if (!state || state.busy || stopped) return;
+    const { preview } = state;
+    if (preview?.text !== text || readText(field) !== text) return;
+    const choices = choicesOf(state, text, preview.result);
+    if (choices.length === 0) return;
+    state.busy = true;
+    try {
+      const chosen = await persistChoices(text, choices);
+      if (!chosen) return;
+      const count = await writeMasked(field, state, text, preview.result, chosen, 'auto');
+      if (count > 0) noteAutoMasked(state, count);
+      if (!isStopped()) render(field, state);
+    } finally {
+      state.busy = false;
+    }
+  };
+
+  const typing: TypingMasker | null = options.typing
+    ? startTypingMask({
+        doc: document,
+        isActive: options.typing.isActive,
+        pauseMs: options.typing.pauseMs,
+        mask: maskWhileTyping,
+      })
+    : null;
 
   const canSendAsIs = (field: EditableField): boolean => {
     const text = readText(field);
@@ -405,10 +454,7 @@ export function startMasking(options: MaskingOptions): MaskingSession {
       if (!chosen) return { kind: 'failed', reason: 'analysis' };
       const count = await writeMasked(field, state, text, result, chosen, 'auto');
       if (count === 0) return { kind: 'failed', reason: 'write' };
-      state.notice = {
-        value: { kind: 'auto-masked', count },
-        forText: state.lastMask?.after ?? '',
-      };
+      noteAutoMasked(state, count);
       if (!isStopped()) render(field, state);
       return { kind: 'masked', count };
     } finally {
@@ -438,6 +484,8 @@ export function startMasking(options: MaskingOptions): MaskingSession {
     try {
       if (await write(field, state, before)) {
         state.lastMask = null;
+        // The user wants this text as it is; typing mode must not mask it straight back.
+        typing?.undone(field, before);
         // The text is the one analysed before the masking, so that analysis holds again.
         state.preview = { text: before, result };
         state.status = 'done';
@@ -486,6 +534,7 @@ export function startMasking(options: MaskingOptions): MaskingSession {
       if (stopped) return;
       stopped = true;
       stopWatching();
+      typing?.stop();
       removals.disconnect();
       clearTimeout(sweepTimer);
       for (const [field, state] of fields) forget(field, state);
@@ -493,5 +542,12 @@ export function startMasking(options: MaskingOptions): MaskingSession {
     canSendAsIs,
     maskForSend,
     showSendBlocked,
+    refreshDefaults() {
+      for (const [field, state] of fields) {
+        if (!state.preview) continue;
+        state.items = itemsOf(state.preview.text, state.preview.result);
+        render(field, state);
+      }
+    },
   };
 }
