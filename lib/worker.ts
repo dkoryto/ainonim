@@ -28,7 +28,7 @@ import {
   isReadyResponse,
   isRestoreResponse,
 } from './messages';
-import { TimeoutError, errorMessage, withTimeout } from './timeout';
+import { TimeoutError, describeError, withTimeout } from './timeout';
 import { type LogEntry, toLogEntry } from './log/entries';
 import { type DoneResponse, isLogAppendRequest } from './messages';
 import { normalizeHostname } from './settings';
@@ -69,9 +69,28 @@ export type ContentResponse = AnalyzeResponse | RestoreResponse | MappingRespons
 
 const seconds = (ms: number) => String(ms / 1000);
 
+/** An error from one step of talking to the offscreen document, tagged with that step. */
+class StageError extends Error {
+  constructor(stage: string, cause: unknown) {
+    super(describeError(stage, cause));
+    this.name = 'StageError';
+  }
+}
+
+async function stage<T>(name: string, step: () => Promise<T>): Promise<T> {
+  try {
+    return await step();
+  } catch (error) {
+    if (error instanceof TimeoutError || error instanceof StageError) throw error;
+    throw new StageError(name, error);
+  }
+}
+
 async function startEngine(id: string, deps: WorkerDeps): Promise<ReadyResponse> {
-  await deps.ensureOffscreen();
-  const response = await deps.sendToOffscreen({ type: 'ainonim/offscreen-ready', id });
+  await stage('worker:create-offscreen', () => deps.ensureOffscreen());
+  const response = await stage('worker:offscreen-ready', () =>
+    deps.sendToOffscreen({ type: 'ainonim/offscreen-ready', id }),
+  );
   if (!isReadyResponse(response) || response.id !== id) {
     throw new Error('Malformed ready response from the offscreen document.');
   }
@@ -124,7 +143,7 @@ async function runEngine(
     }
 
     const response = await withTimeout(
-      deps.sendToOffscreen(toOffscreen(request, mapping)),
+      stage('worker:offscreen-request', () => deps.sendToOffscreen(toOffscreen(request, mapping))),
       REQUEST_TIMEOUT_MS,
       `The anonymization engine did not answer within ${seconds(REQUEST_TIMEOUT_MS)} s.`,
     );
@@ -139,7 +158,11 @@ async function runEngine(
       await deps.closeOffscreen().catch(() => undefined);
       return failure(id, 'timeout', error.message);
     }
-    return failure(id, 'engine', errorMessage(error));
+    return failure(
+      id,
+      'engine',
+      error instanceof StageError ? error.message : describeError('worker', error),
+    );
   }
 }
 

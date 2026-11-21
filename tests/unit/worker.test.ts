@@ -238,7 +238,8 @@ describe('handleContentRequest', () => {
       id: 'r1',
       ok: false,
       code: 'engine',
-      error: 'Could not establish connection. Receiving end does not exist.',
+      error:
+        'worker:offscreen-ready: Error: Could not establish connection. Receiving end does not exist.',
     });
   });
 });

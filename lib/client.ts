@@ -15,7 +15,7 @@ import {
   isMappingResponse,
   isRestoreResponse,
 } from './messages';
-import { TimeoutError, errorMessage, withTimeout } from './timeout';
+import { TimeoutError, describeError, withTimeout } from './timeout';
 
 export type SendMessage = (message: ContentRequest) => Promise<unknown>;
 
@@ -70,7 +70,11 @@ async function request<R extends { id: string }>(
     }
     return response;
   } catch (error) {
-    return failure(id, error instanceof TimeoutError ? 'timeout' : 'engine', errorMessage(error));
+    return failure(
+      id,
+      error instanceof TimeoutError ? 'timeout' : 'engine',
+      describeError('content→worker', error),
+    );
   }
 }
 

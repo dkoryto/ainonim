@@ -81,7 +81,7 @@ describe('createEngineHandler', () => {
       id: '1',
       ok: false,
       code: 'engine',
-      error: 'The anonymization engine failed to load: wheel not found',
+      error: 'The anonymization engine failed to load: offscreen-load: Error: wheel not found',
     });
   });
 
@@ -107,7 +107,7 @@ describe('createEngineHandler', () => {
       id: '1',
       ok: false,
       code: 'engine',
-      error: 'ValueError: bad mapping',
+      error: 'offscreen: Error: ValueError: bad mapping',
     });
   });
 
@@ -122,6 +122,9 @@ describe('createEngineHandler', () => {
       mapping: {},
     });
 
-    expect(response).toMatchObject({ ok: false, error: 'Malformed analyze result from Python' });
+    expect(response).toMatchObject({
+      ok: false,
+      error: 'offscreen: Error: Malformed analyze result from Python',
+    });
   });
 });

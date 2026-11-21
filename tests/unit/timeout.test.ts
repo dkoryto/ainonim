@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TimeoutError, withTimeout } from '~/lib/timeout';
+import { TimeoutError, describeError, withTimeout } from '~/lib/timeout';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -30,5 +30,18 @@ describe('withTimeout', () => {
     const result = withTimeout(Promise.reject(new Error('broken')), 5000, 'too slow');
 
     await expect(result).rejects.toThrow('broken');
+  });
+});
+
+describe('describeError', () => {
+  it('names the stage and the error, and keeps the last line of the message', () => {
+    expect(describeError('offscreen', new Error('Traceback\n  line\nKeyError: x\n'))).toBe(
+      'offscreen: Error: KeyError: x',
+    );
+  });
+
+  it('is never empty, also for an error without a message or a non-error value', () => {
+    expect(describeError('worker', new Error(''))).toBe('worker: Error');
+    expect(describeError('worker', undefined)).toBe('worker: undefined');
   });
 });

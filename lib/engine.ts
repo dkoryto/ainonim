@@ -8,7 +8,7 @@ import {
   failure,
   parseAnalyzeResult,
 } from './messages';
-import { errorMessage } from './timeout';
+import { describeError } from './timeout';
 
 /** The functions of python/ainonim_bridge.py, loaded into Pyodide. */
 export interface Engine {
@@ -20,18 +20,17 @@ export interface Engine {
 
 export type EngineResponse = ReadyResponse | AnalyzeResponse | RestoreResponse;
 
-// A Python exception's message is the whole traceback; its last line names the error.
-function lastLine(message: string): string {
-  return message.trimEnd().split('\n').at(-1) ?? message;
-}
-
 async function run(engine: Promise<Engine>, request: OffscreenRequest): Promise<EngineResponse> {
   const { id } = request;
   let loaded: Engine;
   try {
     loaded = await engine;
   } catch (error) {
-    return failure(id, 'engine', `The anonymization engine failed to load: ${errorMessage(error)}`);
+    return failure(
+      id,
+      'engine',
+      `The anonymization engine failed to load: ${describeError('offscreen-load', error)}`,
+    );
   }
   if (request.type === 'ainonim/offscreen-ready') return { id, ok: true, loadMs: loaded.loadMs };
 
@@ -60,7 +59,7 @@ export function createEngineHandler(
       return await run(engine, request);
     } catch (error) {
       console.error('ainonim engine error', error);
-      return failure(request.id, 'engine', lastLine(errorMessage(error)));
+      return failure(request.id, 'engine', describeError('offscreen', error));
     }
   };
 }

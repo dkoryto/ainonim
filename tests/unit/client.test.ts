@@ -71,7 +71,7 @@ describe('createClient', () => {
     expect(response).toMatchObject({
       ok: false,
       code: 'engine',
-      error: 'Extension context invalidated.',
+      error: 'content→worker: Error: Extension context invalidated.',
     });
   });
 
