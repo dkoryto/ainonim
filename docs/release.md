@@ -23,7 +23,9 @@ npm run build
 npm run measure
 ```
 
-- [ ] Wszystko zielone. `npm run test:coverage` to testy jednostkowe z progiem 80% pokrycia `lib/`;
+- [ ] Wszystko zielone. `npm run test:coverage` to testy jednostkowe z progami pokrycia `lib/` z
+      `vitest.config.ts` (łącznie 95% instrukcji, funkcji i linii, 90% gałęzi; każdy plik co
+      najmniej 85% instrukcji i 75% gałęzi);
       `npm run test:e2e` obejmuje test prywatności (`tests/e2e/privacy.spec.ts`).
 - [ ] `npm run measure` (po `npm run build`, żeby zmierzyć rozmiar paczki): zimny start < 3 s,
       ciepłe `analyze` (2000 znaków) < 100 ms, rozmiar `.output/chrome-mv3` < 15 MB. Porównaj z

@@ -11,6 +11,7 @@ import {
 import { RESTORED_HIGHLIGHT } from '~/lib/content/restore/marks';
 import { createDeclensionCache } from '~/lib/shared/tokens';
 import { chatgpt } from '~/lib/sites/chatgpt';
+import type { SiteAdapter } from '~/lib/sites/types';
 import { claude } from '~/lib/sites/claude';
 
 const mapping = {
@@ -373,5 +374,127 @@ describe('the ChatGPT writing block', () => {
     stop();
     stop = undefined;
     expect(document.querySelector(`[${LEGEND_ATTRIBUTE}]`)).toBeNull();
+  });
+});
+
+describe('a mapping that changes', () => {
+  it('puts the tokens back and drops labels and legends once the mapping is deleted', () => {
+    load('chatgpt-writing-block.html');
+    let current: Record<string, string> = mapping;
+    stop = observeMessages(chatgpt, document, () => current);
+    const paragraph = element('.markdown > p');
+    expect(paragraph.title).not.toBe('');
+
+    current = {};
+    stop.refresh();
+
+    expect(paragraph.textContent).toBe('Oto e-mail do <OSOBA_1>:');
+    expect(paragraph.hasAttribute('title')).toBe(false);
+    expect(paragraph.hasAttribute(RESTORED_ATTRIBUTE)).toBe(false);
+    expect(document.querySelector(`[${LEGEND_ATTRIBUTE}]`)).toBeNull();
+  });
+
+  it('keeps one legend for the block across refreshes', () => {
+    load('chatgpt-writing-block.html');
+    stop = observeMessages(chatgpt, document, () => mapping);
+    const legend = document.querySelector(`[${LEGEND_ATTRIBUTE}]`);
+    const content = legend?.shadowRoot?.textContent;
+
+    stop.refresh();
+
+    expect(document.querySelectorAll(`[${LEGEND_ATTRIBUTE}]`)).toHaveLength(1);
+    expect(document.querySelector(`[${LEGEND_ATTRIBUTE}]`)).toBe(legend);
+    expect(legend?.shadowRoot?.textContent).toBe(content);
+  });
+
+  it('removes the legend of a block that left the page', async () => {
+    load('chatgpt-writing-block.html');
+    stop = observeMessages(chatgpt, document, () => mapping);
+    expect(document.querySelector(`[${LEGEND_ATTRIBUTE}]`)).not.toBeNull();
+
+    element('[data-testid="chatgpt-writing-block"]').remove();
+    await settle();
+
+    expect(document.querySelector(`[${LEGEND_ATTRIBUTE}]`)).toBeNull();
+  });
+});
+
+describe('pages the adapters did not foresee', () => {
+  /** An adapter over hand-written markup: `.answer` and `.sent` elements, no composer. */
+  const plain: SiteAdapter = {
+    id: 'plain',
+    matches: () => true,
+    conversationId: () => null,
+    composer: () => null,
+    answerRoots: (doc) => [...doc.querySelectorAll<HTMLElement>('.answer')],
+    sentMessageRoots: (doc) => [...doc.querySelectorAll<HTMLElement>('.sent')],
+    isAnswerElement: () => false,
+    isStreaming: () => false,
+  };
+
+  it('never takes over a title the site set itself', () => {
+    document.body.innerHTML =
+      '<div class="answer"><p title="Odpowiedź">Pan &lt;OSOBA_1&gt;</p></div>';
+    stop = observeMessages(plain, document, () => mapping);
+
+    const paragraph = element('.answer p');
+    expect(paragraph.textContent).toBe('Pan Jan Kowalski');
+    expect(paragraph.title).toBe('Odpowiedź');
+  });
+
+  it('restores around comments and SVG icons', () => {
+    document.body.innerHTML =
+      '<div class="answer"><p>Pan <!-- x --><svg></svg>&lt;OSOBA_1&gt;</p></div>';
+    stop = observeMessages(plain, document, () => mapping);
+
+    expect(element('.answer p').textContent).toBe('Pan Jan Kowalski');
+  });
+
+  it('puts the legend right before an editor in an answer when the site has no block for it', () => {
+    document.body.innerHTML =
+      '<div class="answer"><div contenteditable="true"><p>&lt;PESEL_1&gt;</p></div></div>';
+    stop = observeMessages(plain, document, () => mapping);
+
+    const editor = element('[contenteditable]');
+    expect(editor.textContent).toBe('<PESEL_1>');
+    const legend = editor.previousElementSibling;
+    expect(legend?.hasAttribute(LEGEND_ATTRIBUTE)).toBe(true);
+    expect(legend?.shadowRoot?.textContent).toContain('<PESEL_1> → 50810112354');
+  });
+
+  it('annotates an answer that is itself inside an editor, and leaves a sent one there alone', () => {
+    document.body.innerHTML =
+      '<div contenteditable="true"><div class="answer">&lt;OSOBA_1&gt;</div>' +
+      '<div class="sent">&lt;PESEL_1&gt;</div></div>';
+    stop = observeMessages(plain, document, () => mapping);
+
+    expect(element('.answer').textContent).toBe('<OSOBA_1>');
+    expect(element('.sent').textContent).toBe('<PESEL_1>');
+    const legends = document.querySelectorAll(`[${LEGEND_ATTRIBUTE}]`);
+    expect(legends).toHaveLength(1);
+    expect(legends[0]?.shadowRoot?.textContent).toContain('<OSOBA_1> → Jan Kowalski');
+  });
+
+  it('leaves the page as it is when reading the mapping fails', () => {
+    document.body.innerHTML = '<div class="answer"><p>Pan &lt;OSOBA_1&gt;</p></div>';
+    stop = observeMessages(plain, document, () => {
+      throw new Error('Extension context invalidated.');
+    });
+
+    expect(element('.answer p').textContent).toBe('Pan <OSOBA_1>');
+  });
+});
+
+describe('after stopping', () => {
+  it('ignores refreshes and a second stop', () => {
+    load('chatgpt-conversation.html');
+    const html = document.body.innerHTML;
+    const stopped = observeMessages(chatgpt, document, () => mapping);
+
+    stopped();
+    stopped.refresh();
+    stopped();
+
+    expect(document.body.innerHTML).toBe(html);
   });
 });

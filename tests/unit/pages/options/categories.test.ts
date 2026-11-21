@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
   CATEGORY_MODES_KEY,
@@ -29,6 +29,7 @@ let panel: HTMLElement;
 
 beforeEach(() => {
   fakeBrowser.reset();
+  vi.restoreAllMocks();
   document.body.innerHTML = '<section id="panel"></section>';
   panel = document.getElementById('panel') as HTMLElement;
 });
@@ -144,5 +145,43 @@ describe('mountCategories', () => {
 
       expect(pressed(modeButton('NIP', 1))).toBe('true');
     });
+  });
+});
+
+describe('when saving fails', () => {
+  beforeEach(() => {
+    vi.spyOn(fakeBrowser.storage.sync, 'set').mockRejectedValue(
+      new Error('QUOTA_BYTES quota exceeded'),
+    );
+  });
+
+  const status = (): string | null | undefined =>
+    panel.querySelector('[role="status"]')?.textContent;
+
+  it('says so and shows the category switched on again', async () => {
+    await mountCategories(panel);
+    const email = boxes(panel).find((box) => box.value === 'EMAIL');
+    if (!email) throw new Error('no EMAIL');
+
+    email.click();
+    await flush();
+
+    expect(status()).toBe('Nie udało się zapisać ustawień kategorii.');
+    expect(email.checked).toBe(true);
+    expect(await getDisabledCategories()).toEqual([]);
+  });
+
+  it('says so and shows the stored mode again', async () => {
+    await mountCategories(panel);
+    const general = panel.querySelectorAll<HTMLButtonElement>(
+      '.mode-switch[data-type="PESEL"] button',
+    )[1];
+    if (!general) throw new Error('no mode button');
+
+    general.click();
+    await flush();
+
+    expect(status()).toBe('Nie udało się zapisać ustawień kategorii.');
+    expect(general.getAttribute('aria-pressed')).toBe('false');
   });
 });

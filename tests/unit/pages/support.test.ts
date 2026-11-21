@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { describe, expect, it, vi } from 'vitest';
-import { createSupportLinks, reviewUrl, storeUrl } from '~/lib/pages/support';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { copyToClipboard, createSupportLinks, reviewUrl, storeUrl } from '~/lib/pages/support';
 
 describe('support links', () => {
   it('builds the store and review URLs from the extension id', () => {
@@ -30,5 +30,36 @@ describe('support links', () => {
       expect(share?.textContent).toBe('Skopiowano link');
     });
     expect(copy).toHaveBeenCalledWith('https://chromewebstore.google.com/detail/abc');
+  });
+});
+
+describe('sharing when the clipboard is refused', () => {
+  it('says the link could not be copied', async () => {
+    const copy = vi.fn().mockResolvedValue(false);
+    const box = createSupportLinks(document, { extensionId: 'abc', coffeeUrl: '', copy });
+    const share = box.querySelector('button');
+    share?.click();
+    await vi.waitFor(() => {
+      expect(share?.textContent).toBe('Nie udało się skopiować');
+    });
+  });
+});
+
+describe('copyToClipboard', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('writes the text and reports success', async () => {
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    expect(await copyToClipboard('https://chromewebstore.google.com/detail/abc')).toBe(true);
+    expect(writeText).toHaveBeenCalledWith('https://chromewebstore.google.com/detail/abc');
+  });
+
+  it('reports false when the browser refuses (no focus, no permission)', async () => {
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(
+      new DOMException('Document is not focused.', 'NotAllowedError'),
+    );
+    expect(await copyToClipboard('x')).toBe(false);
   });
 });

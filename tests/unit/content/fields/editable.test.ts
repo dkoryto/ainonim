@@ -125,6 +125,12 @@ describe('isExcluded', () => {
     ).toBe(true);
   });
 
+  it("excludes Quill's hidden clipboard editor", () => {
+    expect(
+      isExcluded(mount('<div contenteditable="true" class="ql-clipboard"></div>', '.ql-clipboard')),
+    ).toBe(true);
+  });
+
   it('excludes disabled and read-only controls', () => {
     expect(isExcluded(mount('<input disabled>', 'input'))).toBe(true);
     expect(isExcluded(mount('<textarea readonly></textarea>', 'textarea'))).toBe(true);

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MANAGE_TIMEOUT_MS, createManageClient } from '~/lib/pages/manage-client';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
+import { MANAGE_TIMEOUT_MS, createManageClient, manageClient } from '~/lib/pages/manage-client';
 import type { ManageRequest } from '~/lib/shared/messages';
 
 /** A worker that answers each request with `answer(request)`. */
@@ -80,5 +81,21 @@ describe('createManageClient', () => {
     await vi.advanceTimersByTimeAsync(MANAGE_TIMEOUT_MS);
 
     expect(await response).toMatchObject({ ok: false, code: 'timeout' });
+  });
+});
+
+describe('manageClient', () => {
+  it('asks the service worker through runtime messaging', async () => {
+    const sendMessage = vi
+      .spyOn(fakeBrowser.runtime, 'sendMessage')
+      .mockImplementation(((message: ManageRequest) =>
+        Promise.resolve({ id: message.id, ok: true })) as never);
+
+    const response = await manageClient.clearAll();
+
+    expect(sendMessage).toHaveBeenCalledOnce();
+    expect(sendMessage.mock.calls[0]?.[0]).toMatchObject({ type: 'ainonim/mappings-clear' });
+    expect(response.ok).toBe(true);
+    sendMessage.mockRestore();
   });
 });

@@ -671,6 +671,19 @@ describe('automatic masking', () => {
     expect(part(badge, 'button.revert').hidden).toBe(false);
   });
 
+  it('caps the count of values masked automatically at 9+', () => {
+    const badge = createBadge(textarea(), options());
+    badge.update({
+      status: 'analysing',
+      items: [],
+      revert: 'ready',
+      notice: { kind: 'auto-masked', count: 12 },
+    });
+
+    expect(icon(badge).querySelector('.bubble')?.textContent).toBe('9+');
+    expect(icon(badge).title).toBe('AInonim: zamaskowano automatycznie (12)');
+  });
+
   it('opens the panel to explain a send held back and says how to send anyway', () => {
     const badge = createBadge(textarea(), options());
     badge.update({

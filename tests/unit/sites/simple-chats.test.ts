@@ -59,4 +59,22 @@ describe('more chats', () => {
     const [answer] = mistral.answerRoots(document);
     expect(answer && mistral.isStreaming(answer)).toBe(false);
   });
+
+  it('streams only the last answer while the stop button is shown', () => {
+    document.body.innerHTML =
+      '<div data-message-author-role="assistant"><p>a</p></div>' +
+      '<div data-message-author-role="assistant"><p>b</p></div>' +
+      '<button aria-label="Stop">■</button>';
+    const [first, last] = mistral.answerRoots(document);
+    if (!first || !last) throw new Error('two answers expected');
+    expect(mistral.isStreaming(last)).toBe(true);
+    expect(mistral.isStreaming(first)).toBe(false);
+  });
+
+  it('never streams on a chat without known stop buttons', () => {
+    document.body.innerHTML = '<button aria-label="Stop">■</button>';
+    const answer = document.createElement('div');
+    document.body.append(answer);
+    expect(deepseek.isStreaming(answer)).toBe(false);
+  });
 });

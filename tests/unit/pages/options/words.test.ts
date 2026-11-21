@@ -176,6 +176,54 @@ describe('mountWords', () => {
     expect(inputs(panel).map((input) => input.value)).toEqual(['Feniks', 'Orzeł']);
   });
 
+  it('says the list was not saved when storage refuses the write', async () => {
+    await mountWords(panel);
+    vi.spyOn(fakeBrowser.storage.sync, 'set').mockRejectedValueOnce(
+      new Error('MAX_WRITE_OPERATIONS'),
+    );
+    buttonNamed(panel, '+ Dodaj słowo').click();
+    const [first] = inputs(panel);
+    if (!first) throw new Error('no input');
+
+    type(first, 'Feniks');
+    await flush();
+
+    expect(status(panel)).toBe('Nie udało się zapisać listy.');
+    vi.restoreAllMocks();
+  });
+
+  it('opens the file picker from "Importuj" and rejects a file that is not an export', async () => {
+    await setCustomWords([word('Feniks')]);
+    await mountWords(panel);
+    const fileInput = panel.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!fileInput) throw new Error('no file input');
+    const pick = vi.spyOn(fileInput, 'click').mockImplementation(() => undefined);
+
+    buttonNamed(panel, 'Importuj').click();
+    expect(pick).toHaveBeenCalledOnce();
+
+    const file = new File(['{"format":"something-else"}'], 'inne.json');
+    Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
+    fileInput.dispatchEvent(new Event('change'));
+    await vi.waitFor(() => {
+      expect(status(panel)).toMatch(/^Nie zaimportowano: /);
+    });
+    expect(await getCustomWords()).toEqual([word('Feniks')]);
+    vi.restoreAllMocks();
+  });
+
+  it('does nothing when the file picker is closed without a file', async () => {
+    await mountWords(panel);
+    const fileInput = panel.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!fileInput) throw new Error('no file input');
+    Object.defineProperty(fileInput, 'files', { value: [], configurable: true });
+
+    fileInput.dispatchEvent(new Event('change'));
+    await flush();
+
+    expect(status(panel)).toBe('');
+  });
+
   it('exports the list as a JSON download', async () => {
     await setCustomWords([word('Feniks')]);
     await mountWords(panel);

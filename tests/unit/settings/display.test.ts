@@ -37,4 +37,15 @@ describe('chat display', () => {
     await setChatDisplay('peek');
     expect(seen).toEqual(['peek', 'restore']);
   });
+
+  it('ignores other storage areas and a change that keeps the shown display', async () => {
+    const seen: ChatDisplay[] = [];
+    onChatDisplayChange((display) => seen.push(display));
+
+    await fakeBrowser.storage.local.set({ [CHAT_DISPLAY_KEY]: 'peek' });
+    await fakeBrowser.storage.sync.set({ otherKey: 'peek' });
+    await fakeBrowser.storage.sync.set({ [CHAT_DISPLAY_KEY]: 'blur' });
+
+    expect(seen).toEqual([]);
+  });
 });

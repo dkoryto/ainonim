@@ -2,8 +2,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { LogEntry } from '~/lib/shared/log-entries';
-import { mountGeneral } from '~/lib/pages/options/general';
-import { type LogTabDeps, PAGE_SIZE, csvFileName, mountLog } from '~/lib/pages/options/log';
+import {
+  type LogTabDeps,
+  PAGE_SIZE,
+  REPORT_PATH,
+  csvFileName,
+  mountLog,
+} from '~/lib/pages/options/log';
 
 function entry(index: number, overrides: Partial<LogEntry> = {}): LogEntry {
   return {
@@ -157,60 +162,79 @@ describe('the "Dziennik" tab', () => {
     expect(deps.openReport).toHaveBeenCalledOnce();
     expect(csvFileName(new Date(2027, 0, 5))).toBe('ainonim-dziennik-2027-01-05.csv');
   });
+
+  it('says when clearing failed and keeps the entries', async () => {
+    const { panel, deps } = await mount([entry(0)]);
+    vi.mocked(deps.clear).mockRejectedValueOnce(new Error('storage unavailable'));
+
+    byText(panel, 'Wyczyść dziennik').click();
+    byText(panel, 'Tak, wyczyść').click();
+
+    await vi.waitFor(() => {
+      expect(panel.querySelector('.log-error')?.textContent).toBe(
+        'Nie udało się wyczyścić dziennika.',
+      );
+    });
+    expect(panel.querySelector('.log-error')?.hasAttribute('hidden')).toBe(false);
+    expect(rows(panel)).toHaveLength(1);
+    expect(byText(panel, 'Tak, wyczyść').disabled).toBe(false);
+  });
 });
 
-describe('the "Ogólne" tab', () => {
+describe('the "Dziennik" tab in the browser', () => {
   beforeEach(() => {
     fakeBrowser.reset();
+    vi.restoreAllMocks();
   });
 
-  it('switches the masking mode and the log', async () => {
+  async function mountWithBrowser(): Promise<HTMLElement> {
     const panel = document.createElement('section');
     document.body.replaceChildren(panel);
-    await mountGeneral(panel);
-    const radio = (value: string): HTMLInputElement => {
-      const found = panel.querySelector<HTMLInputElement>(
-        `input[name="mask-mode"][value="${value}"]`,
-      );
-      if (!found) throw new Error(`no ${value}`);
-      return found;
-    };
-    const logSwitch = panel.querySelector<HTMLInputElement>('input[name="log-enabled"]');
-    expect(radio('manual').checked).toBe(true);
-    expect(logSwitch?.checked).toBe(true);
+    await mountLog(panel, {
+      read: () => Promise.resolve([entry(0)]),
+      onChange: () => () => undefined,
+      now: () => new Date(2026, 10, 21),
+    });
+    return panel;
+  }
 
-    radio('auto').checked = true;
-    radio('auto').dispatchEvent(new Event('change', { bubbles: true }));
-    if (logSwitch) {
-      logSwitch.checked = false;
-      logSwitch.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+  it('opens the printable report in a new tab', async () => {
+    const create = vi.spyOn(fakeBrowser.tabs, 'create').mockResolvedValue({} as never);
+    const panel = await mountWithBrowser();
 
-    await vi.waitFor(async () => {
-      expect(await fakeBrowser.storage.sync.get(['maskMode', 'maskingLogEnabled'])).toEqual({
-        maskMode: 'auto',
-        maskingLogEnabled: false,
+    byText(panel, 'Raport PDF').click();
+
+    expect(create).toHaveBeenCalledExactlyOnceWith({
+      url: fakeBrowser.runtime.getURL(REPORT_PATH),
+    });
+  });
+
+  it('saves the CSV as a download and releases the file afterwards', async () => {
+    vi.useFakeTimers();
+    try {
+      const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:csv');
+      const revoke = vi.spyOn(URL, 'revokeObjectURL').mockReturnValue();
+      const downloads: { href: string; download: string }[] = [];
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+        this: HTMLAnchorElement,
+      ) {
+        downloads.push({ href: this.href, download: this.download });
       });
-    });
-    expect(panel.textContent).toContain('na innych stronach maskujesz ręcznie');
-  });
+      const panel = await mountWithBrowser();
 
-  it("offers the three masking modes and stores 'typing'", async () => {
-    const panel = document.createElement('section');
-    document.body.replaceChildren(panel);
-    await mountGeneral(panel);
-    const radios = [...panel.querySelectorAll<HTMLInputElement>('input[name="mask-mode"]')];
-    expect(radios.map((radio) => radio.value)).toEqual(['manual', 'auto', 'typing']);
+      byText(panel, 'Eksportuj CSV').click();
 
-    const typing = radios[2];
-    if (!typing) throw new Error('no typing');
-    typing.checked = true;
-    typing.dispatchEvent(new Event('change', { bubbles: true }));
-
-    await vi.waitFor(async () => {
-      expect(await fakeBrowser.storage.sync.get('maskMode')).toEqual({ maskMode: 'typing' });
-    });
-    expect(panel.textContent).toContain('Automatycznie podczas pisania');
-    expect(panel.textContent).toContain('dopóki czegoś nie dopiszesz');
+      expect(downloads).toEqual([
+        { href: 'blob:csv', download: 'ainonim-dziennik-2026-11-21.csv' },
+      ]);
+      const blob = createUrl.mock.calls[0]?.[0] as Blob;
+      expect(blob.type).toBe('text/csv;charset=utf-8');
+      expect(await blob.text()).toContain('chatgpt.com');
+      expect(revoke).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(revoke).toHaveBeenCalledWith('blob:csv');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

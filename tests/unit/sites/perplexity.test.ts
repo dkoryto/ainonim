@@ -26,4 +26,29 @@ describe('perplexity', () => {
     expect(perplexity.sendButton?.(document)?.dataset.testid).toBe('submit-button');
     expect(perplexity.isAnswerElement(element('#ask-input'))).toBe(false);
   });
+
+  it('streams only the last answer, and only while the stop button is shown', () => {
+    load('perplexity-thread.html');
+    element('main').insertAdjacentHTML(
+      'beforeend',
+      '<div id="markdown-content-1"><p>Druga odpowiedź</p></div>',
+    );
+    const [first, last] = perplexity.answerRoots(document);
+    if (!first || !last) throw new Error('two answers expected');
+    expect(perplexity.isStreaming(last)).toBe(false);
+
+    element('main').insertAdjacentHTML(
+      'beforeend',
+      '<button aria-label="Stop generating response">■</button>',
+    );
+    expect(perplexity.isStreaming(last)).toBe(true);
+    expect(perplexity.isStreaming(first)).toBe(false);
+  });
+
+  it('reads the thread id from the search path', () => {
+    expect(
+      perplexity.conversationId(new URL('https://www.perplexity.ai/search/pytanie-abc123')),
+    ).toBe('pytanie-abc123');
+    expect(perplexity.conversationId(new URL('https://www.perplexity.ai/'))).toBeNull();
+  });
 });

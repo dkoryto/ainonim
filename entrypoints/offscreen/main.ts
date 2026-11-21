@@ -4,7 +4,7 @@ import type { PyodideAPI, loadPyodide as LoadPyodide } from 'pyodide';
 import { browser } from 'wxt/browser';
 import bridgeSource from '~/python/ainonim_bridge.py?raw';
 import { type Engine, createEngineHandler } from '~/lib/offscreen/engine';
-import { failure, isAinonimMessage, isOffscreenRequest } from '~/lib/shared/messages';
+import { createOffscreenListener } from '~/lib/offscreen/listener';
 import { POLANON_WHEEL, PYODIDE_DIR, PYODIDE_LOCK_FILE } from '~/lib/offscreen/runtime-files';
 
 type BridgeFunction = (text: string, mappingJson: string) => string;
@@ -40,16 +40,5 @@ async function loadEngine(): Promise<Engine> {
 
 const handle = createEngineHandler(loadEngine());
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Content scripts reach every extension page too; only the service worker (no tab) may ask.
-  if (sender.tab || !isAinonimMessage(message) || !message.type.startsWith('ainonim/offscreen-')) {
-    return;
-  }
-  if (!isOffscreenRequest(message)) {
-    const id = typeof message.id === 'string' ? message.id : '';
-    sendResponse(failure(id, 'invalid-request', `Malformed request of type ${message.type}.`));
-    return;
-  }
-  void handle(message).then(sendResponse);
-  return true;
-});
+// Content scripts reach every extension page too; the listener answers the service worker only.
+browser.runtime.onMessage.addListener(createOffscreenListener(handle));

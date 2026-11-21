@@ -23,7 +23,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      # The unit tests, failing below 80% line/statement/function/branch coverage of lib/.
+      # The unit tests, failing below the coverage thresholds in vitest.config.ts (totals over
+      # lib/ and a minimum for every file).
       - run: npm run test:coverage
       - run: npm run build
 

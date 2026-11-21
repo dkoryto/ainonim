@@ -63,4 +63,22 @@ describe('sendButton', () => {
       '<button aria-label="Wyślij wiadomość">x</button></fieldset>';
     expect(claude.sendButton?.(document)?.getAttribute('aria-label')).toBe('Wyślij wiadomość');
   });
+
+  it('falls back to the submit button of the composer fieldset, never one elsewhere', () => {
+    document.body.innerHTML =
+      '<form><button type="submit" id="search">x</button></form>' +
+      '<fieldset><div contenteditable="true" data-testid="chat-input" role="textbox"></div>' +
+      '<button type="submit" id="send">x</button></fieldset>';
+    expect(claude.sendButton?.(document)?.id).toBe('send');
+
+    document.body.innerHTML =
+      '<div contenteditable="true" data-testid="chat-input" role="textbox"></div>' +
+      '<button type="submit">x</button>';
+    expect(claude.sendButton?.(document)).toBeNull();
+
+    document.body.innerHTML =
+      '<fieldset><div contenteditable="true" data-testid="chat-input" role="textbox"></div>' +
+      '<button type="button">+</button></fieldset>';
+    expect(claude.sendButton?.(document)).toBeNull();
+  });
 });

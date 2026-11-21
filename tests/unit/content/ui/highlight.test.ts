@@ -88,6 +88,20 @@ describe('paintSpans', () => {
     expect(painted(registry)).toEqual([]);
   });
 
+  it('skips empty and reversed spans', () => {
+    const field = editor('<p>Jan Kowalski</p>');
+    const jan = spanOf(field, 'Jan');
+
+    expect(
+      paintSpans(field, [
+        { ...jan, end: jan.start },
+        { ...jan, start: jan.end, end: jan.start },
+        jan,
+      ]),
+    ).toBe(true);
+    expect(painted(registry)).toEqual(['Jan']);
+  });
+
   it('does not change the DOM', () => {
     const field = editor('<p>Pan <strong>Jan</strong> Kowalski</p><p><br></p><p>PESEL 1</p>');
     const before = document.body.innerHTML;

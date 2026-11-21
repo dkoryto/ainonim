@@ -24,6 +24,13 @@ describe('readText', () => {
     expect(readText(root)).toBe('Jan Kowalski\n\nPESEL 1');
   });
 
+  it('skips empty text nodes, comments and SVG', () => {
+    const root = editor('<p>Jan <!-- x --><svg></svg>Kowalski</p>');
+    root.querySelector('p')?.prepend(document.createTextNode(''));
+    expect(readText(root)).toBe('Jan Kowalski');
+    expect(rangeFor(mapText(root), 0, 3)?.toString()).toBe('Jan');
+  });
+
   it('keeps inline formatting inside one line', () => {
     const root = editor('<p>Pan <strong>Jan</strong> Kowalski</p>');
     expect(readText(root)).toBe('Pan Jan Kowalski');

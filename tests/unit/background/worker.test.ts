@@ -228,6 +228,16 @@ describe('handleContentRequest', () => {
     });
   });
 
+  it('fails when the engine answers its start with something else', async () => {
+    const deps = fakeWorker();
+    deps.sendToOffscreen.mockResolvedValueOnce({ id: 'other', ok: true, loadMs: 1 });
+
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
+
+    expect(response).toMatchObject({ id: 'r1', ok: false, code: 'engine' });
+    expect((response as { error: string }).error).toContain('Malformed ready response');
+  });
+
   it('turns a messaging error into a failure', async () => {
     const deps = fakeWorker();
     deps.sendToOffscreen.mockRejectedValueOnce(
@@ -363,6 +373,24 @@ describe('handleContentRequest with conversations', () => {
     expect(renamed).toEqual({ id: 'n', ok: true, mapping: { '<OSOBA_1>': 'Jan' } });
     expect(read).toEqual({ id: 'g', ok: true, mapping: { '<OSOBA_1>': 'Jan' } });
     expect(conversations.has('chatgpt:tmp~1')).toBe(false);
+  });
+
+  it('does not analyse when the stored mapping cannot be read', async () => {
+    const { store } = fakeStore();
+    vi.mocked(store.get).mockRejectedValueOnce(new Error('storage.session unavailable'));
+    const deps = fakeWorker({}, store);
+
+    const response = await settle(
+      handleContentRequest({ ...analyze, conversationKey: key, persist: true }, deps, CHATGPT),
+    );
+
+    expect(response).toEqual({
+      id: 'r1',
+      ok: false,
+      code: 'engine',
+      error: 'The conversation mapping could not be read or stored.',
+    });
+    expect(deps.sent).toEqual([]);
   });
 
   it('answers an invalid key with invalid-request', async () => {
