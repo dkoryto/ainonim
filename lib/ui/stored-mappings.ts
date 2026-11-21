@@ -14,6 +14,11 @@ const SITE_NAMES: Readonly<Record<string, string>> = {
   gemini: 'Gemini',
   grok: 'Grok',
   perplexity: 'Perplexity',
+  kimi: 'Kimi',
+  deepseek: 'DeepSeek',
+  mistral: 'Mistral Le Chat',
+  copilot: 'Microsoft Copilot',
+  qwen: 'Qwen',
 };
 
 /** Characters of a conversation id shown before the ellipsis. */
