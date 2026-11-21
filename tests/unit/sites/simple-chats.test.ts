@@ -1,7 +1,11 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import { adapterFor } from '~/lib/sites';
-import { copilot, deepseek, kimi, mistral, qwen } from '~/lib/sites/more-chats';
+import { copilot } from '~/lib/sites/copilot';
+import { deepseek } from '~/lib/sites/deepseek';
+import { kimi } from '~/lib/sites/kimi';
+import { mistral } from '~/lib/sites/mistral';
+import { qwen } from '~/lib/sites/qwen';
 
 describe('more chats', () => {
   it('picks each adapter by host', () => {
