@@ -2,7 +2,7 @@
 // checked there (with their token or a generalised text) and undoes the last masking on request.
 //
 // Privacy rule for this file: no text of a field, no span and no mapping value is ever logged.
-// Warnings name the failure code only.
+// Warnings name the failure code and at most an error message checked by safeDetail.
 
 import { generalise } from '~/lib/content/generalise';
 import { type EditableField, readText } from '~/lib/fields/text';
@@ -115,8 +115,21 @@ export function applyChoices(text: string, choices: readonly MaskChoice[]): stri
 const sameSpan = (a: Span, b: Span): boolean =>
   a.start === b.start && a.end === b.end && a.entity_type === b.entity_type;
 
-function warn(what: string, code?: string): void {
-  console.warn(`AInonim: ${what}${code === undefined ? '' : ` (${code})`}`);
+function warn(what: string, code?: string, detail?: string): void {
+  const suffix = code === undefined ? '' : ` (${code}${detail ? `: ${detail}` : ''})`;
+  console.warn(`AInonim: ${what}${suffix}`);
+}
+
+/**
+ * An error message that is safe to log next to the failure code: cut to 200 characters and
+ * withheld entirely when it contains any word (3+ letters or digits) of the analysed text, so an
+ * engine message that quotes the input never reaches the console.
+ */
+export function safeDetail(message: string, text: string): string {
+  const words = new Set(text.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) ?? []);
+  const lower = message.toLowerCase();
+  for (const word of words) if (lower.includes(word)) return '[szczegóły ukryte]';
+  return message.length > 200 ? `${message.slice(0, 200)}…` : message;
 }
 
 /** Start watching the page's fields. */
@@ -201,7 +214,7 @@ export function startMasking(options: MaskingOptions): MaskingSession {
     if (!response.ok) {
       invalidate(field, state, 'failed');
       render(field, state);
-      warn('analysis failed', response.code);
+      warn('analysis failed', response.code, safeDetail(response.error, text));
       return;
     }
     state.preview = { text, result: response.result };

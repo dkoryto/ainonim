@@ -2,7 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditableField } from '~/lib/fields/text';
 import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/messages';
-import { applyChoices, maskSpans, startMasking, type MaskingOptions } from '~/lib/content/masking';
+import {
+  applyChoices,
+  maskSpans,
+  safeDetail,
+  startMasking,
+  type MaskingOptions,
+} from '~/lib/content/masking';
 import type { BadgeOptions, BadgeState, MaskChoice, MaskMode } from '~/lib/ui/badge';
 
 // The badge is replaced by a recorder: its own rendering is covered in badge.test.ts, and here
@@ -204,7 +210,7 @@ describe('preview while typing', () => {
     expect(onlyBadge().updates.map((state) => state.status)).toEqual(['analysing']);
   });
 
-  it('reports a failed analysis and logs only the failure code', async () => {
+  it('reports a failed analysis and never logs an error that quotes the text', async () => {
     start();
     const field = textarea();
     await type(field, ORIGINAL);
@@ -213,7 +219,18 @@ describe('preview while typing', () => {
     await type(field, `${ORIGINAL}.`);
 
     expect(lastState()).toEqual({ status: 'failed', items: [], revert: 'none' });
-    expect(warnings).toEqual(['AInonim: analysis failed (timeout)']);
+    expect(warnings).toEqual(['AInonim: analysis failed (timeout: [szczegóły ukryte])']);
+  });
+
+  it('logs an error message that quotes nothing of the text', async () => {
+    start();
+    const field = textarea();
+    await type(field, ORIGINAL);
+    analyze.mockResolvedValueOnce({ id: 'x', ok: false, code: 'engine', error: 'No offscreen.' });
+
+    await type(field, `${ORIGINAL}.`);
+
+    expect(warnings).toEqual(['AInonim: analysis failed (engine: No offscreen.)']);
   });
 
   it('skips a text that is too long and hides the icon', async () => {
@@ -551,5 +568,21 @@ describe('cleanup', () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(field.value).toBe(ORIGINAL);
+  });
+});
+
+describe('safeDetail', () => {
+  it('keeps a message that quotes nothing of the text, cut to 200 characters', () => {
+    expect(safeDetail('Could not establish connection.', 'Jan Kowalski')).toBe(
+      'Could not establish connection.',
+    );
+    expect(safeDetail('x'.repeat(250), 'Jan')).toHaveLength(201);
+  });
+
+  it('withholds a message that contains a word of the text, in any case', () => {
+    expect(safeDetail("ValueError: bad value 'kowalski'", 'Jan Kowalski')).toBe(
+      '[szczegóły ukryte]',
+    );
+    expect(safeDetail('PESEL 50810112354 invalid', 'PESEL 50810112354')).toBe('[szczegóły ukryte]');
   });
 });

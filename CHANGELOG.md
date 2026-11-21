@@ -5,6 +5,13 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-21
+
+### Zmienione
+
+- Przy nieudanej analizie konsola strony pokazuje oprócz kodu błędu jego treść, chyba że zawiera
+  choć jedno słowo analizowanego tekstu; wtedy „[szczegóły ukryte]”. Ułatwia to diagnozę.
+
 ## [0.3.1] - 2026-11-21
 
 ### Zmienione
@@ -116,7 +123,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/dkoryto/ainonim/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/dkoryto/ainonim/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/dkoryto/ainonim/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dkoryto/ainonim/compare/v0.1.0...v0.2.0
