@@ -6,13 +6,13 @@ Ograniczenia samej biblioteki wykrywającej opisuje
 jest to, co dokłada rozszerzenie i przeglądarka.
 
 Stan (20.11.2026): opisany projekt jest zaimplementowany i pokryty testami e2e na stronach
-testowych; nie był jeszcze sprawdzony na żywych ChatGPT i Claude.ai.
+testowych; nie był jeszcze sprawdzony na żywych ChatGPT, Claude.ai, Gemini, Grok i Perplexity.
 
 ## Do czego służy rozszerzenie
 
 Użytkownik pisze w polu tekstowym (czat AI, formularz). AInonim wykrywa w tekście polskie dane
 osobowe i po kliknięciu „Zamaskuj” zastępuje je znacznikami, np. `<OSOBA_1>`. Do operatora strony
-trafia wtedy tekst ze znacznikami. W ChatGPT i Claude.ai znaczniki w odpowiedzi modelu są
+trafia wtedy tekst ze znacznikami. W ChatGPT, Claude.ai, Gemini, Grok i Perplexity znaczniki w odpowiedzi modelu są
 podmieniane z powrotem na oryginały, tylko w widoku strony.
 
 ## Zasoby
@@ -141,7 +141,7 @@ AInonim nie widzi albo nie zmienia tekstu w:
 Pola `input` i `textarea` nie mają podświetlenia wykrytych wartości (Custom Highlight API działa
 tylko na węzłach tekstowych); odznaka i maskowanie działają.
 
-### Zmiany selektorów w ChatGPT i Claude.ai
+### Zmiany selektorów w czatach (ChatGPT, Claude.ai, Gemini, Grok, Perplexity)
 
 Adaptery stron (`lib/sites/chatgpt.ts`, `lib/sites/claude.ts`) opierają się na selektorach z
 2026-11-20 z zapasowymi wariantami. Po zmianie znaczników na stronie:

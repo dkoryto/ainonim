@@ -7,7 +7,7 @@ trafią do czatu AI albo formularza. Wykrywaniem zajmuje się biblioteka
 rozszerzenia, nic nie jest pobierane z sieci.
 
 Stan: MVP zintegrowane (wykrywanie i maskowanie w polach na każdej stronie, przywracanie odpowiedzi
-w ChatGPT i Claude.ai), przetestowane na stronach testowych; przed wydaniem test na żywych czatach.
+w ChatGPT, Claude.ai, Gemini, Grok i Perplexity), przetestowane na stronach testowych; przed wydaniem test na żywych czatach.
 Pomiary: [docs/spikes/T2-pyodide.md](docs/spikes/T2-pyodide.md).
 
 ## Jak to działa
@@ -34,7 +34,7 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   adresu, `[osoba]`; `lib/content/generalise.ts`, bez zapisu w mapowaniu). „Zamaskuj
   zaznaczone” wpisuje wynik w pole, „Cofnij” przywraca tekst sprzed ostatniego maskowania, dopóki
   pole go nie zmieniło. Esc albo „×” zamyka panel.
-- Na ChatGPT i Claude.ai (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
+- Na ChatGPT, Claude.ai, Gemini, Grok i Perplexity (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
   „zastępnik → oryginał” trzyma service worker w `storage.session` (tylko w pamięci), a strona
   dostaje je tylko dla własnej witryny. Nowa rozmowa ma klucz tymczasowy, który po nadaniu
   identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu i we własnych
@@ -113,7 +113,9 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 - Pliki i obrazy dołączane do czatu, pola w zamkniętych shadow root, edytory na `canvas` i
   `iframe` z innej domeny nie są obsługiwane.
 - Przycisk kopiowania bloku w ChatGPT kopiuje znaczniki, nie oryginały.
-- Adaptery ChatGPT i Claude.ai zależą od selektorów, które strony zmieniają.
+- Adaptery czatów zależą od selektorów, które strony zmieniają. Gemini sprawdzono na żywo
+  21.11.2026; w Groku tylko pole i wysłaną wiadomość (odpowiedzi wymagają konta), a Perplexity
+  wyłącznie na podstawie znanej budowy strony.
 
 ## Licencje
 

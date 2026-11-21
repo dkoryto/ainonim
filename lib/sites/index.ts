@@ -1,10 +1,13 @@
 import { chatgpt } from './chatgpt';
 import { claude } from './claude';
+import { gemini } from './gemini';
+import { grok } from './grok';
+import { perplexity } from './perplexity';
 import type { SiteAdapter } from './types';
 
 export type { SiteAdapter } from './types';
 
-export const adapters: readonly SiteAdapter[] = [chatgpt, claude];
+export const adapters: readonly SiteAdapter[] = [chatgpt, claude, gemini, grok, perplexity];
 
 /** The adapter for the page at `url`, or null on a site AInonim has no adapter for. */
 export function adapterFor(url: URL | string): SiteAdapter | null {
