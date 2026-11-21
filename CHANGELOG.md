@@ -5,10 +5,21 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-22
+
+Bez zmian w działaniu wtyczki.
+
 ### Zmienione
 
 - README przepisane: funkcje, instalacja, ustawienia, prywatność, architektura, rozwój,
   ograniczenia ze stanem sprawdzenia każdego czatu i spis dokumentacji.
+- Nowa struktura kodu według kontekstu uruchomienia: `lib/shared`, `lib/settings` (dawny
+  `settings.ts` podzielony na moduły), `lib/sites` (jeden plik na czat), `lib/content`,
+  `lib/background`, `lib/offscreen`, `lib/log`, `lib/pages`; testy jednostkowe w tym samym
+  układzie. Granice między katalogami pilnuje ESLint (`no-restricted-imports`), opis w
+  `docs/ARCHITECTURE.md`.
+- Zależności deweloperskie: Vitest i @vitest/coverage-v8 5.1.1, React 19.3, ProseMirror (strony
+  testowe). TypeScript zostaje na 6.x, bo typescript-eslint nie obsługuje jeszcze wersji 7.
 
 ## [0.4.0] - 2026-11-22
 
@@ -163,7 +174,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/dkoryto/ainonim/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/dkoryto/ainonim/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/dkoryto/ainonim/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/dkoryto/ainonim/compare/v0.3.2...v0.3.3
