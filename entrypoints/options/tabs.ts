@@ -3,6 +3,7 @@
 
 const ALIASES: Record<string, string> = {
   ogolne: 'general',
+  strony: 'sites',
   kategorie: 'categories',
   slowa: 'words',
   dziennik: 'log',

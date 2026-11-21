@@ -23,8 +23,14 @@ bezczynności i interpreter trzeba by ładować od nowa.
 
 Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkich ramkach:
 
-- Czyta poziom strony z popupu (`lib/settings.ts`); przy `off` nic nie robi i usuwa wszystko,
-  co dodał.
+- Sprawdza, czy ma działać na tej stronie (`lib/site-access.ts`), i reaguje na każdą zmianę.
+  Zakładka „Strony” w ustawieniach wybiera, gdzie AInonim działa (`siteScope` w `storage.sync`):
+  na wszystkich stronach (domyślnie), tylko w obsługiwanych czatach AI albo tylko na stronach z
+  listy (`allowedSites`, najwyżej 200 wpisów; `*.example.com` obejmuje domenę i jej subdomeny).
+  Strony ustawione na „Wyłączone” (w okienku wtyczki albo na liście wyłączonych stron,
+  `siteLevels`) są wyłączone zawsze. Okienko wtyczki pokazuje, czy AInonim działa na bieżącej
+  stronie i dlaczego nie; poza listą oferuje „Dodaj do listy”. Przy `off` content script nic nie
+  robi i usuwa wszystko, co dodał.
 - Po przerwie w pisaniu (`lib/fields/watch.ts`) wysyła tekst pola do analizy. W prawym dolnym
   rogu pola, w którym coś wpisano, pokazuje ikonę AInonim ze stanem analizy (pulsuje w trakcie,
   czerwona liczba znalezionych danych albo zielony znaczek, gdy nic nie znalazła), a w edytorach
