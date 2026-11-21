@@ -179,3 +179,100 @@ button:disabled {
 a {
   color: var(--accent);
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.status {
+  min-height: 1.5em;
+  margin: 8px 0 0;
+  color: var(--danger);
+}
+
+fieldset.categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2px 12px;
+  margin: 0 0 16px;
+  padding: 8px 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+fieldset.categories legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+label.category {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: pointer;
+}
+
+ul.words {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.word-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  column-gap: 8px;
+  margin-bottom: 6px;
+}
+
+.word-input {
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+
+.word-input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.word-kind {
+  min-width: 4.5em;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.word-delete {
+  display: inline-flex;
+  padding: 5px 7px;
+  color: var(--muted);
+}
+
+.word-delete:hover {
+  color: var(--danger);
+}
+
+.word-problem {
+  grid-column: 1 / -1;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.word-problem:empty {
+  display: none;
+}
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
