@@ -1,170 +1,232 @@
 # AInonim
 
-Rozszerzenie Chrome (Manifest V3), które wykrywa polskie dane osobowe w polach tekstowych, zanim
-trafią do czatu AI albo formularza. Wykrywaniem zajmuje się biblioteka
-[polanon](https://github.com/boromat/polanon) uruchomiona w przeglądarce przez
-[Pyodide](https://pyodide.org). Wszystko działa lokalnie: Pyodide i polanon są w paczce
-rozszerzenia, nic nie jest pobierane z sieci.
+Rozszerzenie Chrome (Manifest V3), które wykrywa polskie dane osobowe w polach tekstowych i
+zamienia je na znaczniki, zanim trafią do czatu AI albo formularza. W czatach AI pokazuje potem
+oryginały z powrotem w odpowiedziach, tylko na ekranie użytkownika.
 
-Stan: MVP zintegrowane (wykrywanie i maskowanie w polach na każdej stronie, przywracanie odpowiedzi
-w ChatGPT, Claude.ai, Gemini, Grok i Perplexity), przetestowane na stronach testowych; przed wydaniem test na żywych czatach.
-Pomiary: [docs/spikes/T2-pyodide.md](docs/spikes/T2-pyodide.md).
+Wykrywaniem zajmuje się biblioteka [polanon](https://github.com/dkoryto/polanon) uruchomiona w
+przeglądarce przez [Pyodide](https://pyodide.org). Wszystko działa lokalnie: Pyodide i polanon są
+w paczce rozszerzenia, wtyczka niczego nie pobiera i nie wysyła.
+
+Wersja: 0.4.0 (zob. [CHANGELOG.md](CHANGELOG.md)). Przetestowana automatycznie na stronach
+testowych; adaptery czatów sprawdzone na żywo tylko częściowo (zob. [Ograniczenia](#ograniczenia)).
+Rozszerzenie nie jest jeszcze opublikowane w Chrome Web Store.
+
+## Spis treści
+
+- [Funkcje](#funkcje)
+- [Instalacja](#instalacja)
+- [Ustawienia](#ustawienia)
+- [Prywatność](#prywatność)
+- [Jak to działa](#jak-to-działa)
+- [Rozwój](#rozwój)
+- [Ograniczenia](#ograniczenia)
+- [Dokumentacja](#dokumentacja)
+- [Licencje](#licencje)
+
+## Funkcje
+
+- **Wykrywanie polskich danych** w każdym polu tekstowym na każdej stronie: imiona i nazwiska
+  (także w odmianie), PESEL, NIP, REGON, KRS, dowód osobisty, paszport, IBAN, karty płatnicze,
+  adresy, kody pocztowe, telefony, e-maile, daty urodzenia, tablice rejestracyjne, VIN, adresy IP
+  i inne. Pola haseł, kart płatniczych i kodów jednorazowych są pomijane.
+- **Ikona w rogu pola** pokazuje stan analizy: pulsuje w trakcie, czerwona liczba to znalezione
+  dane, zielony znaczek oznacza brak danych, szary „!” błąd. Znalezione fragmenty są podkreślone.
+- **Panel** (kliknięcie ikony): lista wartości z polem wyboru i przełącznikiem
+  „znacznik | ogólnie” przy każdej. „Zamaskuj zaznaczone” wpisuje wynik w pole, „Cofnij”
+  przywraca tekst sprzed maskowania.
+  - znacznik: `Jan Kowalski` → `<OSOBA_1>`,
+  - ogólnie: data → rok, adres → miasto, PESEL → `[PESEL]` (tego nie da się przywrócić).
+- **Trzy tryby maskowania**:
+  - _Ręcznie_ (domyślnie) – tylko z panelu,
+  - _Przy wysyłce_ – w czatach AI Enter albo przycisk wysyłania najpierw maskuje, potem wysyła,
+  - _Przy pisaniu_ – pole maskuje się samo po ok. 1,5 s przerwy, na każdej stronie.
+- **Czaty AI**: ChatGPT, Claude.ai, Gemini, Grok, Perplexity, Kimi, DeepSeek, Mistral Le Chat,
+  Microsoft Copilot i Qwen. Znaczniki są wspólne w obrębie rozmowy, a w odpowiedziach modelu i we
+  własnych wysłanych wiadomościach AInonim pokazuje oryginały, także w odmianie
+  (`<OSOBA_1:wołacz>` → „Janie Kowalski”). Przywrócone wartości są podświetlone na turkusowo; po
+  najechaniu widać, jaki znacznik dostał model. Można też zostawić na ekranie znaczniki i
+  podglądać oryginały tylko po najechaniu.
+- **Kategorie**: każdy rodzaj danych można wyłączyć albo ustawić mu domyślną zamianę
+  („znacznik” lub „ogólnie”).
+- **Własne słowa**: słowa, frazy i wyrażenia regularne do maskowania jako `<SLOWO_1>`,
+  `<SLOWO_2>`…, z eksportem i importem listy (JSON).
+- **Strony**: AInonim działa wszędzie, tylko w czatach AI albo tylko na stronach z listy; każdą
+  stronę można wyłączyć.
+- **Zapamiętane dane**: okienko wtyczki pokazuje pary znacznik → oryginał dla każdej rozmowy i
+  pozwala je usunąć.
+- **Dziennik maskowania**: kiedy, na jakiej stronie i ile danych jakiego rodzaju zamaskowano, bez
+  samych danych; eksport CSV i raport do zapisania jako PDF. Można go wyłączyć.
+
+## Instalacja
+
+Dopóki AInonim nie jest w Chrome Web Store, instaluje się go jako rozszerzenie rozpakowane:
+
+1. Zbuduj paczkę: `npm ci && npm run build` (wynik w `.output/chrome-mv3`).
+2. Otwórz `chrome://extensions`, włącz „Tryb dewelopera”.
+3. „Załaduj rozpakowane” → wskaż folder `.output/chrome-mv3`.
+4. Odśwież otwarte karty.
+
+Rozszerzenie rozpakowane nie aktualizuje się samo. Po każdej nowej wersji kliknij „Załaduj
+ponownie” na karcie AInonim i odśwież karty z czatami; inaczej Chrome może dalej uruchamiać stary
+kod w tle.
+
+## Ustawienia
+
+Okienko wtyczki (ikona na pasku) ma: działanie na bieżącej stronie (Ostrzegaj / Wyłączone),
+tryb maskowania, sposób pokazywania odpowiedzi (Oryginały / Znaczniki), zapamiętane dane i link
+„Ustawienia”. Strona ustawień ma zakładki:
+
+| Zakładka     | Co ustawia                                                                  |
+| ------------ | --------------------------------------------------------------------------- |
+| Ogólne       | tryb maskowania, wygląd odpowiedzi w czacie, zapisywanie dziennika          |
+| Strony       | gdzie działa AInonim (wszędzie / czaty AI / lista), lista wyłączonych stron |
+| Kategorie    | które rodzaje danych wykrywać i czym je domyślnie zastępować                |
+| Własne słowa | lista słów i wzorców do maskowania, eksport i import                        |
+| Dziennik     | podsumowanie i ostatnie maskowania, eksport CSV, raport PDF, czyszczenie    |
+| O autorze    | autor, wersja, ocena i polecenie wtyczki                                    |
+
+Ustawienia są w `storage.sync`, więc przy włączonej synchronizacji Chrome przenoszą się na inne
+urządzenia tego samego konta.
+
+## Prywatność
+
+- Tekst pól jest analizowany wyłącznie w przeglądarce. Rozszerzenie nie ma serwera, statystyk ani
+  telemetrii.
+- Pary znacznik → oryginał są tylko w pamięci sesji (`storage.session`, najwyżej 50 rozmów) i
+  znikają po zamknięciu przeglądarki. Strona czatu dostaje mapowanie wyłącznie swojej witryny.
+- Własne słowa są w `storage.sync` i mogą zawierać dane osobowe; przy włączonej synchronizacji
+  Chrome trafiają na konto Google użytkownika.
+- Dziennik (`storage.local`, najwyżej 1000 wpisów) zapisuje czas, nazwę hosta i liczby, nigdy
+  wartości ani znaczniki. Skrypt na stronie może wpis dodać, ale nie może dziennika odczytać.
+
+Pełna polityka: [docs/privacy-policy.md](docs/privacy-policy.md). Analiza zagrożeń:
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ## Jak to działa
 
 ```
 content script ──runtime.sendMessage──▶ service worker ──runtime.sendMessage──▶ dokument offscreen
-                                         (tworzy offscreen                      (Pyodide + polanon,
-                                          przy pierwszym żądaniu)                python/ainonim_bridge.py)
+ (pola, panel,                          (ustawienia wykrywania,                 (Pyodide + polanon,
+  przywracanie)                          mapowania, dziennik)                    python/ainonim_bridge.py)
 ```
 
 Pyodide działa w dokumencie offscreen, bo service worker MV3 jest usypiany po ok. 30 s
 bezczynności i interpreter trzeba by ładować od nowa.
 
-Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkich ramkach:
+**Content script** (`entrypoints/content/`) działa na każdej stronie, we wszystkich ramkach:
 
-- Sprawdza, czy ma działać na tej stronie (`lib/site-access.ts`), i reaguje na każdą zmianę.
-  Zakładka „Strony” w ustawieniach wybiera, gdzie AInonim działa (`siteScope` w `storage.sync`):
-  na wszystkich stronach (domyślnie), tylko w obsługiwanych czatach AI albo tylko na stronach z
-  listy (`allowedSites`, najwyżej 200 wpisów; `*.example.com` obejmuje domenę i jej subdomeny).
-  Strony ustawione na „Wyłączone” (w okienku wtyczki albo na liście wyłączonych stron,
-  `siteLevels`) są wyłączone zawsze. Okienko wtyczki pokazuje, czy AInonim działa na bieżącej
-  stronie i dlaczego nie; poza listą oferuje „Dodaj do listy”. Przy `off` content script nic nie
-  robi i usuwa wszystko, co dodał.
-- Po przerwie w pisaniu (`lib/fields/watch.ts`) wysyła tekst pola do analizy. W prawym dolnym
-  rogu pola, w którym coś wpisano, pokazuje ikonę AInonim ze stanem analizy (pulsuje w trakcie,
-  czerwona liczba znalezionych danych albo zielony znaczek, gdy nic nie znalazła), a w edytorach
-  contenteditable podświetla znalezione fragmenty (`lib/ui/`). Kliknięcie ikony (albo Enter na
-  niej) otwiera panel z listą wartości: każdą można odznaczyć i zamienić na zastępnik
-  („znacznik”, `<OSOBA_1>`) albo na tekst ogólny („ogólnie”: rok zamiast daty, miasto zamiast
-  adresu, `[osoba]`; `lib/content/generalise.ts`, bez zapisu w mapowaniu). „Zamaskuj
-  zaznaczone” wpisuje wynik w pole, „Cofnij” przywraca tekst sprzed ostatniego maskowania, dopóki
-  pole go nie zmieniło. Esc albo „×” zamyka panel.
-- Na ChatGPT, Claude.ai, Gemini, Grok, Perplexity, Kimi, DeepSeek, Mistral Le Chat, Microsoft Copilot i Qwen (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
-  „zastępnik → oryginał” trzyma service worker w `storage.session` (tylko w pamięci), a strona
-  dostaje je tylko dla własnej witryny. Nowa rozmowa ma klucz tymczasowy, który po nadaniu
-  identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu i we własnych
-  wysłanych wiadomościach zastępniki są zamieniane na oryginały tylko na ekranie
-  (`lib/restore/`), także w odmianie (`<OSOBA_1:wołacz>` → „Janie Kowalski”). Przywrócona
-  wartość ma delikatne podświetlenie, a po najechaniu pokazuje, jaki zastępnik widział czat
-  („Jan Kowalski – wysłano jako <OSOBA_1>”). Pole wpisywania wiadomości nigdy nie jest zmieniane.
-  W okienku wtyczki przełącznik „W odpowiedziach czatu pokazuj: Oryginały | Znaczniki” (`chatDisplay`
-  w `storage.sync`) pozwala zostawić na ekranie zastępniki: są wtedy podświetlone, a oryginał widać
-  tylko po najechaniu („<OSOBA_1> = Jan Kowalski”).
-- Ustawienia wykrywania (strona ustawień, zakładki „Kategorie” i „Własne słowa”, w
-  `storage.sync`) stosuje service worker do każdej analizy (`lib/detection/`), zanim zapisze
-  mapowanie: wyłączone rodzaje danych (`disabledCategories`) nie trafiają do panelu, podświetleń
-  ani mapowania, a własne słowa i wyrażenia regularne (`customWords`, eksport/import do pliku
-  JSON) są maskowane jako `<SLOWO_1>`, `<SLOWO_2>`… i przywracane w odpowiedziach jak inne
-  zastępniki. Zwykły wpis pasuje jako całe słowo bez względu na wielkość liter (także z polskimi
-  literami); wzorce z zagnieżdżonymi powtórzeniami i nieprawidłowe są pomijane.
-- Maskowanie automatyczne (ustawienie „Maskowanie: Automatycznie przy wysyłce”, `maskMode` w
-  `storage.sync`, w ustawieniach i w okienku wtyczki): na ChatGPT, Claude.ai, Gemini, Groku i Perplexity Enter w polu
-  wiadomości (bez Shift i poza kompozycją IME) albo kliknięcie przycisku wysyłania jest
-  przechwytywane w fazie capture, zanim zobaczy je strona (`lib/content/auto-mask.ts`). Jeśli
-  tekst zawiera dane, AInonim zamienia je na znaczniki (z uwzględnieniem odznaczeń i wyboru
-  „ogólnie” z panelu), zapisuje mapowanie jak przy „Zamaskuj zaznaczone” i wysyła wiadomość
-  ponownie (klik przycisku albo Enter). Na analizę czeka do 10 s; gdy się nie uda, nic nie
-  wysyła, ikona i panel mówią, że drugie wysłanie w ciągu 5 s pójdzie bez maskowania. Ikona
-  pokazuje „zamaskowano automatycznie (N)”, „Cofnij” działa, dopóki tekst nie zniknie z pola. Na
-  innych stronach tryb automatyczny nic nie zmienia: maskuje się z panelu.
-- Maskowanie podczas pisania (ustawienie „Automatycznie podczas pisania”, `maskMode: 'typing'`;
-  w okienku wtyczki „Przy pisaniu”): na każdej stronie, na której AInonim działa, pole jest
-  maskowane samo 1,5 s po ostatniej zmianie, gdy analiza tekstu się skończyła
-  (`lib/content/typing-mask.ts`). Nigdy w trakcie kompozycji IME, nigdy w tekst, który zmienił
-  się od analizy, a w edytor contenteditable dopiero, gdy ma fokus; kursor zostaje na końcu.
-  Ikona pokazuje „zamaskowano automatycznie (N)”, „Cofnij” przywraca tekst i AInonim nie maskuje
-  go znowu, dopóki się nie zmieni. W czatach mapowanie zapisuje się jak przy „Zamaskuj
-  zaznaczone”, a maskowanie przy wysyłce działa dodatkowo jako zabezpieczenie. W dzienniku
-  wpis ma sposób „automatycznie”.
-- Domyślna zamiana dla każdej kategorii (zakładka „Kategorie”, przełącznik „znacznik | ogólnie”
-  obok kategorii i dla własnych słów; `categoryModes` w `storage.sync`, zapisywane tylko
-  „ogólnie”): od niej zaczyna przełącznik w panelu i według niej maskuje tryb automatyczny.
-- Dziennik maskowania (zakładka „Dziennik” w ustawieniach, `lib/log/`): każde maskowanie,
-  ręczne i automatyczne, dopisuje wpis z czasem, nazwą hosta, sposobem i liczbą danych według
-  kategorii, bez wartości, znaczników i treści. Wpisy dopisuje tylko service worker (wiadomość
-  `ainonim/log-append`; host bierze z adresu ramki nadawcy, nie z wiadomości) do
-  `storage.local` (`maskingLog`, najwyżej 1000 wpisów), które ogranicza do zaufanych kontekstów,
-  więc content script może wpis dodać, ale nie odczytać dziennika. Zakładka pokazuje
-  podsumowanie, kategorie, strony i ostatnie wpisy, eksportuje CSV (komórki zaczynające się od
-  `= + - @` są neutralizowane) i otwiera raport do wydruku (`report.html`, „Zapisz jako PDF” w
-  oknie drukowania). Zapisywanie można wyłączyć w zakładce „Ogólne” (`maskingLogEnabled`).
-- Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane (poza wpisem w
-  dzienniku).
+- `lib/site-access.ts` decyduje, czy ma działać na stronie (`siteScope`, `allowedSites`,
+  `siteLevels`), i reaguje na każdą zmianę; po wyłączeniu usuwa wszystko, co dodał.
+- `lib/fields/` obserwuje pola (także edytory contenteditable: ProseMirror, Lexical, Quill),
+  czyta ich tekst i wpisuje wynik maskowania.
+- `lib/content/masking.ts` analizuje tekst po przerwie w pisaniu, prowadzi panel i „Cofnij”;
+  `auto-mask.ts` przechwytuje wysyłanie w czatach (faza capture, przed stroną); `typing-mask.ts`
+  maskuje po przerwie w pisaniu; `generalise.ts` tworzy wartości „ogólnie”.
+- `lib/sites/` zawiera adaptery czatów: pole wiadomości, odpowiedzi, wysłane wiadomości, przycisk
+  wysyłania i identyfikator rozmowy z adresu.
+- `lib/restore/` zamienia znaczniki na oryginały w odpowiedziach i wysłanych wiadomościach,
+  zmieniając tylko `data` istniejących węzłów tekstu, i podświetla je przez CSS Custom Highlight
+  API. Pola wpisywania wiadomości nigdy nie zmienia.
+- `lib/ui/` rysuje ikonę i panel w zamkniętym shadow root.
+
+**Service worker** (`entrypoints/background.ts`, `lib/worker.ts`) tworzy dokument offscreen przy
+pierwszym żądaniu, stosuje wyłączone kategorie i własne słowa (`lib/detection/`), trzyma mapowania
+rozmów (`lib/mapping/`) i dopisuje wpisy dziennika (`lib/log/`).
+
+**Strony rozszerzenia**: okienko (`entrypoints/popup/`), ustawienia (`entrypoints/options/`,
+zakładki w `lib/ui/options/`) i raport do druku (`entrypoints/report/`).
 
 ### Komunikacja
 
-- Content scripty wołają `analyzeText(text, mapping?)`, `analyzeInConversation(text, key,
-persist)`, `restoreText(text, mapping)`, `getConversationMapping(key)` i
-  `renameConversation(from, to)` z `lib/client.ts`. Żądania z kluczem rozmowy service worker
-  przyjmuje tylko wtedy, gdy witryna klucza (`chatgpt:`) zgadza się z adresem ramki, która je
-  wysłała (`lib/mapping/access.ts`); inaczej odpowiada `forbidden`. Żadna z tych funkcji nie rzuca wyjątku: zwracają
-  `{ ok: true, … }` albo `{ ok: false, code, error }`, gdzie `code` to `invalid-request`,
-  `too-long`, `timeout`, `engine`, `forbidden` lub `conflict` (zastępnik w tej rozmowie oznacza
-  już inną wartość).
-- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/messages.ts`) po każdej
-  stronie. Service worker przyjmuje żądania tylko z kart, dokument offscreen tylko spoza kart.
-- Limit tekstu: 50 000 znaków (`string.length`), sprawdzany w kliencie, w service workerze i w
-  offscreen, zanim tekst trafi do Pythona.
-- Czas: najpierw service worker czeka na gotowość silnika (utworzenie offscreen + ładowanie
-  Pyodide, do 20 s), dopiero potem liczy 5 s na samo `analyze`/`restore`. Po przekroczeniu
-  czasu zamyka dokument offscreen, bo Pythona nie da się przerwać; następne żądanie tworzy go od
-  nowa.
+- Content scripty wołają funkcje z `lib/client.ts` (`analyzeText`, `analyzeInConversation`,
+  `restoreText`, `getConversationMapping`, `renameConversation`). Żadna nie rzuca wyjątku:
+  zwracają `{ ok: true, … }` albo `{ ok: false, code, error }`, gdzie `code` to
+  `invalid-request`, `too-long`, `timeout`, `engine`, `forbidden` lub `conflict`. Opis błędu
+  podaje etap, na którym wystąpił (np. `worker:create-offscreen: Error: …`).
+- Żądania z kluczem rozmowy service worker przyjmuje tylko wtedy, gdy witryna klucza (`chatgpt:`)
+  zgadza się z adresem ramki nadawcy (`lib/mapping/access.ts`); inaczej odpowiada `forbidden`.
+  Listę i usuwanie zapamiętanych danych obsługują tylko strony rozszerzenia.
+- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/messages.ts`).
+- Limit tekstu: 50 000 znaków, sprawdzany w kliencie, w service workerze i w offscreen.
+- Czas: do 20 s na gotowość silnika (utworzenie offscreen i ładowanie Pyodide), potem 5 s na samo
+  `analyze`/`restore`. Po przekroczeniu czasu service worker zamyka dokument offscreen, bo Pythona
+  nie da się przerwać; następne żądanie tworzy go od nowa.
 
-## Wymagania
+## Rozwój
 
-- Node.js 22.12+ (CI: 24)
-- do testów e2e: `npx playwright install chromium`
-- do przebudowania koła polanon: Python 3.11+ i lokalne repozytorium polanon
+Wymagania: Node.js 22.12+ (CI: 24); do testów e2e `npx playwright install chromium`; do
+przebudowania koła polanon Python 3.11+ i lokalne repozytorium polanon.
 
-## Polecenia
+| Polecenie               | Co robi                                                                     |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `npm run dev`           | WXT w trybie deweloperskim                                                  |
+| `npm run build`         | buduje `.output/chrome-mv3` i sprawdza, że nie ma w nim kodu testów ani CDN |
+| `npm run zip`           | buduje paczkę `.output/ainonim-<wersja>-chrome.zip` do sklepu               |
+| `npm test`              | testy jednostkowe (Vitest)                                                  |
+| `npm run test:coverage` | testy jednostkowe z pokryciem                                               |
+| `npm run test:e2e`      | build `--mode e2e` (z mostkiem testowym) i testy e2e (Playwright)           |
+| `npm run screenshots`   | zrzuty ekranu do sklepu w `assets/store/`                                   |
+| `npm run measure`       | pomiary czasu zimnego startu i opóźnienia                                   |
+| `npm run lint`          | ESLint i Prettier                                                           |
+| `npm run typecheck`     | `tsc --noEmit`                                                              |
 
-| Polecenie           | Co robi                                                             |
-| ------------------- | ------------------------------------------------------------------- |
-| `npm run dev`       | WXT w trybie deweloperskim                                          |
-| `npm run build`     | buduje `.output/chrome-mv3` i sprawdza, że nie ma w nim kodu testów |
-| `npm run zip`       | buduje paczkę `.output/ainonim-<wersja>-chrome.zip`                 |
-| `npm test`          | testy jednostkowe (Vitest)                                          |
-| `npm run test:e2e`  | build `--mode e2e` (z mostkiem testowym) + testy e2e (Playwright)   |
-| `npm run measure`   | build + pomiary spike'u T2 (czas zimnego startu, opóźnienie)        |
-| `npm run lint`      | ESLint + Prettier                                                   |
-| `npm run typecheck` | `tsc --noEmit`                                                      |
+Mostek testowy (`entrypoints/test-bridge.content.ts`) jest tylko w buildzie `--mode e2e`;
+`npm run build` sprawdza, że nie trafił do paczki produkcyjnej.
 
-Ręczne załadowanie: `chrome://extensions` → tryb dewelopera → „Załaduj rozpakowane” →
-`.output/chrome-mv3`.
-
-## polanon
+### polanon
 
 Koło `vendor/polanon-0.4.1-py3-none-any.whl` jest w repozytorium, żeby build nie zależał od sieci
-ani od lokalnego repo polanon. Przebudowanie z lokalnej kopii polanon:
+ani od lokalnego repo polanon. Przebudowanie z lokalnej kopii:
 
 ```
 ./scripts/build-polanon-wheel.sh ../polanon
 ```
 
-## Ograniczenia
+### Wydanie
 
-Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+Lista kontrolna: [docs/release.md](docs/release.md). Każda zmiana widoczna dla użytkownika trafia
+do [CHANGELOG.md](CHANGELOG.md) i podbija wersję w `package.json`.
+
+## Ograniczenia
 
 - To pseudonimizacja, nie anonimizacja w rozumieniu RODO.
 - Wykrywanie działa na regułach, bez NER: samo nazwisko, nazwa miejscowości czy firma bez formy
   prawnej często umykają. Tekst trzeba przeczytać przed wysłaniem.
-- W trybie ręcznym (domyślnym) nic nie jest maskowane automatycznie: tekst wysłany bez kliknięcia
-  „Zamaskuj” idzie z danymi. Tryb automatyczny działa tylko na tych pięciu czatach i tylko dla
-  wysłania Enterem lub przyciskiem wysyłania; strona, która wysyła inaczej (np. własnym skrótem),
-  nie zostanie zatrzymana. W trybie „podczas pisania” tekst wysłany szybciej niż po 1,5 s przerwy
-  poza tymi czatami nie zostanie zamaskowany.
-- Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi i wysłanych wiadomości,
-  atrybuty `title`, legenda przy bloku edytora ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
-  nie to, co strona wyświetla.
+- W trybie ręcznym tekst wysłany bez kliknięcia „Zamaskuj zaznaczone” idzie z danymi. Tryb „Przy
+  wysyłce” działa tylko w obsługiwanych czatach i tylko dla Entera i przycisku wysyłania; strona,
+  która wysyła inaczej (np. własnym skrótem), nie zostanie zatrzymana. W trybie „Przy pisaniu”
+  poza czatami tekst wysłany przed upływem 1,5 s przerwy nie zostanie zamaskowany.
 - Strona widzi treść pola, zanim zostanie zamaskowana.
+- Przywrócone oryginały są w DOM-ie strony czatu (tekst, atrybuty `title`, legenda przy bloku
+  edytora ChatGPT), więc skrypty strony mogą je odczytać. AInonim chroni prompt, nie to, co
+  strona wyświetla.
 - Pliki i obrazy dołączane do czatu, pola w zamkniętych shadow root, edytory na `canvas` i
   `iframe` z innej domeny nie są obsługiwane.
 - Przycisk kopiowania bloku w ChatGPT kopiuje znaczniki, nie oryginały.
-- Adaptery czatów zależą od selektorów, które strony zmieniają. Gemini sprawdzono na żywo
-  21.11.2026; w Groku tylko pole i wysłaną wiadomość (odpowiedzi wymagają konta), a Perplexity
-  wyłącznie na podstawie znanej budowy strony.
+- Adaptery czatów zależą od selektorów, które strony często zmieniają. Stan sprawdzenia na żywo:
+  - ChatGPT i Claude.ai – pole wiadomości i odpowiedzi (19–20.11.2026); wysłane wiadomości w
+    Claude.ai jeszcze nie,
+  - Gemini – pole, wysłana wiadomość i odpowiedź (21.11.2026),
+  - Grok – pole i wysłana wiadomość (odpowiedzi wymagają konta),
+  - Kimi, Qwen, Mistral Le Chat – tylko pole wiadomości,
+  - Perplexity, DeepSeek, Microsoft Copilot – wyłącznie według znanej budowy stron.
+- W DeepSeek tryb „Przy wysyłce” wysyła wiadomość ponownie Enterem, bo przycisk wysyłania nie ma
+  pewnego selektora.
+
+## Dokumentacja
+
+- [CHANGELOG.md](CHANGELOG.md) – historia wersji
+- [docs/privacy-policy.md](docs/privacy-policy.md) – polityka prywatności (PL i EN)
+- [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) – model zagrożeń
+- [docs/store-listing.md](docs/store-listing.md) – opis i formularze Chrome Web Store
+- [docs/release.md](docs/release.md) – lista kontrolna wydania
+- [docs/decisions/](docs/decisions/) – decyzje projektowe
+- [docs/spikes/T2-pyodide.md](docs/spikes/T2-pyodide.md) – pomiary Pyodide
+- [SECURITY.md](SECURITY.md) – zgłaszanie podatności
 
 ## Licencje
 
-Zob. [NOTICE](NOTICE) (dołączany do paczki jako `NOTICE.txt`).
+Licencja kodu AInonim nie jest jeszcze ustalona (`package.json` ma wpis `MIT`, ale w repozytorium
+nie ma pliku LICENSE). Licencje dołączonych bibliotek (Pyodide, polanon i inne): [NOTICE](NOTICE),
+w paczce jako `NOTICE.txt`.

@@ -5,6 +5,11 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+### Zmienione
+
+- README przepisane: funkcje, instalacja, ustawienia, prywatność, architektura, rozwój,
+  ograniczenia ze stanem sprawdzenia każdego czatu i spis dokumentacji.
+
 ## [0.4.0] - 2026-11-22
 
 ### Dodane
