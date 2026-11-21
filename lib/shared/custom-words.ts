@@ -4,11 +4,20 @@
 //
 // The patterns are the user's own, but they run over every text typed on every page, and a
 // JavaScript regex cannot be interrupted. Hence the caps: entry length and count
-// (lib/settings/index.ts), matches per text, and no nested unbounded quantifiers, the usual cause
+// (lib/settings/detection.ts), matches per text, and no nested unbounded quantifiers, the usual cause
 // of catastrophic backtracking.
 
-import type { CustomWord } from '~/lib/settings';
 import { findTokens } from './tokens';
+
+/**
+ * One of the user's own words or phrases to mask ("Własne słowa" tab). With `regex` the value is
+ * a regular expression; without, it matches as a whole word, ignoring case. Kept in storage.sync
+ * so the list survives a reinstall; it never leaves the browser's own sync.
+ */
+export interface CustomWord {
+  value: string;
+  regex: boolean;
+}
 
 /** Most matches taken from one text; anything beyond is left to the engine. */
 export const MAX_CUSTOM_MATCHES = 500;
