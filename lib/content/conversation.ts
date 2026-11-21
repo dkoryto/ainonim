@@ -33,6 +33,11 @@ export interface Conversation {
   update(key: string, mapping: Mapping): void;
   /** Compare the URL now (also done on navigation and by polling). */
   checkUrl(): void;
+  /**
+   * Read the current conversation's mapping from the worker again, e.g. after the popup deleted
+   * stored mappings: a deleted conversation comes back as `{}`, so its tokens stop being restored.
+   */
+  reload(): void;
   stop(): void;
 }
 
@@ -137,6 +142,9 @@ export function trackConversation(deps: ConversationDeps): Conversation {
     mapping: () => mapping,
     update: set,
     checkUrl,
+    reload() {
+      if (!stopped) load(key);
+    },
     stop() {
       stopped = true;
       unwatch();

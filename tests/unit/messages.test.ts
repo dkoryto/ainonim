@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MANAGE_REQUEST_TYPES,
   MAX_TEXT_LENGTH,
   checkTextLength,
   isAnalyzeResponse,
   isContentRequest,
+  isDoneResponse,
+  isManageRequest,
+  isMappingsChangedNotice,
+  isMappingsListResponse,
   isOffscreenRequest,
   isReadyResponse,
   isRestoreResponse,
@@ -156,5 +161,58 @@ describe('checkTextLength', () => {
       code: 'too-long',
       error: 'Text is too long: 50001 characters, the limit is 50000.',
     });
+  });
+});
+
+describe('isManageRequest', () => {
+  it.each([
+    ['mappings-list', { type: 'ainonim/mappings-list', id: '1' }],
+    ['mapping-delete', { type: 'ainonim/mapping-delete', id: '1', conversationKey: 'chatgpt:x' }],
+    ['mappings-clear', { type: 'ainonim/mappings-clear', id: '1' }],
+  ])('accepts %s', (_case, message) => {
+    expect(isManageRequest(message)).toBe(true);
+    expect(isContentRequest(message)).toBe(false);
+    expect(MANAGE_REQUEST_TYPES).toContain(message.type);
+  });
+
+  it.each([
+    ['a delete without a key', { type: 'ainonim/mapping-delete', id: '1' }],
+    ['a numeric key', { type: 'ainonim/mapping-delete', id: '1', conversationKey: 1 }],
+    ['a numeric id', { type: 'ainonim/mappings-list', id: 1 }],
+    ['a content request', { type: 'ainonim/mapping-get', id: '1', conversationKey: 'chatgpt:x' }],
+    ['null', null],
+  ])('rejects %s', (_case, message) => {
+    expect(isManageRequest(message)).toBe(false);
+  });
+});
+
+describe('isMappingsChangedNotice', () => {
+  it('accepts the notice and nothing else', () => {
+    expect(isMappingsChangedNotice({ type: 'ainonim/mappings-changed' })).toBe(true);
+    expect(isMappingsChangedNotice({ type: 'ainonim/mappings-list', id: '1' })).toBe(false);
+    expect(isMappingsChangedNotice('ainonim/mappings-changed')).toBe(false);
+  });
+});
+
+describe('manage response guards', () => {
+  it('accept a list of conversations and a done answer', () => {
+    const conversations = [{ key: 'chatgpt:x', mapping: { '<OSOBA_1>': 'Jan' } }];
+
+    expect(isMappingsListResponse({ id: '1', ok: true, conversations })).toBe(true);
+    expect(isMappingsListResponse({ id: '1', ok: true, conversations: [] })).toBe(true);
+    expect(isDoneResponse({ id: '1', ok: true })).toBe(true);
+    expect(isDoneResponse({ id: '1', ok: false, code: 'forbidden', error: '' })).toBe(true);
+  });
+
+  it.each([
+    ['no list', { id: '1', ok: true }],
+    ['a conversation without a key', { id: '1', ok: true, conversations: [{ mapping: {} }] }],
+    [
+      'a malformed mapping',
+      { id: '1', ok: true, conversations: [{ key: 'chatgpt:x', mapping: { a: 1 } }] },
+    ],
+    ['an unknown error code', { id: '1', ok: false, code: 'nope', error: '' }],
+  ])('reject a list response with %s', (_case, response) => {
+    expect(isMappingsListResponse(response)).toBe(false);
   });
 });
