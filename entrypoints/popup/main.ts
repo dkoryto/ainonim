@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
-import { manageClient } from '~/lib/manage-client';
-import { copyToClipboard, createSupportLinks } from '~/lib/support';
+import { manageClient } from '~/lib/pages/manage-client';
+import { copyToClipboard, createSupportLinks } from '~/lib/pages/support';
 import {
   addAllowedSite,
   getChatDisplay,
@@ -16,9 +16,9 @@ import {
   setMaskingMode,
   setSiteLevel,
 } from '~/lib/settings';
-import { type SiteAccess, watchSiteAccess } from '~/lib/site-access';
-import { conversationKeyOfUrl, createStoredMappingsView } from '~/lib/ui/stored-mappings';
-import { accessText, describeTabUrl, unsupportedNote } from './tab-target';
+import { type SiteAccess, watchSiteAccess } from '~/lib/sites/access';
+import { conversationKeyOfUrl, createStoredMappingsView } from '~/lib/pages/stored-mappings';
+import { accessText, describeTabUrl, unsupportedNote } from '~/lib/pages/tab-target';
 
 function element<T extends HTMLElement>(id: string, type: new () => T): T {
   const found = document.getElementById(id);

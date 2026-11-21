@@ -2,8 +2,8 @@
 // token. It keeps a little of the meaning (the year of a date, the town of an address) and drops
 // the rest. Generalised text is not a token, so it is never stored in a mapping nor restored.
 
-import type { Span } from '~/lib/messages';
-import { hasLabel, labelFor } from '~/lib/ui/labels';
+import type { Span } from '~/lib/shared/messages';
+import { hasLabel, labelFor } from '~/lib/shared/labels';
 
 /** A year a date in a text can plausibly have: 1000..2999. */
 const YEAR = /(?<!\d)([12]\d{3})(?!\d)/;

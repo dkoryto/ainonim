@@ -2,10 +2,10 @@
 // the breakdown by kind of data and by site and the recent maskings, then opens the print dialog,
 // where the user can save it as PDF. No PDF library: the browser's own printing does it.
 import { formatDateTime } from '~/lib/log/csv';
-import { summarize } from '~/lib/log/entries';
+import { summarize } from '~/lib/shared/log-entries';
 import { readLog } from '~/lib/log/store';
-import { categoryName, entriesTable, rankList, summaryStats } from '~/lib/ui/log-view';
-import { make } from '~/lib/ui/options/dom';
+import { categoryName, entriesTable, rankList, summaryStats } from '~/lib/pages/log-view';
+import { make } from '~/lib/pages/options/dom';
 
 /** Entries listed under "Ostatnie maskowania"; the figures above cover the whole log. */
 const RECENT = 50;

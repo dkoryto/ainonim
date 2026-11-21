@@ -1,8 +1,8 @@
 // The masking log as CSV for a spreadsheet. Semicolons, because Polish Excel splits on them, and
 // a byte order mark, so it reads the file as UTF-8.
 
-import { labelFor } from '~/lib/ui/labels';
-import { type LogEntry, SOURCE_LABELS } from './entries';
+import { labelFor } from '~/lib/shared/labels';
+import { type LogEntry, SOURCE_LABELS } from '~/lib/shared/log-entries';
 
 const SEPARATOR = ';';
 const BOM = '﻿';

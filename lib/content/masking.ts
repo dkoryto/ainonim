@@ -5,12 +5,12 @@
 // Warnings name the failure code and at most an error message checked by safeDetail.
 
 import { generalise } from '~/lib/content/generalise';
-import { type EditableField, readText } from '~/lib/fields/text';
-import { watchFields } from '~/lib/fields/watch';
-import { replaceFieldText } from '~/lib/fields/write';
-import { type LogSource, type MaskingReport, reportOf } from '~/lib/log/entries';
-import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/messages';
-import { TimeoutError, withTimeout } from '~/lib/timeout';
+import { type EditableField, readText } from '~/lib/content/fields/text';
+import { watchFields } from '~/lib/content/fields/watch';
+import { replaceFieldText } from '~/lib/content/fields/write';
+import { type LogSource, type MaskingReport, reportOf } from '~/lib/shared/log-entries';
+import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/shared/messages';
+import { TimeoutError, withTimeout } from '~/lib/shared/timeout';
 import {
   type Badge,
   type BadgeItem,
@@ -20,13 +20,13 @@ import {
   type MaskMode,
   type RevertState,
   createBadge,
-} from '~/lib/ui/badge';
-import { replaceAll } from '~/lib/spans';
-import { clearSpans, paintSpans } from '~/lib/ui/highlight';
-import { labelFor } from '~/lib/ui/labels';
+} from '~/lib/content/ui/badge';
+import { replaceAll } from '~/lib/shared/spans';
+import { clearSpans, paintSpans } from '~/lib/content/ui/highlight';
+import { labelFor } from '~/lib/shared/labels';
 import { type TypingMasker, startTypingMask } from './typing-mask';
 
-export { maskSpans } from '~/lib/spans';
+export { maskSpans } from '~/lib/shared/spans';
 
 export interface MaskingOptions {
   /**
@@ -181,7 +181,7 @@ export function startMasking(options: MaskingOptions): MaskingSession {
         void revert(field);
       },
       onSelectionChange: (selected) => {
-        // Only while the spans still belong to the field's text (see lib/ui/highlight.ts).
+        // Only while the spans still belong to the field's text (see lib/content/ui/highlight.ts).
         if (state.preview?.text === readText(field)) paintSpans(field, selected);
       },
     });

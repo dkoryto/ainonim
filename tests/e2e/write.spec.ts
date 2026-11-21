@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type * as Write from '~/lib/fields/write';
+import type * as Write from '~/lib/content/fields/write';
 import { expect, injectLib, test } from './lib-page';
 
 const ORIGINAL = ['Jan Kowalski, PESEL 50810112354', 'tel. 600 100 200'];
@@ -8,7 +8,7 @@ const MASKED = ['Klient <OSOBA_1>, PESEL <PESEL_1>', '', 'tel. <TELEFON_1>'];
 
 async function open(page: Page, url: string): Promise<void> {
   await page.goto(url);
-  await injectLib(page, 'lib/fields/write.ts', 'ainonimWrite');
+  await injectLib(page, 'lib/content/fields/write.ts', 'ainonimWrite');
 }
 
 /** Type lines into the focused field, pressing Enter between them. */

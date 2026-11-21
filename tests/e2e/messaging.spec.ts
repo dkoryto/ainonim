@@ -1,5 +1,5 @@
 import type { Worker } from '@playwright/test';
-import { MAX_TEXT_LENGTH } from '~/lib/messages';
+import { MAX_TEXT_LENGTH } from '~/lib/shared/messages';
 import {
   analyzeInPage,
   expect,

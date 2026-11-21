@@ -26,7 +26,10 @@ async function openPopup(context: BrowserContext): Promise<Page> {
   return page;
 }
 
-/** Store mappings the way lib/mapping/store.ts does; later entries are more recently used. */
+/**
+ * Store mappings the way lib/background/mapping/store.ts does; later entries are more recently
+ * used.
+ */
 async function seedMappings(
   context: BrowserContext,
   conversations: [string, Record<string, string>][],

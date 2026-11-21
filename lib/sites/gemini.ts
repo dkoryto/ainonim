@@ -1,6 +1,6 @@
 // Gemini (gemini.google.com). Selectors as seen on 2026-11-21 (Angular custom elements), with
 // fallbacks. The composer is a Quill editor; Quill's hidden `.ql-clipboard` is contenteditable
-// too and is never a field (see lib/fields/editable.ts).
+// too and is never a field (see lib/content/fields/editable.ts).
 
 import {
   type SiteAdapter,

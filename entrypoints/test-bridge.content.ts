@@ -4,11 +4,12 @@
 // `ainonim-test` code ended up in the package.
 import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
-import { analyzeText, restoreText } from '~/lib/client';
-import { isMapping } from '~/lib/messages';
+import { analyzeText, restoreText } from '~/lib/content/client';
+import { isMapping } from '~/lib/shared/messages';
 
 /**
- * - `analyze` / `restore` go through the client in lib/client.ts, like the real content script.
+ * - `analyze` / `restore` go through the client in lib/content/client.ts, like the real content
+ * script.
  * - `raw` sends `message` to the service worker as is, so tests can reach its own checks.
  * - `read-log` tries to read the masking log from `storage.local`, which content scripts must not.
  */

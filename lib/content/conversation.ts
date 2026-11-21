@@ -1,13 +1,13 @@
 // Which chat conversation the page shows, and a copy of its mapping for restoring answers.
 //
-// The mapping itself is stored by the service worker (lib/mapping/store.ts); the content script
-// only keeps the copy the worker hands back, so answers can be restored synchronously. A new chat
-// has no id until its first message is sent, so it starts under a temporary key that is unique to
-// this page load; when the URL gains the id (an SPA navigation), the mapping is renamed to the
+// The mapping itself is stored by the service worker (lib/background/mapping/store.ts); the content
+// script only keeps the copy the worker hands back, so answers can be restored synchronously. A new
+// chat has no id until its first message is sent, so it starts under a temporary key that is unique
+// to this page load; when the URL gains the id (an SPA navigation), the mapping is renamed to the
 // real key.
 
-import type { Mapping, MappingResponse } from '~/lib/messages';
-import { conversationKey } from '~/lib/mapping/store';
+import type { Mapping, MappingResponse } from '~/lib/shared/messages';
+import { conversationKey } from '~/lib/shared/conversation-key';
 import type { SiteAdapter } from '~/lib/sites';
 
 /** How often the URL is compared when the Navigation API does not report a change. */

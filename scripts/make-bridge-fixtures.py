@@ -1,6 +1,6 @@
 """Write the expected bridge output for every benchmark sample, computed under CPython.
 
-tests/unit/bridge.test.ts runs the same bridge in Pyodide and asserts the output is identical.
+tests/unit/offscreen/bridge.test.ts runs the same bridge in Pyodide and asserts the output is identical.
 The wheel from vendor/ is installed into a throwaway venv, so no Python environment is touched.
 
 Usage (Python 3.11+; the Python that Pyodide bundles is the closest match):

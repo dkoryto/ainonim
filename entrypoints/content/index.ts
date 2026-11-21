@@ -1,7 +1,7 @@
 // The content script on every page: watches fields for personal data (lib/content/masking.ts)
-// and, on chat sites, restores tokens in the model's answers (lib/restore/observer.ts). The site's
-// effective level (lib/site-access.ts: the site's own level, the scope and the allow-list) decides
-// whether anything runs; at `off` nothing is left on the page.
+// and, on chat sites, restores tokens in the model's answers (lib/content/restore/observer.ts). The
+// site's effective level (lib/sites/access.ts: the site's own level, the scope and the allow-list)
+// decides whether anything runs; at `off` nothing is left on the page.
 import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import {
@@ -10,14 +10,14 @@ import {
   getConversationMapping,
   renameConversation,
   restoreText,
-} from '~/lib/client';
+} from '~/lib/content/client';
 import { type Conversation, trackConversation } from '~/lib/content/conversation';
 import { interceptSends } from '~/lib/content/auto-mask';
 import { type MaskingSession, startMasking } from '~/lib/content/masking';
-import { logMasking } from '~/lib/log/client';
-import { type AnalyzeResponse, isMappingsChangedNotice } from '~/lib/messages';
-import { observeMessages } from '~/lib/restore/observer';
-import { createDeclensionCache, findTokens } from '~/lib/restore/tokens';
+import { logMasking } from '~/lib/content/log-client';
+import { type AnalyzeResponse, isMappingsChangedNotice } from '~/lib/shared/messages';
+import { observeMessages } from '~/lib/content/restore/observer';
+import { createDeclensionCache, findTokens } from '~/lib/shared/tokens';
 import {
   type CategoryMode,
   type ChatDisplay,
@@ -33,7 +33,7 @@ import {
   onChatDisplayChange,
   onMaskingModeChange,
 } from '~/lib/settings';
-import { watchSiteAccess } from '~/lib/site-access';
+import { watchSiteAccess } from '~/lib/sites/access';
 import { type SiteAdapter, adapterFor } from '~/lib/sites';
 
 /** polanon's restore of one cased token, e.g. `<OSOBA_1:wołacz>` -> "Janie Kowalski". */

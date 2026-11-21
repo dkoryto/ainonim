@@ -10,7 +10,7 @@
 //
 // Privacy rule for this file: nothing of the text is logged.
 
-import type { EditableField } from '~/lib/fields/text';
+import type { EditableField } from '~/lib/content/fields/text';
 import type { SiteAdapter } from '~/lib/sites';
 import type { MaskingSession } from './masking';
 

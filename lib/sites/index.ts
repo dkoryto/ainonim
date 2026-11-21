@@ -1,9 +1,13 @@
 import { chatgpt } from './chatgpt';
 import { claude } from './claude';
+import { copilot } from './copilot';
+import { deepseek } from './deepseek';
 import { gemini } from './gemini';
 import { grok } from './grok';
-import { copilot, deepseek, kimi, mistral, qwen } from './more-chats';
+import { kimi } from './kimi';
+import { mistral } from './mistral';
 import { perplexity } from './perplexity';
+import { qwen } from './qwen';
 import type { SiteAdapter } from './types';
 
 export type { SiteAdapter } from './types';
