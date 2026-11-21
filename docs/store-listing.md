@@ -1,8 +1,11 @@
 # Chrome Web Store: teksty wpisu
 
-Teksty do formularza w Chrome Web Store Developer Dashboard. Polska wersja jest główna; angielska
-poniżej. Krótki opis w sklepie pochodzi z pola `description` manifestu (`wxt.config.ts`), więc
-przed wysłaniem paczki oba teksty muszą być zgodne.
+Teksty do formularza w Chrome Web Store Developer Dashboard dla bieżącej wersji. Polska wersja jest
+główna; angielska poniżej (panel dewelopera jest po angielsku, więc uzasadnienia uprawnień i
+odpowiedzi w zakładce „Privacy practices” wpisuje się po angielsku). Krótki opis w sklepie pochodzi
+z pola `description` manifestu (`wxt.config.ts`), więc oba teksty muszą być zgodne.
+
+Wszystko, co oznaczono `[[DO UZUPEŁNIENIA: …]]`, uzupełnia właściciel konta wydawcy.
 
 ---
 
@@ -14,6 +17,8 @@ AInonim
 
 ### Krótki opis (127 znaków, limit 132)
 
+Ten sam tekst co `description` w `wxt.config.ts`:
+
 ```
 Wykrywa i maskuje polskie dane osobowe (PESEL, NIP, IBAN, imiona) w czatach AI i formularzach. Działa lokalnie, nic nie wysyła.
 ```
@@ -21,103 +26,147 @@ Wykrywa i maskuje polskie dane osobowe (PESEL, NIP, IBAN, imiona) w czatach AI i
 ### Opis szczegółowy
 
 ```
-AInonim pokazuje, ile i jakich polskich danych osobowych jest w polu tekstowym, zanim wyślesz je do czatu AI albo formularza, i jednym kliknięciem zastępuje je znacznikami.
+AInonim pokazuje, jakie polskie dane osobowe są w polu tekstowym, zanim wyślesz je do czatu AI albo formularza, i zastępuje je znacznikami, np. „Jan Kowalski” → <OSOBA_1>.
 
 Co wykrywa:
-• PESEL, NIP, REGON, numer dowodu osobistego, IBAN, numer karty płatniczej (sprawdzane sumą kontrolną),
-• e-mail, telefon, kod pocztowy,
-• imiona z nazwiskami w każdym przypadku gramatycznym, nazwy firm,
-• sekrety, np. klucze API.
+• PESEL, NIP, REGON, KRS, numer dowodu osobistego, paszportu i prawa jazdy, IBAN, numer karty płatniczej (numery sprawdzane sumą kontrolną),
+• e-mail, telefon, adres, kod pocztowy, adres IP, numer rejestracyjny, VIN,
+• imiona i nazwiska w każdym przypadku gramatycznym, nazwy firm, daty,
+• sekrety, np. klucze API,
+• Twoje własne słowa i wzorce, np. nazwy projektów albo numery klientów.
 
 Jak działa:
-• Odznaka przy edytowanym polu pokazuje liczbę i rodzaje znalezionych danych.
-• Jedno kliknięcie zamienia je na znaczniki, np. „Jan Kowalski” → <OSOBA_1>.
-• W ChatGPT i Claude.ai oryginały wracają w odpowiedzi modelu na Twoim ekranie; do modelu trafiają tylko znaczniki.
+• Ikona w rogu pola pokazuje, ile danych znaleziono. Kliknięcie otwiera panel z listą wartości.
+• W panelu zaznaczasz, co zamaskować, i dla każdej wartości wybierasz znacznik albo opis ogólny (np. sam rok zamiast pełnej daty). „Cofnij” przywraca tekst sprzed maskowania.
+• W czatach AI możesz włączyć maskowanie automatyczne przy wysyłce wiadomości.
+• W odpowiedziach czatu i w wysłanych wiadomościach widzisz z powrotem oryginały zamiast znaczników; po najechaniu kursorem widać, co trafiło do modelu. Możesz też zostawić na ekranie znaczniki.
 • Pola haseł, kart i kodów jednorazowych są pomijane.
-• Dla każdej strony możesz wybrać: ostrzegaj albo wyłączone.
+• Dla każdej strony wybierasz: ostrzegaj albo wyłączone. W ustawieniach wyłączysz kategorie, których nie chcesz wykrywać.
+• Dziennik maskowania zapisuje tylko liczby (kiedy, na jakiej stronie, ile danych jakiego rodzaju), nigdy samych danych. Można go wyeksportować do CSV, wydrukować jako raport albo wyłączyć.
+
+Obsługiwane czaty: przywracanie oryginałów i maskowanie przy wysyłce działają w ChatGPT, Claude, Gemini, Grok i Perplexity. Wykrywanie i ręczne maskowanie działają w polach tekstowych na każdej stronie. AInonim nie jest powiązany z OpenAI, Anthropic, Google, xAI ani Perplexity.
 
 Prywatność:
-• Wykrywanie działa w całości w przeglądarce: otwarta biblioteka polanon (MIT) uruchomiona przez Pyodide (WebAssembly), dołączona do paczki.
+• Wykrywanie działa w całości w przeglądarce: otwarta biblioteka polanon uruchomiona przez Pyodide (WebAssembly), dołączona do paczki rozszerzenia.
 • Rozszerzenie nie wysyła niczego na żaden serwer. Bez telemetrii, analityki i kont.
-• Mapowania znacznik → oryginał są w pamięci sesji i znikają po zamknięciu przeglądarki.
+• Pary znacznik → oryginał są w pamięci sesji przeglądarki i znikają po jej zamknięciu; możesz je też usunąć w okienku rozszerzenia.
 
 Ograniczenia:
 • To pseudonimizacja, nie anonimizacja w rozumieniu prawa.
-• Żaden detektor nie wykrywa wszystkiego; np. samo nazwisko albo nazwa miejscowości często umyka. Przeczytaj tekst przed wysłaniem.
+• Żaden detektor nie wykrywa wszystkiego. Przeczytaj tekst przed wysłaniem.
+• Pliki i obrazy dołączane do wiadomości nie są sprawdzane.
 ```
+
+### Kategoria
+
+Proponowana: **Privacy & Security** (Prywatność i bezpieczeństwo, w grupie „Make Chrome Yours”).
+Zapasowa: **Tools** (Narzędzia).
+
+Język wpisu: polski.
 
 ### Jedyny cel (single purpose)
 
 ```
-Wykrywanie polskich danych osobowych w polu tekstowym, które użytkownik edytuje, i zastępowanie ich znacznikami przed wysłaniem, w całości lokalnie w przeglądarce.
+Ochrona polskich danych osobowych w tekście, który użytkownik wpisuje w przeglądarce: wykrywanie ich w edytowanym polu i zastępowanie znacznikami przed wysłaniem (z przywróceniem oryginałów na ekranie użytkownika w czatach AI), w całości lokalnie.
 ```
 
 ### Uzasadnienie uprawnień
 
-| Uprawnienie                    | Uzasadnienie                                                                                                                                                                                         |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `offscreen`                    | Wykrywanie wykonuje biblioteka polanon w Pyodide (WebAssembly). Działa w dokumencie offscreen, bo service worker MV3 jest usypiany po ok. 30 s bezczynności i interpreter trzeba by ładować od nowa. |
-| `storage`                      | `chrome.storage.session`: mapowania znacznik → oryginał na czas sesji przeglądarki (potrzebne do pokazania oryginałów w odpowiedzi). `chrome.storage.sync`: tryb dla stron (nazwa hosta + tryb).     |
-| `activeTab`                    | Działanie na bieżącej karcie po kliknięciu ikony rozszerzenia przez użytkownika.                                                                                                                     |
-| Dostęp do stron (`<all_urls>`) | Pola tekstowe, w które użytkownik może wpisać dane osobowe, są na dowolnych stronach, nie tylko w czatach AI. Skrypt treści czyta tylko pole, które użytkownik edytuje; nic nie wysyła.              |
+| Uprawnienie                                                                    | Uzasadnienie                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `offscreen`                                                                    | Wykrywanie wykonuje biblioteka polanon w Pyodide (WebAssembly), dołączonym do paczki. Działa w dokumencie offscreen, bo service worker MV3 jest usypiany po bezczynności i interpreter trzeba by ładować od nowa przy każdym wybudzeniu; skrypty treści nie mogą go uruchomić, bo działają w kontekście strony. Dokument offscreen przyjmuje polecenia tylko od service workera rozszerzenia.                                                                                                |
+| `storage`                                                                      | Trzy obszary: `storage.session`: pary znacznik → oryginał dla rozmów w czatach AI, potrzebne, żeby pokazać oryginały w odpowiedziach; tylko w pamięci, kasowane po zamknięciu przeglądarki, dostępne wyłącznie dla service workera. `storage.sync`: ustawienia (poziom dla stron, tryb maskowania, wyświetlanie, wyłączone kategorie, włączenie dziennika) i własne słowa użytkownika. `storage.local`: dziennik maskowania (czas, nazwa hosta, liczby według kategorii, bez samych danych). |
+| `activeTab`                                                                    | Okienko rozszerzenia odczytuje adres bieżącej karty po kliknięciu ikony przez użytkownika, żeby pokazać ustawienie dla tej strony i dane zapamiętane w tej rozmowie. Bez uprawnienia `tabs` i bez dostępu do historii.                                                                                                                                                                                                                                                                       |
+| Dostęp do stron: skrypt treści na `<all_urls>`, także w ramkach (`all_frames`) | Pola tekstowe, w które użytkownik może wpisać dane osobowe, są na dowolnych stronach i często w ramkach (edytory, formularze osadzone). Skrypt czyta tylko pole, które użytkownik edytuje, pomija pola haseł, kart i kodów jednorazowych i nic nie wysyła poza rozszerzenie. Na stronach ustawionych jako „Wyłączone” nie analizuje pól.                                                                                                                                                     |
 
 ### Zdalny kod
 
+Odpowiedź: **Nie, nie używam zdalnego kodu.**
+
 ```
-Nie. Cały kod, w tym Pyodide (WebAssembly) i biblioteka polanon, jest w paczce rozszerzenia. Nic nie jest pobierane ani wykonywane z sieci.
+Cały kod jest w paczce rozszerzenia: skrypty rozszerzenia, Pyodide (pyodide.mjs, pyodide.asm.mjs, pyodide.asm.wasm, python_stdlib.zip) i biblioteka polanon jako plik wheel. Dokument offscreen ładuje je z adresów chrome-extension:// tej paczki. Nic nie jest pobierane z sieci. Lista pakietów Pyodide jest pusta, a domyślny adres CDN Pyodide jest usuwany z pyodide.mjs przy budowaniu; build kończy się błędem, jeśli w paczce zostanie adres CDN. WebAssembly wymaga 'wasm-unsafe-eval' w CSP stron rozszerzenia; 'unsafe-eval' nie jest używane.
 ```
 
-### Wykorzystanie danych (formularz „Prywatność”)
+### Wykorzystanie danych (zakładka „Privacy practices”)
 
-Dane obsługiwane przez rozszerzenie (wyłącznie lokalnie, bez przesyłania poza urządzenie):
+Rozszerzenie nie przesyła żadnych danych poza urządzenie. Formularz pyta jednak o dane, które
+rozszerzenie „zbiera lub wykorzystuje”, a AInonim czyta tekst pól i przechowuje część danych
+lokalnie, więc deklarujemy zachowawczo:
 
-- informacje umożliwiające identyfikację osoby (imiona i nazwiska, PESEL, numer dowodu, e-mail,
-  telefon, kod pocztowy),
-- informacje finansowe i płatnicze (IBAN, numer karty płatniczej),
-- dane uwierzytelniające (sekrety, np. klucze API, jeśli są w tekście pola),
-- komunikacja osobista i treść stron (tekst wpisywany w pola).
+| Pole w formularzu                   | Zaznaczyć? | Dlaczego                                                                                                                             |
+| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Personally identifiable information | tak        | tekst pól zawiera imiona, PESEL, e-mail, telefon, adres; pary znacznik → oryginał w `storage.session`; własne słowa mogą je zawierać |
+| Health information                  | nie        | rozszerzenie nie wykrywa ani nie przechowuje danych o zdrowiu jako takich                                                            |
+| Financial and payment information   | tak        | IBAN i numery kart płatniczych w tekście pól i w parach znacznik → oryginał                                                          |
+| Authentication information          | tak        | wykrywa sekrety (np. klucze API) wpisane w pole; pola haseł są pomijane                                                              |
+| Personal communications             | tak        | czyta treść wiadomości pisanych w polach i wiadomości w czatach AI                                                                   |
+| Location                            | nie        | nie używa lokalizacji urządzenia (adresy w tekście są ujęte w PII)                                                                   |
+| Web history                         | tak        | dziennik maskowania zapisuje nazwy hostów stron, na których maskowano, z czasem                                                      |
+| User activity                       | nie        | nie rejestruje kliknięć, ruchów myszy ani naciśnięć klawiszy; czyta tylko zawartość edytowanego pola                                 |
+| Website content                     | tak        | czyta tekst pól i odpowiedzi czatów, żeby przywrócić oryginały                                                                       |
 
-Uwaga: dane nie opuszczają urządzenia, ale rozszerzenie je czyta, więc powyższe kategorie
-deklarujemy zachowawczo, żeby wpis był zgodny z rzeczywistym działaniem.
+„User activity” to decyzja graniczna: jeśli recenzent uzna czytanie pola w trakcie pisania za
+aktywność użytkownika, zaznaczyć także to pole.
 
-Zaznaczyć wszystkie trzy oświadczenia:
+Trzy oświadczenia (zaznaczyć wszystkie):
 
-- dane nie są sprzedawane ani przekazywane stronom trzecim poza zatwierdzonymi przypadkami użycia,
-- dane nie są używane ani przekazywane w celach niezwiązanych z jedynym celem rozszerzenia,
-- dane nie są używane ani przekazywane w celu ustalania zdolności kredytowej ani udzielania pożyczek.
+- I do not sell or transfer user data to third parties, outside of the approved use cases.
+- I do not use or transfer user data for purposes that are unrelated to my item's single purpose.
+- I do not use or transfer user data to determine creditworthiness or for lending purposes.
 
-Adres polityki prywatności: opublikowana wersja `docs/privacy-policy.md` ([adres URL polityki]).
+Adres polityki prywatności: publiczna wersja `docs/privacy-policy.md`:
+[[DO UZUPEŁNIENIA: publiczny adres URL polityki prywatności]].
 
 ### Zrzuty ekranu (1280×800)
 
 Pliki w `assets/store/`, generowane z prawdziwym rozszerzeniem (build e2e) przez
-`npm run screenshots` (`scripts/screenshots.js`, strony w `scripts/screenshot-pages/`). Strony są
-lokalne i neutralne: czat jest podstawiony pod adres `chatgpt.com` tylko po to, żeby zadziałał
-adapter czatu, ale nie naśladuje wyglądu żadnego serwisu. Odpowiedź „modelu” na zrzucie 3 wstawia
-skrypt (tak jak testy e2e); przywrócenie oryginałów w niej robi już rozszerzenie. Popup na zrzucie 5
-to prawdziwa strona popupu; skrypt podaje jej tylko adres karty, bo popup otwarty ze skryptu nie
-dostaje `activeTab`.
+`npm run screenshots` (`scripts/screenshots.js`, strona czatu w `scripts/screenshot-pages/`).
+Strona czatu jest lokalna i neutralna: jest podstawiona pod adres `chatgpt.com` tylko po to, żeby
+zadziałał adapter czatu, ale nie naśladuje wyglądu żadnego serwisu. „Wysłanie” wiadomości i
+odpowiedź „modelu” wstawia skrypt; ikona, panel, maskowanie, przywracanie, ustawienia i popup są
+prawdziwe. Podpowiedź przy odpowiedzi na zrzucie 2 to treść atrybutu `title`, który ustawia
+rozszerzenie; skrypt ją rysuje, bo przeglądarka bez okna nie pokazuje natywnych podpowiedzi. Popup
+na zrzucie 6 to prawdziwa strona popupu; skrypt podaje jej tylko adres karty, bo popup otwarty ze
+skryptu nie dostaje `activeTab`. Wpisy dziennika z wcześniejszych dni skrypt dopisuje przez service
+worker. Wszystkie dane są fikcyjne (Jan Kowalski, PESEL 50810112354, adresy w `example.pl`).
 
-1. `screenshot-1-badge.png`: wiadomość w czacie z „Jan Kowalski”, PESEL i IBAN-em, podkreślone
-   wartości i odznaka „3 · IBAN, osoba, PESEL” z przyciskiem „Zamaskuj”.
+1. `screenshot-1-panel.png`: wiadomość w czacie z „Jan Kowalski”, PESEL i IBAN-em, zaznaczone
+   wartości, ikona z liczbą 3 i otwarty panel z trzema wartościami, przełącznikami „znacznik |
+   ogólnie” i przyciskiem „Zamaskuj zaznaczone (3)”.
    Podpis: „Widzisz dane osobowe, zanim je wyślesz”.
-2. `screenshot-2-masked.png`: ta sama wiadomość po kliknięciu „Zamaskuj”: `<OSOBA_1>`,
-   `<PESEL_1>`, `<IBAN_1>`.
-   Podpis: „Jedno kliknięcie zamienia dane na znaczniki”.
-3. `screenshot-3-restored.png`: wysłana wiadomość ze znacznikami i odpowiedź, w której widać
-   „Janie Kowalski” i numer konta zamiast znaczników.
+2. `screenshot-2-restored.png`: wysłana wiadomość i odpowiedź z przywróconymi, podświetlonymi
+   oryginałami, podpowiedź „model napisał <IBAN_1>”, a w polu kolejna wiadomość z `<EMAIL_1>`.
    Podpis: „Model widzi znaczniki, Ty widzisz oryginały”.
-4. `screenshot-4-form.png`: formularz zwrotu w sklepie, pole „Uwagi” z IBAN-em i e-mailem i odznaka
-   „2 · e-mail, IBAN”; wypełnione pole hasła nie ma odznaki.
-   Podpis: „Działa w każdym polu tekstowym, nie tylko w czatach”.
-5. `screenshot-5-site-switch.png`: popup nad tym formularzem z wyborem „Ostrzegaj / Wyłączone” dla
-   `sklep.example.pl`.
-   Podpis: „Ty decydujesz, na których stronach działa”.
+3. `screenshot-3-options.png`: ustawienia, zakładka „Ogólne”: maskowanie ręczne albo przy
+   wysyłce, wyświetlanie odpowiedzi, dziennik.
+   Podpis: „Maskowanie ręczne albo automatyczne przy wysyłce”.
+4. `screenshot-4-words.png`: zakładka „Własne słowa” z dwoma wpisami: słowem i wzorcem.
+   Podpis: „Twoje własne słowa i wzorce też są maskowane”.
+5. `screenshot-5-log.png`: zakładka „Dziennik” z podsumowaniem i ostatnimi maskowaniami.
+   Podpis: „Dziennik: same liczby, bez danych”.
+6. `screenshot-6-popup.png`: popup nad czatem: poziom dla strony, tryb maskowania, wyświetlanie
+   i „Zapamiętane dane” tej rozmowy z przyciskami „Usuń” i „Usuń wszystko”.
+   Podpis: „Zapamiętane dane usuniesz jednym kliknięciem”.
 
 Mały kafelek promocyjny (440×280): `assets/store/promo-440x280.png`, generowany razem z ikonami
-przez `node scripts/render-icons.js` z `assets/icon.svg`.
+przez `node scripts/render-icons.js` z `assets/icon.svg`. Jego tekst („Maskuje polskie dane
+osobowe, zanim trafią do czatu AI. Lokalnie, bez wysyłania.”) jest nadal aktualny.
 
-Wszystkie dane na zrzutach muszą być fikcyjne.
+### Do zrobienia przez właściciela (poza repozytorium)
+
+- [ ] Konto dewelopera Chrome Web Store i jednorazowa opłata rejestracyjna.
+- [ ] Deklaracja „trader / non-trader” (wymóg UE, DSA); jako trader podać dane kontaktowe, które
+      będą publiczne.
+- [ ] Kontaktowy e-mail wydawcy (zweryfikowany w panelu): [[DO UZUPEŁNIENIA: e-mail kontaktowy]].
+- [ ] Nazwa wydawcy w polityce prywatności: [[DO UZUPEŁNIENIA: nazwa wydawcy (osoba lub firma) i adres]].
+- [ ] Opublikowanie polityki prywatności pod stałym publicznym adresem i wpisanie go w panelu:
+      [[DO UZUPEŁNIENIA: publiczny adres URL polityki prywatności]].
+- [ ] Potwierdzenie daty wejścia w życie polityki (wpisano 22 listopada 2026 r.) albo jej zmiana
+      na dzień publikacji.
+- [ ] Licencja: `package.json` deklaruje MIT, ale w repozytorium nie ma pliku `LICENSE`;
+      [[DO UZUPEŁNIENIA: licencja i plik LICENSE]].
+- [ ] Strona domowa / wsparcia w panelu (opcjonalne): [[DO UZUPEŁNIENIA: adres strony]].
+- [ ] Wgranie zipa z `npm run zip` (sprawdza paczkę skryptem `check-production-build.js`).
 
 ---
 
@@ -129,6 +178,8 @@ AInonim
 
 ### Short description (120 characters, limit 132)
 
+Only if an English listing is added; the manifest `description` is Polish.
+
 ```
 Detects and masks Polish personal data (PESEL, NIP, IBAN, names) in AI chats and web forms. Runs locally, sends nothing.
 ```
@@ -136,68 +187,101 @@ Detects and masks Polish personal data (PESEL, NIP, IBAN, names) in AI chats and
 ### Detailed description
 
 ```
-AInonim shows how many and which kinds of Polish personal data are in a text field before you send it to an AI chat or a form, and replaces them with tokens in one click.
+AInonim shows which Polish personal data is in a text field before you send it to an AI chat or a form, and replaces it with tokens, e.g. "Jan Kowalski" → <OSOBA_1>.
 
 What it detects:
-• PESEL, NIP, REGON, Polish ID card number, IBAN, payment card number (verified by checksum),
-• e-mail, phone, postal code,
-• first names with surnames in every grammatical case, company names,
-• secrets such as API keys.
+• PESEL, NIP, REGON, KRS, Polish ID card, passport and driving licence numbers, IBAN, payment card numbers (numbers verified by checksum),
+• e-mail, phone, address, postal code, IP address, licence plate, VIN,
+• first names and surnames in every grammatical case, company names, dates,
+• secrets such as API keys,
+• your own words and patterns, e.g. project names or client numbers.
 
 How it works:
-• A badge by the field shows the number and kinds of data found.
-• One click replaces them with tokens, e.g. "Jan Kowalski" → <OSOBA_1>.
-• In ChatGPT and Claude.ai the originals are shown again in the model's answer on your screen; only tokens are sent to the model.
+• An icon in the field's corner shows how much data was found. Clicking it opens a panel listing the values.
+• In the panel you choose what to mask and, per value, a token or a general description (e.g. only the year instead of a full date). "Cofnij" (undo) brings back the text as it was.
+• In AI chats you can turn on automatic masking when a message is sent.
+• In chat answers and sent messages you see the originals again instead of the tokens; hovering shows what the model received. You can also keep the tokens on screen.
 • Password, card and one-time-code fields are skipped.
-• Per site you choose: warn or off.
+• Per site you choose: warn or off. In the settings you can switch off categories you do not want detected.
+• The masking log records only counts (when, on which site, how many values of which kind), never the data itself. It can be exported as CSV, printed as a report or switched off.
+
+Supported chats: restoring originals and masking on send work in ChatGPT, Claude, Gemini, Grok and Perplexity. Detection and manual masking work in text fields on any site. AInonim is not affiliated with OpenAI, Anthropic, Google, xAI or Perplexity.
 
 Privacy:
-• Detection runs entirely in the browser: the open-source polanon library (MIT) run by Pyodide (WebAssembly), bundled in the package.
+• Detection runs entirely in the browser: the open-source polanon library run by Pyodide (WebAssembly), bundled in the extension package.
 • The extension sends nothing to any server. No telemetry, no analytics, no accounts.
-• Token → original mappings are kept in session memory and cleared when the browser closes.
+• Token → original pairs are kept in the browser's session memory and cleared when the browser closes; you can also delete them in the extension popup.
 
 Limits:
-• This is pseudonymisation, not legal anonymisation.
-• No detector catches everything; e.g. a surname alone or a city name is often missed. Read your text before sending.
+• This is pseudonymisation, not anonymisation in the legal sense.
+• No detector catches everything. Read your text before sending it.
+• Files and images attached to messages are not checked.
 ```
+
+### Category
+
+Suggested: **Privacy & Security** (under "Make Chrome Yours"). Fallback: **Tools**.
 
 ### Single purpose
 
 ```
-Detecting Polish personal data in the text field the user is editing and replacing it with tokens before sending, entirely locally in the browser.
+Protecting Polish personal data in text the user types in the browser: detecting it in the field being edited and replacing it with tokens before it is sent (with the originals shown again on the user's own screen in AI chats), entirely locally.
 ```
 
 ### Permission justifications
 
-| Permission                 | Justification                                                                                                                                                                                              |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `offscreen`                | Detection is done by the polanon library in Pyodide (WebAssembly). It runs in an offscreen document because the MV3 service worker is suspended after ~30 s idle and would have to reload the interpreter. |
-| `storage`                  | `chrome.storage.session`: token → original mappings for the browser session (needed to show originals in the answer). `chrome.storage.sync`: per-site mode (hostname + mode).                              |
-| `activeTab`                | To act on the current tab when the user clicks the extension icon.                                                                                                                                         |
-| Host access (`<all_urls>`) | Text fields where users may type personal data exist on any site, not only AI chats. The content script reads only the field being edited and sends nothing.                                               |
+**offscreen**
+
+```
+Detection is done by the polanon library running in Pyodide (WebAssembly), which is bundled in the package. It runs in an offscreen document because the MV3 service worker is suspended when idle and would have to reload the interpreter on every wake-up, and content scripts cannot host it because they run in the web page's context. The offscreen document only accepts requests from the extension's own service worker.
+```
+
+**storage**
+
+```
+Three areas. storage.session: token → original pairs for AI chat conversations, needed to show the originals again in answers; memory only, cleared when the browser closes, readable only by the service worker. storage.sync: settings (per-site level, masking mode, answer display, switched-off categories, whether the log is on) and the user's own words to mask. storage.local: the masking log (time, hostname, counts per category, never the data itself), readable only by extension pages.
+```
+
+**activeTab**
+
+```
+When the user clicks the toolbar icon, the popup reads the current tab's URL to show the setting for that site and the data remembered for that conversation. The extension does not request the tabs permission and does not read browsing history.
+```
+
+**Host permissions / content script on all sites (`<all_urls>`, all frames)**
+
+```
+Text fields where users type personal data exist on any website and often inside frames (embedded editors and forms), not only in AI chats. The content script reads only the field the user is editing, skips password, payment card and one-time-code fields, and sends nothing outside the extension. On sites the user sets to "off" it does not analyse fields. On ChatGPT, Claude, Gemini, Grok and Perplexity it also restores the originals in answers on the user's screen.
+```
 
 ### Remote code
 
+Answer: **No, I am not using remote code.**
+
 ```
-No. All code, including Pyodide (WebAssembly) and the polanon library, is in the extension package. Nothing is downloaded or executed from the network.
+All code ships in the package: the extension scripts, Pyodide (pyodide.mjs, pyodide.asm.mjs, pyodide.asm.wasm, python_stdlib.zip) and the polanon library as a wheel file. The offscreen document loads them from this package's chrome-extension:// URLs. Nothing is fetched from the network. The Pyodide package list is empty, and Pyodide's default CDN URL is removed from pyodide.mjs at build time; the build fails if any CDN URL remains in the package. WebAssembly needs 'wasm-unsafe-eval' in the extension pages' CSP; 'unsafe-eval' is not used.
 ```
 
-### Data usage (Privacy form)
+### Data usage (Privacy practices tab)
 
-Data types handled (locally only, never transmitted off the device): personally identifiable
-information; financial and payment information; authentication information (secrets in field
-text); personal communications and website content (text typed into fields).
+Tick: Personally identifiable information, Financial and payment information, Authentication
+information, Personal communications, Web history, Website content. Leave unticked: Health
+information, Location, User activity (borderline; tick it if the reviewer asks). Reasons are in the
+Polish table above. All data stays on the device.
 
-Tick all three certifications: not sold or transferred to third parties outside approved use cases;
-not used or transferred for purposes unrelated to the single purpose; not used or transferred to
-determine creditworthiness or for lending.
+Tick all three certifications:
 
-Privacy policy URL: published version of `docs/privacy-policy.md` ([privacy policy URL]).
+- I do not sell or transfer user data to third parties, outside of the approved use cases.
+- I do not use or transfer user data for purposes that are unrelated to my item's single purpose.
+- I do not use or transfer user data to determine creditworthiness or for lending purposes.
+
+Privacy policy URL: [[DO UZUPEŁNIENIA: publiczny adres URL polityki prywatności]].
 
 ### Screenshot captions
 
 1. "See personal data before you send it"
-2. "One click replaces it with tokens"
-3. "The model sees tokens, you see the originals"
-4. "Works in any text field, not only AI chats"
-5. "You choose the sites where it runs"
+2. "The model sees tokens, you see the originals"
+3. "Mask manually or automatically on send"
+4. "Your own words and patterns are masked too"
+5. "Masking log: counts only, no data"
+6. "Delete remembered data in one click"
