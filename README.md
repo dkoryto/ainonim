@@ -45,7 +45,27 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   W okienku wtyczki przełącznik „W odpowiedziach czatu pokazuj: Oryginały | Znaczniki” (`chatDisplay`
   w `storage.sync`) pozwala zostawić na ekranie zastępniki: są wtedy podświetlone, a oryginał widać
   tylko po najechaniu („<OSOBA_1> = Jan Kowalski”).
-- Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane.
+- Maskowanie automatyczne (ustawienie „Maskowanie: Automatycznie przy wysyłce”, `maskMode` w
+  `storage.sync`, w ustawieniach i w okienku wtyczki): na ChatGPT i Claude.ai Enter w polu
+  wiadomości (bez Shift i poza kompozycją IME) albo kliknięcie przycisku wysyłania jest
+  przechwytywane w fazie capture, zanim zobaczy je strona (`lib/content/auto-mask.ts`). Jeśli
+  tekst zawiera dane, AInonim zamienia je na znaczniki (z uwzględnieniem odznaczeń i wyboru
+  „ogólnie” z panelu), zapisuje mapowanie jak przy „Zamaskuj zaznaczone” i wysyła wiadomość
+  ponownie (klik przycisku albo Enter). Na analizę czeka do 10 s; gdy się nie uda, nic nie
+  wysyła, ikona i panel mówią, że drugie wysłanie w ciągu 5 s pójdzie bez maskowania. Ikona
+  pokazuje „zamaskowano automatycznie (N)”, „Cofnij” działa, dopóki tekst nie zniknie z pola. Na
+  innych stronach tryb automatyczny nic nie zmienia: maskuje się z panelu.
+- Dziennik maskowania (zakładka „Dziennik” w ustawieniach, `lib/log/`): każde maskowanie,
+  ręczne i automatyczne, dopisuje wpis z czasem, nazwą hosta, sposobem i liczbą danych według
+  kategorii, bez wartości, znaczników i treści. Wpisy dopisuje tylko service worker (wiadomość
+  `ainonim/log-append`; host bierze z adresu ramki nadawcy, nie z wiadomości) do
+  `storage.local` (`maskingLog`, najwyżej 1000 wpisów), które ogranicza do zaufanych kontekstów,
+  więc content script może wpis dodać, ale nie odczytać dziennika. Zakładka pokazuje
+  podsumowanie, kategorie, strony i ostatnie wpisy, eksportuje CSV (komórki zaczynające się od
+  `= + - @` są neutralizowane) i otwiera raport do wydruku (`report.html`, „Zapisz jako PDF” w
+  oknie drukowania). Zapisywanie można wyłączyć w zakładce „Ogólne” (`maskingLogEnabled`).
+- Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane (poza wpisem w
+  dzienniku).
 
 ### Komunikacja
 
@@ -104,8 +124,10 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 - To pseudonimizacja, nie anonimizacja w rozumieniu RODO.
 - Wykrywanie działa na regułach, bez NER: samo nazwisko, nazwa miejscowości czy firma bez formy
   prawnej często umykają. Tekst trzeba przeczytać przed wysłaniem.
-- Nic nie jest maskowane automatycznie: w trybie „ostrzegaj” tekst wysłany bez kliknięcia
-  „Zamaskuj” idzie z danymi.
+- W trybie ręcznym (domyślnym) nic nie jest maskowane automatycznie: tekst wysłany bez kliknięcia
+  „Zamaskuj” idzie z danymi. Tryb automatyczny działa tylko na ChatGPT i Claude.ai i tylko dla
+  wysłania Enterem lub przyciskiem wysyłania; strona, która wysyła inaczej (np. własnym skrótem),
+  nie zostanie zatrzymana.
 - Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi i wysłanych wiadomości,
   atrybuty `title`, legenda przy bloku edytora ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
   nie to, co strona wyświetla.
