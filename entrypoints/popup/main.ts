@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
 import { manageClient } from '~/lib/manage-client';
+import { copyToClipboard, createSupportLinks } from '~/lib/support';
 import {
   addAllowedSite,
   getChatDisplay,
@@ -95,6 +96,9 @@ function initAccess(url: string, hostname: string): void {
 }
 
 async function init(): Promise<void> {
+  element('support', HTMLDivElement).replaceWith(
+    createSupportLinks(document, { extensionId: browser.runtime.id, copy: copyToClipboard }),
+  );
   const hostLine = element('host', HTMLParagraphElement);
   const fieldset = element('level', HTMLFieldSetElement);
   const note = element('note', HTMLParagraphElement);

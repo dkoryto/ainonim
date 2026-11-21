@@ -1,5 +1,6 @@
 // Tab "O autorze": who makes AInonim and which version this is.
 import { browser } from 'wxt/browser';
+import { copyToClipboard, createSupportLinks } from '~/lib/support';
 import { heading, make } from './dom';
 
 export const AUTHOR = 'Dariusz Koryto';
@@ -26,5 +27,6 @@ export function mountAbout(panel: HTMLElement): void {
         'statystyk i nie łączy się z żadnym serwerem.',
     ),
     details,
+    createSupportLinks(doc, { extensionId: browser.runtime.id, copy: copyToClipboard }),
   );
 }

@@ -515,3 +515,18 @@ ul.words {
   cursor: default;
   opacity: 0.45;
 }
+
+.support {
+  margin: 20px 0 0;
+  color: var(--muted);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
