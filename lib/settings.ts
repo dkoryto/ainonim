@@ -149,3 +149,71 @@ export function onChatDisplayChange(callback: (display: ChatDisplay) => void): (
     browser.storage.onChanged.removeListener(listener);
   };
 }
+
+/**
+ * When AInonim masks: `manual` only from the panel at the field, `auto` also on its own when a
+ * message is sent from a chat site's composer (lib/content/auto-mask.ts). Other pages always
+ * work manually. One setting for every site, synced like the others.
+ */
+export const MASKING_MODES = ['manual', 'auto'] as const;
+export type MaskingMode = (typeof MASKING_MODES)[number];
+
+export const DEFAULT_MASKING_MODE: MaskingMode = 'manual';
+
+/** storage.sync key holding the MaskingMode; absent means the default. */
+export const MASK_MODE_KEY = 'maskMode';
+
+/** storage.sync key: `false` turns the masking log off; absent means on. */
+export const LOG_ENABLED_KEY = 'maskingLogEnabled';
+
+export const DEFAULT_LOG_ENABLED = true;
+
+export function isMaskingMode(value: unknown): value is MaskingMode {
+  return typeof value === 'string' && (MASKING_MODES as readonly string[]).includes(value);
+}
+
+const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
+
+/**
+ * get/set/onChange for one synced value with a default. The default is never stored, so an
+ * unchanged setting takes no sync quota and a later default change reaches everyone.
+ */
+function syncedSetting<T>(key: string, isValid: (value: unknown) => value is T, fallback: T) {
+  const read = (value: unknown): T => (isValid(value) ? value : fallback);
+  return {
+    get: async (): Promise<T> => read((await browser.storage.sync.get(key))[key]),
+    set: async (value: T): Promise<void> => {
+      if (!isValid(value)) throw new TypeError(`invalid value for ${key}: ${String(value)}`);
+      if (value === fallback) await browser.storage.sync.remove(key);
+      else await browser.storage.sync.set({ [key]: value });
+    },
+    onChange: (callback: (value: T) => void): (() => void) => {
+      const listener = (
+        changes: Partial<Record<string, { oldValue?: unknown; newValue?: unknown }>>,
+        areaName: string,
+      ): void => {
+        const change = changes[key];
+        if (areaName !== 'sync' || change === undefined) return;
+        const after = read(change.newValue);
+        if (read(change.oldValue) !== after) callback(after);
+      };
+      browser.storage.onChanged.addListener(listener);
+      return () => {
+        browser.storage.onChanged.removeListener(listener);
+      };
+    },
+  };
+}
+
+const maskingMode = syncedSetting(MASK_MODE_KEY, isMaskingMode, DEFAULT_MASKING_MODE);
+const logEnabled = syncedSetting(LOG_ENABLED_KEY, isBoolean, DEFAULT_LOG_ENABLED);
+
+export const getMaskingMode = maskingMode.get;
+export const setMaskingMode = maskingMode.set;
+/** Calls `callback` with the new mode whenever it changes. Returns an unsubscribe. */
+export const onMaskingModeChange = maskingMode.onChange;
+
+/** Whether maskings are written to the log (lib/log/). */
+export const getLogEnabled = logEnabled.get;
+export const setLogEnabled = logEnabled.set;
+export const onLogEnabledChange = logEnabled.onChange;

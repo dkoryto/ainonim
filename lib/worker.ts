@@ -28,6 +28,9 @@ import {
   isRestoreResponse,
 } from './messages';
 import { TimeoutError, errorMessage, withTimeout } from './timeout';
+import { type LogEntry, toLogEntry } from './log/entries';
+import { type DoneResponse, isLogAppendRequest } from './messages';
+import { normalizeHostname } from './settings';
 
 /** The conversation store, passed in so the worker can be tested without `storage.session`. */
 export interface MappingStore {
@@ -238,5 +241,41 @@ export async function handleManageMessage(
     }
   } catch (error) {
     return storeFailure(id, error);
+  }
+}
+
+/** What the worker needs to write the masking log, passed in so it can be tested without storage. */
+export interface LogDeps {
+  append: (entry: LogEntry) => Promise<void>;
+  isEnabled: () => Promise<boolean>;
+  now: () => number;
+}
+
+/**
+ * Answer `ainonim/log-append` from a content script. The entry's hostname comes from the frame
+ * the browser says sent it, never from the message, so a page cannot log maskings for another
+ * site. With the log turned off the request succeeds and nothing is written. Never rejects.
+ */
+export async function handleLogAppend(
+  message: { type: string; id?: unknown },
+  senderUrl: string | undefined,
+  deps: LogDeps,
+): Promise<DoneResponse> {
+  const id = typeof message.id === 'string' ? message.id : '';
+  if (!isLogAppendRequest(message)) {
+    return failure(id, 'invalid-request', `Malformed request of type ${message.type}.`);
+  }
+  let host: string;
+  try {
+    host = normalizeHostname(new URL(senderUrl ?? '').hostname);
+  } catch {
+    return failure(id, 'forbidden', 'Only a web page may log a masking.');
+  }
+  if (host === '') return failure(id, 'forbidden', 'Only a web page may log a masking.');
+  try {
+    if (await deps.isEnabled()) await deps.append(toLogEntry(message, host, deps.now()));
+    return { id, ok: true };
+  } catch {
+    return failure(id, 'engine', 'The masking log could not be written.');
   }
 }

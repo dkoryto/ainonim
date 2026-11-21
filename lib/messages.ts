@@ -1,5 +1,7 @@
 // Messages between the content script, the service worker, the offscreen document and the popup.
 
+import { type MaskingReport, isMaskingReport } from './log/entries';
+
 export interface Span {
   /** Offsets into the analyzed text in UTF-16 code units, i.e. JavaScript string indices. */
   start: number;
@@ -360,4 +362,25 @@ export function parseAnalyzeResult(json: string): AnalyzeResult {
   const value: unknown = JSON.parse(json);
   if (!isAnalyzeResult(value)) throw new Error('Malformed analyze result from Python');
   return value;
+}
+
+/**
+ * Content script -> service worker: append one entry to the masking log (lib/log/). It carries
+ * counts only; the worker adds the time and the hostname of the sending frame, and answers with
+ * a DoneResponse. There is no message to read the log: only extension pages read it, from storage.
+ */
+export interface LogAppendRequest extends MaskingReport {
+  type: 'ainonim/log-append';
+  id: string;
+}
+
+export const LOG_APPEND_TYPE: LogAppendRequest['type'] = 'ainonim/log-append';
+
+export function isLogAppendRequest(value: unknown): value is LogAppendRequest {
+  return (
+    isRecord(value) &&
+    value.type === LOG_APPEND_TYPE &&
+    typeof value.id === 'string' &&
+    isMaskingReport(value)
+  );
 }
