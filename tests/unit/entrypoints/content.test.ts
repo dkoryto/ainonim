@@ -13,7 +13,7 @@ vi.mock('~/lib/content/masking', () => ({
   },
 }));
 
-const { default: contentScript } = await import('~/entrypoints/content/index');
+const { default: contentScript } = await import('~/entrypoints/content');
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 

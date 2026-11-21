@@ -46,7 +46,7 @@ function highlighted(within: Node = document.body): string[] {
 
 function load(name: string): void {
   document.body.innerHTML = readFileSync(
-    resolve(import.meta.dirname, '../fixtures/sites', name),
+    resolve(import.meta.dirname, '../../../fixtures/sites', name),
     'utf8',
   );
 }

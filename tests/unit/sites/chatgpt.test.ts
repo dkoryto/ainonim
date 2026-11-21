@@ -4,11 +4,11 @@ import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { chatgpt } from '~/lib/sites/chatgpt';
 import { claude } from '~/lib/sites/claude';
-import { adapterFor } from '~/lib/sites/index';
+import { adapterFor } from '~/lib/sites';
 
 function load(name: string): void {
   document.body.innerHTML = readFileSync(
-    resolve(import.meta.dirname, '../fixtures/sites', name),
+    resolve(import.meta.dirname, '../../fixtures/sites', name),
     'utf8',
   );
 }

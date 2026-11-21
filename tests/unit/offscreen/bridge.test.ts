@@ -9,7 +9,7 @@ import { POLANON_WHEEL } from '~/lib/offscreen/runtime-files';
 
 type BridgeFunction = (text: string, mappingJson: string) => string;
 
-const fixtures = join(import.meta.dirname, '../fixtures/benchmarks');
+const fixtures = join(import.meta.dirname, '../../fixtures/benchmarks');
 const documents = readdirSync(join(fixtures, 'samples'))
   .filter((name) => name.endsWith('.txt'))
   .map((name) => name.slice(0, -'.txt'.length))
@@ -28,12 +28,12 @@ function readFixture(...path: string[]): string {
 
 beforeAll(async () => {
   const pyodide = await loadPyodide();
-  const wheel = readFileSync(join(import.meta.dirname, '../../vendor', basename(POLANON_WHEEL)));
+  const wheel = readFileSync(join(import.meta.dirname, '../../../vendor', basename(POLANON_WHEEL)));
   // Pyodide rejects a Node Buffer; it wants a plain typed array.
   pyodide.unpackArchive(new Uint8Array(wheel), 'wheel');
   const namespace = pyodide.toPy({}) as InstanceType<PyodideAPI['ffi']['PyDict']>;
   pyodide.runPython(
-    readFileSync(join(import.meta.dirname, '../../python/ainonim_bridge.py'), 'utf-8'),
+    readFileSync(join(import.meta.dirname, '../../../python/ainonim_bridge.py'), 'utf-8'),
     {
       globals: namespace,
     },

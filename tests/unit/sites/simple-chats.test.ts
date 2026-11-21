@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { adapterFor } from '~/lib/sites/index';
+import { adapterFor } from '~/lib/sites';
 import { copilot, deepseek, kimi, mistral, qwen } from '~/lib/sites/more-chats';
 
 describe('more chats', () => {
