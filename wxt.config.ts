@@ -14,6 +14,22 @@ function emptyPyodideLock(): string {
   return JSON.stringify({ info: lock.info, packages: {} });
 }
 
+// pyodide.mjs falls back to `https://cdn.jsdelivr.net/pyodide/v<version>/full/` when no
+// packageBaseUrl is given. The offscreen document always passes one inside the package, so the
+// fallback is dead code, but a remote code URL in the package still gets flagged in store review.
+// It is replaced with an empty string; scripts/check-production-build.js fails if any is left.
+const PYODIDE_CDN_URL = /https:\/\/cdn\.jsdelivr\.net\/pyodide\/v\$\{[\w$]+\}\/full\//g;
+const PYODIDE_SCRIPTS = new Set<string>(['pyodide.mjs', 'pyodide.asm.mjs']);
+
+function pyodideScriptWithoutCdn(name: string): string {
+  const source = readFileSync(resolve(pyodidePackage, name), 'utf8');
+  const stripped = source.replace(PYODIDE_CDN_URL, '');
+  if (stripped.includes('cdn.jsdelivr.net')) {
+    throw new Error(`${name} has a CDN URL in a form wxt.config.ts does not know; update it.`);
+  }
+  return stripped;
+}
+
 /** The build mode the e2e tests use; only it includes the test bridge content script. */
 const E2E_MODE = 'e2e';
 const TEST_ONLY_ENTRYPOINTS = new Set(['test-bridge']);
@@ -39,10 +55,11 @@ export default defineConfig({
     // Pyodide and the polanon wheel are bundled into the package; nothing is fetched at runtime.
     'build:publicAssets': (_wxt, files) => {
       for (const name of PYODIDE_FILES) {
-        files.push({
-          absoluteSrc: resolve(pyodidePackage, name),
-          relativeDest: PYODIDE_DIR + name,
-        });
+        files.push(
+          PYODIDE_SCRIPTS.has(name)
+            ? { contents: pyodideScriptWithoutCdn(name), relativeDest: PYODIDE_DIR + name }
+            : { absoluteSrc: resolve(pyodidePackage, name), relativeDest: PYODIDE_DIR + name },
+        );
       }
       files.push({ contents: emptyPyodideLock(), relativeDest: PYODIDE_DIR + PYODIDE_LOCK_FILE });
       files.push({

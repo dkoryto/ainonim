@@ -11,7 +11,10 @@ polanon 0.4.1 (python/polanon-0.4.1-py3-none-any.whl)
 Pyodide 314.0.8 (pyodide/pyodide.mjs, pyodide.asm.mjs, pyodide.asm.wasm, python_stdlib.zip,
 pyodide-lock.json reduced to its "info" block)
   Mozilla Public License 2.0. https://github.com/pyodide/pyodide
-  Source of the unmodified files: https://www.npmjs.com/package/pyodide/v/314.0.8
+  Source of the files: https://www.npmjs.com/package/pyodide/v/314.0.8
+  Modification: in pyodide.mjs the default package base URL (Pyodide's jsDelivr CDN address) is
+  replaced with an empty string at build time (wxt.config.ts); AInonim always passes its own
+  package URL instead. The other files are unmodified.
 
   Pyodide contains, compiled into pyodide.asm.wasm or in python_stdlib.zip:
   - CPython 3.14.2: Python Software Foundation License Version 2. https://docs.python.org/3/license.html
