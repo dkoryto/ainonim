@@ -155,3 +155,41 @@ describe('claude', () => {
     ]);
   });
 });
+
+describe('sendButton', () => {
+  it('finds the ChatGPT send button by its test id', () => {
+    load('chatgpt-conversation.html');
+
+    expect(chatgpt.sendButton?.(document)?.dataset.testid).toBe('send-button');
+  });
+
+  it('falls back to the ChatGPT submit id, then to the submit button of the composer form', () => {
+    document.body.innerHTML =
+      '<form><div contenteditable="true" id="prompt-textarea"></div>' +
+      '<button id="composer-submit-button">x</button></form>';
+    expect(chatgpt.sendButton?.(document)?.id).toBe('composer-submit-button');
+
+    document.body.innerHTML =
+      '<form id="search"><button type="submit" id="wrong">x</button></form>' +
+      '<form><div contenteditable="true" id="prompt-textarea"></div>' +
+      '<button type="button">+</button><button type="submit" id="send">x</button></form>';
+    expect(chatgpt.sendButton?.(document)?.id).toBe('send');
+  });
+
+  it('finds the Claude.ai send button by its English or Polish name', () => {
+    load('claude-conversation.html');
+    expect(claude.sendButton?.(document)?.getAttribute('aria-label')).toBe('Send message');
+
+    document.body.innerHTML =
+      '<fieldset><div contenteditable="true" data-testid="chat-input" role="textbox"></div>' +
+      '<button aria-label="Wyślij wiadomość">x</button></fieldset>';
+    expect(claude.sendButton?.(document)?.getAttribute('aria-label')).toBe('Wyślij wiadomość');
+  });
+
+  it('finds nothing without a send button or a composer', () => {
+    document.body.innerHTML = '<form><button type="submit">x</button></form>';
+
+    expect(chatgpt.sendButton?.(document)).toBeNull();
+    expect(claude.sendButton?.(document)).toBeNull();
+  });
+});

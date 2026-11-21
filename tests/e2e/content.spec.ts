@@ -5,7 +5,14 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 import { type FixtureServer, startFixtureServer } from './lib-page';
-import { analyzeInPage, expect, sendRawInPage, serviceWorker, test } from './fixtures';
+import {
+  analyzeInPage,
+  expect,
+  readLogInPage,
+  sendRawInPage,
+  serviceWorker,
+  test,
+} from './fixtures';
 import { clickGeneral, clickMask, clickRevert, clickRow, icon, openPanel, panel } from './panel';
 
 // The parts of the chrome.* API the tests call inside the service worker.
@@ -16,6 +23,7 @@ declare const chrome: {
       remove: (key: string) => Promise<void>;
     };
     session: { get: (key: string) => Promise<Record<string, unknown>> };
+    local: { get: (key: string) => Promise<Record<string, unknown>> };
   };
 };
 
@@ -32,6 +40,22 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   await server.close();
 });
+
+/** The masking log as the service worker stored it (lib/log/store.ts). */
+async function storedLog(context: BrowserContext): Promise<unknown[]> {
+  const worker = await serviceWorker(context);
+  return worker.evaluate(async () => {
+    const stored = (await chrome.storage.local.get('maskingLog')).maskingLog;
+    return Array.isArray(stored) ? (stored as unknown[]) : [];
+  });
+}
+
+async function openLogTab(context: BrowserContext): Promise<Page> {
+  const worker = await serviceWorker(context);
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${new URL(worker.url()).host}/options.html#dziennik`);
+  return page;
+}
 
 async function setLevel(context: BrowserContext, hostname: string, level: string): Promise<void> {
   const worker = await serviceWorker(context);
@@ -124,6 +148,63 @@ test.describe('fields on a plain page', () => {
     await clickRevert(page);
     await expect(field).toHaveValue(ORIGINAL);
     await expect(field).toBeFocused();
+  });
+
+  test('logs a manual masking with counts only', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('fields.html'));
+    const field = page.locator('#plain');
+
+    await field.click();
+    await page.keyboard.type(ORIGINAL);
+    await openPanel(page, field, 2);
+    await clickMask(page);
+    await expect(field).toHaveValue(MASKED);
+
+    await expect.poll(() => storedLog(context)).toHaveLength(1);
+    const [entry] = await storedLog(context);
+    expect(entry).toEqual({
+      at: expect.any(Number),
+      host: '127.0.0.1',
+      source: 'manual',
+      masked: 2,
+      generalised: 0,
+      categories: { PERSON: 1, PESEL: 1 },
+    });
+    expect(JSON.stringify(entry)).not.toMatch(/Kowalski|50810112354|OSOBA_1/);
+  });
+
+  test('a page cannot log for another site or send a malformed entry', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('fields.html'));
+    const report = { masked: 1, generalised: 0, categories: { PERSON: 1 } };
+
+    const forged = await sendRawInPage(page, {
+      type: 'ainonim/log-append',
+      id: 'l1',
+      source: 'auto',
+      host: 'chatgpt.com',
+      ...report,
+    });
+    const malformed = await sendRawInPage(page, {
+      type: 'ainonim/log-append',
+      id: 'l2',
+      source: 'auto',
+      masked: 1,
+      generalised: 0,
+      categories: { PERSON: 1, 'Jan Kowalski': 1 },
+    });
+
+    expect(forged).toEqual({ id: 'l1', ok: true });
+    expect(malformed).toMatchObject({ id: 'l2', ok: false, code: 'invalid-request' });
+    const log = await storedLog(context);
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({ host: '127.0.0.1', source: 'auto' });
+    // Appending is all a content script can do: storage.local is closed to it.
+    expect(await readLogInPage(page)).toEqual({
+      ok: false,
+      error: expect.stringContaining('not allowed') as unknown,
+    });
   });
 
   test('masks only the values left checked', async ({ context }) => {
@@ -434,5 +515,66 @@ test.describe('chat site (stand-in for chatgpt.com)', () => {
       expect(response).toMatchObject({ ok: false, code: 'forbidden' });
       expect(JSON.stringify(response)).not.toContain('Kowalski');
     }
+  });
+
+  test('masks automatically on Enter before the page sends, and logs it', async ({ context }) => {
+    const worker = await serviceWorker(context);
+    await worker.evaluate(() => chrome.storage.sync.set({ maskMode: 'auto' }));
+    // The test bridge runs on 127.0.0.1 only; warming up there loads Pyodide for every tab.
+    const local = await context.newPage();
+    await local.goto(server.url('fields.html'));
+    await warmUp(local);
+    const page = await context.newPage();
+    await page.goto('https://chatgpt.com/c/test-auto');
+    const composer = page.getByRole('textbox', { name: 'Zapytaj ChatGPT' });
+    const sent = page.locator('#sent-log li');
+
+    await composer.click();
+    await page.keyboard.type(ORIGINAL);
+    // Right away, before the analysis while typing has even started.
+    await page.keyboard.press('Enter');
+
+    await expect(sent).toHaveText([MASKED]);
+    await expect(composer).toHaveText('');
+    await expect.poll(() => storedLog(context)).toHaveLength(1);
+    expect((await storedLog(context))[0]).toMatchObject({
+      host: 'chatgpt.com',
+      source: 'auto',
+      masked: 2,
+      generalised: 0,
+      categories: { PERSON: 1, PESEL: 1 },
+    });
+
+    // Text without personal data is sent as it is, once.
+    await composer.click();
+    await page.keyboard.type('Dzień dobry');
+    await page.keyboard.press('Enter');
+    await expect(sent).toHaveText([MASKED, 'Dzień dobry']);
+
+    // A click on the send button is held back and masked the same way.
+    await composer.click();
+    await page.keyboard.type(ORIGINAL);
+    await page.getByRole('button', { name: 'Wyślij' }).click();
+    await expect(sent).toHaveText([MASKED, 'Dzień dobry', MASKED]);
+    await expect.poll(() => storedLog(context)).toHaveLength(2);
+
+    const options = await openLogTab(context);
+    const rows = options.locator('table.log-table tbody tr');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.first()).toContainText('chatgpt.com');
+    await expect(rows.first()).toContainText('automatycznie');
+    await expect(rows.first()).toContainText('osoba: 1');
+  });
+
+  test('sends unmasked in manual mode', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto('https://chatgpt.com/c/test-manual');
+    const composer = page.getByRole('textbox', { name: 'Zapytaj ChatGPT' });
+
+    await composer.click();
+    await page.keyboard.type(ORIGINAL);
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#sent-log li')).toHaveText([ORIGINAL]);
   });
 });

@@ -1,0 +1,60 @@
+<!-- Gemini conversation, structure as seen on 2026-11-21. Fictitious data. -->
+<chat-window>
+  <user-query>
+    <span class="user-query-container">
+      <user-query-content class="user-query-container">
+        <div class="user-query-container">
+          <div class="query-content">
+            <span class="user-query-bubble-with-background">
+              <span class="horizontal-container">
+                <div class="query-text gds-body-l">
+                  <h5 class="cdk-visually-hidden screen-reader-user-query-label">
+                    Ty powiedziałeś(-aś)
+                  </h5>
+                  <p class="query-text-line">Napisz do &lt;OSOBA_1&gt;, PESEL &lt;PESEL_1&gt;.</p>
+                </div>
+              </span>
+            </span>
+          </div>
+        </div>
+      </user-query-content>
+    </span>
+  </user-query>
+  <model-response>
+    <response-container>
+      <structured-content-container class="model-response-text">
+        <message-content id="message-content-id-r_1">
+          <div class="markdown markdown-main-panel" id="model-response-message-content-r_1">
+            <p>Dzień dobry, <span>&lt;OSOBA_1&gt;</span>! Pana PESEL to &lt;PESEL_1&gt;.</p>
+          </div>
+        </message-content>
+      </structured-content-container>
+    </response-container>
+  </model-response>
+  <model-response>
+    <response-container>
+      <message-content id="message-content-id-r_2">
+        <div class="markdown markdown-main-panel"><p></p></div>
+      </message-content>
+    </response-container>
+  </model-response>
+</chat-window>
+<input-area-v2>
+  <rich-textarea>
+    <div
+      class="ql-editor textarea new-input-ui"
+      contenteditable="true"
+      role="textbox"
+      aria-label="Wpisz prompta dla Gemini"
+    >
+      <p>Pytanie o &lt;OSOBA_1&gt;</p>
+    </div>
+    <div class="ql-clipboard" contenteditable="true" tabindex="-1"></div>
+  </rich-textarea>
+  <div class="send-button-container visible">
+    <gem-icon-button class="send-button"
+      ><button aria-label="Wyślij wiadomość">↑</button></gem-icon-button
+    >
+  </div>
+  <button aria-label="Zatrzymaj odpowiedź">■</button>
+</input-area-v2>

@@ -18,6 +18,16 @@
       <label><input type="radio" name="level" value="off" /> Wyłączone</label>
     </fieldset>
     <p id="note" class="note" hidden></p>
+    <fieldset id="mask-mode">
+      <legend>Maskowanie</legend>
+      <label title="Maskujesz z panelu przy polu"
+        ><input type="radio" name="mask-mode" value="manual" /> Ręcznie</label
+      >
+      <label
+        title="W czatach AI (ChatGPT, Claude, Gemini, Grok, Perplexity) przed wysłaniem wiadomości wszystkie znalezione dane zostają zamienione na znaczniki"
+        ><input type="radio" name="mask-mode" value="auto" /> Przy wysyłce</label
+      >
+    </fieldset>
     <fieldset id="display">
       <legend>W odpowiedziach czatu pokazuj</legend>
       <label
@@ -29,6 +39,9 @@
       >
     </fieldset>
     <section id="stored" class="stored" aria-labelledby="stored-title"></section>
+    <p class="settings-link">
+      <a id="settings" href="#">Ustawienia: kategorie, własne słowa, dziennik…</a>
+    </p>
     <p class="info">Wykrywanie działa lokalnie w przeglądarce, tekst nigdzie nie jest wysyłany.</p>
     <script type="module" src="./main.ts"></script>
   </body>

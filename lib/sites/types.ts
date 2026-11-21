@@ -28,6 +28,11 @@ export interface SiteAdapter {
   editableAnswerBlock?(editor: HTMLElement): HTMLElement | null;
   /** Best effort: whether the answer is still being written. */
   isStreaming(answer: HTMLElement): boolean;
+  /**
+   * The button that sends the composer's message, or null if none is found. Automatic masking
+   * holds a click on it until the message is masked.
+   */
+  sendButton?(doc: Document): HTMLElement | null;
 }
 
 /** `querySelectorAll` that treats a selector the browser rejects as matching nothing. */

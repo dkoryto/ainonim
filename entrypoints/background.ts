@@ -1,6 +1,8 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
+import { appendLogEntry } from '~/lib/log/store';
 import {
+  LOG_APPEND_TYPE,
   MANAGE_REQUEST_TYPES,
   type MappingsChangedNotice,
   failure,
@@ -16,10 +18,14 @@ import {
   renameMapping,
 } from '~/lib/mapping/store';
 import { createOffscreenKeeper } from '~/lib/offscreen-document';
+import { detectionRules } from '~/lib/detection/refine';
+import { getDetectionSettings, getLogEnabled } from '~/lib/settings';
 import {
+  type LogDeps,
   type ManageDeps,
   type WorkerDeps,
   handleContentRequest,
+  handleLogAppend,
   handleManageMessage,
 } from '~/lib/worker';
 
@@ -62,6 +68,7 @@ export default defineBackground(() => {
     sendToOffscreen: (message) => browser.runtime.sendMessage(message),
     // storage.session keeps its default TRUSTED_CONTEXTS access: only this worker reads mappings.
     mappings: { get: getMapping, merge: mergeMapping, rename: renameMapping },
+    detectionRules: async () => detectionRules(await getDetectionSettings()),
   };
 
   const manageDeps: ManageDeps = {
@@ -70,6 +77,14 @@ export default defineBackground(() => {
     extensionId: browser.runtime.id,
     extensionOrigin: browser.runtime.getURL('/'),
   };
+
+  const logDeps: LogDeps = { append: appendLogEntry, isEnabled: getLogEnabled, now: Date.now };
+  // The masking log is in storage.local. Content scripts may only append to it through
+  // `ainonim/log-append`; this keeps them (and a compromised page renderer) from reading it.
+  // storage.sync stays readable: content scripts read their settings from it.
+  void browser.storage.local
+    .setAccessLevel({ accessLevel: browser.storage.AccessLevel.TRUSTED_CONTEXTS })
+    .catch(() => undefined);
 
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!isAinonimMessage(message)) return;
@@ -80,6 +95,10 @@ export default defineBackground(() => {
     }
     // Other requests come from content scripts only; extension pages (the offscreen document) have no tab.
     if (!sender.tab) return;
+    if (message.type === LOG_APPEND_TYPE) {
+      void handleLogAppend(message, sender.url, logDeps).then(sendResponse);
+      return true;
+    }
     if (!isContentRequest(message)) {
       const id = typeof message.id === 'string' ? message.id : '';
       sendResponse(failure(id, 'invalid-request', `Malformed request of type ${message.type}.`));

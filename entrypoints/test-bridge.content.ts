@@ -10,11 +10,12 @@ import { isMapping } from '~/lib/messages';
 /**
  * - `analyze` / `restore` go through the client in lib/client.ts, like the real content script.
  * - `raw` sends `message` to the service worker as is, so tests can reach its own checks.
+ * - `read-log` tries to read the masking log from `storage.local`, which content scripts must not.
  */
 interface PageRequest {
   type: 'ainonim-test/request';
   id: string;
-  operation: 'analyze' | 'restore' | 'raw';
+  operation: 'analyze' | 'restore' | 'raw' | 'read-log';
   text?: string;
   mapping?: unknown;
   message?: unknown;
@@ -26,7 +27,10 @@ function isPageRequest(value: unknown): value is PageRequest {
   return (
     data.type === 'ainonim-test/request' &&
     typeof data.id === 'string' &&
-    (data.operation === 'analyze' || data.operation === 'restore' || data.operation === 'raw')
+    (data.operation === 'analyze' ||
+      data.operation === 'restore' ||
+      data.operation === 'raw' ||
+      data.operation === 'read-log')
   );
 }
 
@@ -40,6 +44,8 @@ async function run(request: PageRequest): Promise<unknown> {
       return restoreText(text, mapping);
     case 'raw':
       return browser.runtime.sendMessage(request.message);
+    case 'read-log':
+      return browser.storage.local.get('maskingLog');
   }
 }
 

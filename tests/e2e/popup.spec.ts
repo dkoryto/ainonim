@@ -67,6 +67,17 @@ test('switches the chat display and keeps the choice', async ({ context }) => {
   await expect(tokens).toBeChecked();
 });
 
+test('switches the masking mode and keeps the choice', async ({ context }) => {
+  const page = await openPopup(context);
+  const manual = page.getByRole('radio', { name: 'Ręcznie' });
+  const auto = page.getByRole('radio', { name: 'Przy wysyłce' });
+
+  await expect(manual).toBeChecked();
+  await auto.check();
+  await page.reload();
+  await expect(auto).toBeChecked();
+});
+
 test('says when no data is stored', async ({ context }) => {
   const page = await openPopup(context);
 

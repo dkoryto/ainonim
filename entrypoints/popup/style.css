@@ -248,3 +248,11 @@ fieldset label:has(input:focus-visible) {
   margin: 6px 0 0;
   color: var(--danger);
 }
+
+.settings-link {
+  margin: 0 0 8px;
+}
+
+.settings-link a {
+  color: var(--accent);
+}

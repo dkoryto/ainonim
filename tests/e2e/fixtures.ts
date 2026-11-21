@@ -37,7 +37,8 @@ export async function launchWithExtension(options: LaunchOptions = {}): Promise<
 type PageRequest =
   | { operation: 'analyze'; text: string; mapping?: Mapping }
   | { operation: 'restore'; text: string; mapping: Mapping }
-  | { operation: 'raw'; message: unknown };
+  | { operation: 'raw'; message: unknown }
+  | { operation: 'read-log' };
 
 /** Pass a request to the test bridge in the content script and wait for its answer. */
 async function requestInPage(page: Page, request: PageRequest): Promise<unknown> {
@@ -80,6 +81,11 @@ export async function restoreInPage(
 /** Send a message to the service worker as is, skipping the checks in the client. */
 export async function sendRawInPage(page: Page, message: unknown): Promise<unknown> {
   return requestInPage(page, { operation: 'raw', message });
+}
+
+/** Try to read the masking log from a content script: resolves with what the bridge got back. */
+export async function readLogInPage(page: Page): Promise<unknown> {
+  return requestInPage(page, { operation: 'read-log' });
 }
 
 /** The extension's service worker, for calling chrome.* APIs from a test. */

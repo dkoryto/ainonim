@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type DetectionRules, detectionRules } from '~/lib/detection/refine';
 import {
   type AnalyzeRequest,
+  type AnalyzeResult,
   ENGINE_READY_TIMEOUT_MS,
   MAX_TEXT_LENGTH,
   type OffscreenRequest,
@@ -48,12 +50,23 @@ function fakeStore(initial: Record<string, Record<string, string>> = {}) {
   return { store, conversations };
 }
 
+const NO_RULES: DetectionRules = { disabled: new Set(), patterns: [] };
+
 /** An offscreen document that answers each request after the given delay. */
-function fakeWorker({ readyMs = 0, workMs = 0 } = {}, mappings = fakeStore().store) {
+function fakeWorker(
+  {
+    readyMs = 0,
+    workMs = 0,
+    result = analyzeResult,
+  }: { readyMs?: number; workMs?: number; result?: AnalyzeResult } = {},
+  mappings = fakeStore().store,
+  rules: () => Promise<DetectionRules> = () => Promise.resolve(NO_RULES),
+) {
   const sent: OffscreenRequest[] = [];
   return {
     sent,
     mappings,
+    detectionRules: vi.fn(rules),
     ensureOffscreen: vi.fn(() => Promise.resolve()),
     closeOffscreen: vi.fn(() => Promise.resolve()),
     sendToOffscreen: vi.fn((message: OffscreenRequest): Promise<unknown> => {
@@ -63,7 +76,7 @@ function fakeWorker({ readyMs = 0, workMs = 0 } = {}, mappings = fakeStore().sto
         case 'ainonim/offscreen-ready':
           return delay(readyMs, { id, ok: true, loadMs: readyMs });
         case 'ainonim/offscreen-analyze':
-          return delay(workMs, { id, ok: true, result: analyzeResult, analyzeMs: 1, loadMs: 0 });
+          return delay(workMs, { id, ok: true, result, analyzeMs: 1, loadMs: 0 });
         case 'ainonim/offscreen-restore':
           return delay(workMs, { id, ok: true, text: 'Jan' });
       }
@@ -361,6 +374,74 @@ describe('handleContentRequest with conversations', () => {
     );
 
     expect(response).toMatchObject({ ok: false, code: 'invalid-request' });
+  });
+});
+
+describe('handleContentRequest with detection settings', () => {
+  const key = 'chatgpt:abc';
+  const text = 'Jan Kowalski, Projekt Feniks';
+  // What the engine answers for `text`: the person only, numbered after the stored mapping.
+  const engineResult: AnalyzeResult = {
+    anonymized: '<OSOBA_2>, Projekt Feniks',
+    spans: [{ start: 0, end: 12, entity_type: 'PERSON', score: 0.9, token: '<OSOBA_2>' }],
+    mapping: { '<OSOBA_1>': 'Anna Nowak', '<OSOBA_2>': 'Jan Kowalski' },
+  };
+  const rules = (disabled: string[], words: string[]) => () =>
+    Promise.resolve(
+      detectionRules({
+        disabledCategories: disabled,
+        customWords: words.map((value) => ({ value, regex: false })),
+      }),
+    );
+
+  it('stores neither the spans nor the tokens of a disabled category', async () => {
+    const { store, conversations } = fakeStore({ [key]: { '<OSOBA_1>': 'Anna Nowak' } });
+    const deps = fakeWorker({ result: engineResult }, store, rules(['PERSON'], ['projekt feniks']));
+
+    const response = await settle(
+      handleContentRequest(
+        { ...analyze, text, conversationKey: key, persist: true },
+        deps,
+        CHATGPT,
+      ),
+    );
+
+    expect(response).toMatchObject({
+      ok: true,
+      result: {
+        anonymized: 'Jan Kowalski, <SLOWO_1>',
+        spans: [{ start: 14, end: 28, entity_type: 'CUSTOM', token: '<SLOWO_1>' }],
+      },
+    });
+    expect(conversations.get(key)).toEqual({
+      '<OSOBA_1>': 'Anna Nowak',
+      '<SLOWO_1>': 'Projekt Feniks',
+    });
+  });
+
+  it('applies the settings to analyses outside a conversation too', async () => {
+    const deps = fakeWorker({ result: engineResult }, undefined, rules(['PERSON'], []));
+
+    const response = await settle(handleContentRequest({ ...analyze, text }, deps, PAGE));
+
+    expect(response).toMatchObject({
+      ok: true,
+      result: { anonymized: text, spans: [], mapping: {} },
+    });
+  });
+
+  it('fails instead of analysing without settings that could not be read', async () => {
+    const deps = fakeWorker({}, undefined, () => Promise.reject(new Error('quota')));
+
+    const response = await settle(handleContentRequest(analyze, deps, PAGE));
+
+    expect(response).toEqual({
+      id: 'r1',
+      ok: false,
+      code: 'engine',
+      error: 'The detection settings could not be read.',
+    });
+    expect(deps.sendToOffscreen).not.toHaveBeenCalled();
   });
 });
 

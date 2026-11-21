@@ -602,3 +602,74 @@ describe('focus and cleanup', () => {
     expect(host()).toBeNull();
   });
 });
+
+describe('automatic masking', () => {
+  it('applies the panel choices to the values of a newer text', () => {
+    const badge = openBadge(found(ITEMS));
+    checkboxes(badge)[1]?.click();
+    modeButton(badge, 2, 1).click();
+    // The same values, moved by text typed in front of them.
+    const moved = [JAN, PESEL, ANNA].map((value) =>
+      item(value.span.start + 5, value.original, value.span.entity_type, value.span.token),
+    );
+
+    expect(badge.choicesFor(moved)).toEqual([
+      { span: moved[0]?.span, mode: 'token' },
+      { span: moved[2]?.span, mode: 'general' },
+    ]);
+  });
+
+  it('masks every value with its token while the panel was never touched', () => {
+    const badge = createBadge(textarea(), options());
+
+    expect(badge.choicesFor([PESEL, JAN])).toEqual([
+      { span: JAN.span, mode: 'token' },
+      { span: PESEL.span, mode: 'token' },
+    ]);
+  });
+
+  it('shows on the icon and in the panel that values were masked automatically', () => {
+    const badge = createBadge(textarea(), options());
+    badge.update({
+      status: 'analysing',
+      items: [],
+      revert: 'ready',
+      notice: { kind: 'auto-masked', count: 2 },
+    });
+    flushFrames();
+
+    expect(icon(badge).classList.contains('masked')).toBe(true);
+    expect(icon(badge).querySelector('.bubble')?.textContent).toBe('2');
+    expect(icon(badge).title).toBe('AInonim: zamaskowano automatycznie (2)');
+    expect(badge.isOpen()).toBe(false);
+    badge.setOpen(true);
+    expect(part(badge, '.notice').textContent).toContain('Zamaskowano automatycznie (2)');
+    expect(part(badge, 'button.revert').hidden).toBe(false);
+  });
+
+  it('opens the panel to explain a send held back and says how to send anyway', () => {
+    const badge = createBadge(textarea(), options());
+    badge.update({
+      status: 'failed',
+      items: [],
+      revert: 'none',
+      notice: { kind: 'send-blocked', retryMs: 5_000 },
+    });
+    flushFrames();
+
+    expect(badge.isOpen()).toBe(true);
+    expect(icon(badge).classList.contains('failed')).toBe(true);
+    expect(icon(badge).title).toContain('Wyślij ponownie w ciągu 5 s');
+    const notice = part(badge, '.notice');
+    expect(notice.hidden).toBe(false);
+    expect(notice.classList.contains('blocked')).toBe(true);
+    expect(notice.textContent).toBe(
+      'Nie wysłano: nie udało się zamaskować danych (analiza nie powiodła się albo trwała ' +
+        'za długo). ' +
+        'Wyślij ponownie w ciągu 5 s, aby wysłać tekst bez maskowania.',
+    );
+
+    badge.update({ status: 'failed', items: [], revert: 'none' });
+    expect(notice.hidden).toBe(true);
+  });
+});

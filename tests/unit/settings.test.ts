@@ -9,6 +9,15 @@ import {
   onChatDisplayChange,
   setChatDisplay,
   type SiteLevelChange,
+  LOG_ENABLED_KEY,
+  MASK_MODE_KEY,
+  type MaskingMode,
+  getLogEnabled,
+  getMaskingMode,
+  onLogEnabledChange,
+  onMaskingModeChange,
+  setLogEnabled,
+  setMaskingMode,
   getSiteLevel,
   normalizeHostname,
   onSiteLevelChange,
@@ -216,5 +225,55 @@ describe('describeTabUrl (popup)', () => {
 
     expect(target).toEqual({ kind: 'unsupported', reason });
     if (target.kind === 'unsupported') expect(unsupportedNote(target)).not.toBe('');
+  });
+});
+
+describe('masking mode', () => {
+  it("defaults to 'manual', stores only 'auto' and ignores unknown values", async () => {
+    expect(await getMaskingMode()).toBe('manual');
+
+    await setMaskingMode('auto');
+    expect((await fakeBrowser.storage.sync.get(MASK_MODE_KEY))[MASK_MODE_KEY]).toBe('auto');
+    expect(await getMaskingMode()).toBe('auto');
+
+    await setMaskingMode('manual');
+    expect(await fakeBrowser.storage.sync.get(MASK_MODE_KEY)).toEqual({});
+
+    await fakeBrowser.storage.sync.set({ [MASK_MODE_KEY]: 'always' });
+    expect(await getMaskingMode()).toBe('manual');
+  });
+
+  it('rejects an unknown mode', async () => {
+    await expect(setMaskingMode('always' as MaskingMode)).rejects.toThrow(TypeError);
+  });
+
+  it('reports effective changes only', async () => {
+    const seen: MaskingMode[] = [];
+    const stop = onMaskingModeChange((mode) => seen.push(mode));
+
+    await setMaskingMode('auto');
+    await fakeBrowser.storage.sync.set({ [MASK_MODE_KEY]: 'auto' });
+    await fakeBrowser.storage.sync.set({ [MASK_MODE_KEY]: 'nonsense' });
+    stop();
+    await setMaskingMode('auto');
+
+    expect(seen).toEqual(['auto', 'manual']);
+  });
+});
+
+describe('masking log switch', () => {
+  it('is on by default and stores only false', async () => {
+    const seen: boolean[] = [];
+    const stop = onLogEnabledChange((enabled) => seen.push(enabled));
+    expect(await getLogEnabled()).toBe(true);
+
+    await setLogEnabled(false);
+    expect((await fakeBrowser.storage.sync.get(LOG_ENABLED_KEY))[LOG_ENABLED_KEY]).toBe(false);
+    expect(await getLogEnabled()).toBe(false);
+    await setLogEnabled(true);
+
+    expect(await fakeBrowser.storage.sync.get(LOG_ENABLED_KEY)).toEqual({});
+    expect(seen).toEqual([false, true]);
+    stop();
   });
 });

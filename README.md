@@ -7,7 +7,7 @@ trafią do czatu AI albo formularza. Wykrywaniem zajmuje się biblioteka
 rozszerzenia, nic nie jest pobierane z sieci.
 
 Stan: MVP zintegrowane (wykrywanie i maskowanie w polach na każdej stronie, przywracanie odpowiedzi
-w ChatGPT i Claude.ai), przetestowane na stronach testowych; przed wydaniem test na żywych czatach.
+w ChatGPT, Claude.ai, Gemini, Grok i Perplexity), przetestowane na stronach testowych; przed wydaniem test na żywych czatach.
 Pomiary: [docs/spikes/T2-pyodide.md](docs/spikes/T2-pyodide.md).
 
 ## Jak to działa
@@ -34,7 +34,7 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   adresu, `[osoba]`; `lib/content/generalise.ts`, bez zapisu w mapowaniu). „Zamaskuj
   zaznaczone” wpisuje wynik w pole, „Cofnij” przywraca tekst sprzed ostatniego maskowania, dopóki
   pole go nie zmieniło. Esc albo „×” zamyka panel.
-- Na ChatGPT i Claude.ai (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
+- Na ChatGPT, Claude.ai, Gemini, Grok i Perplexity (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
   „zastępnik → oryginał” trzyma service worker w `storage.session` (tylko w pamięci), a strona
   dostaje je tylko dla własnej witryny. Nowa rozmowa ma klucz tymczasowy, który po nadaniu
   identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu i we własnych
@@ -45,7 +45,34 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   W okienku wtyczki przełącznik „W odpowiedziach czatu pokazuj: Oryginały | Znaczniki” (`chatDisplay`
   w `storage.sync`) pozwala zostawić na ekranie zastępniki: są wtedy podświetlone, a oryginał widać
   tylko po najechaniu („<OSOBA_1> = Jan Kowalski”).
-- Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane.
+- Ustawienia wykrywania (strona ustawień, zakładki „Kategorie” i „Własne słowa”, w
+  `storage.sync`) stosuje service worker do każdej analizy (`lib/detection/`), zanim zapisze
+  mapowanie: wyłączone rodzaje danych (`disabledCategories`) nie trafiają do panelu, podświetleń
+  ani mapowania, a własne słowa i wyrażenia regularne (`customWords`, eksport/import do pliku
+  JSON) są maskowane jako `<SLOWO_1>`, `<SLOWO_2>`… i przywracane w odpowiedziach jak inne
+  zastępniki. Zwykły wpis pasuje jako całe słowo bez względu na wielkość liter (także z polskimi
+  literami); wzorce z zagnieżdżonymi powtórzeniami i nieprawidłowe są pomijane.
+- Maskowanie automatyczne (ustawienie „Maskowanie: Automatycznie przy wysyłce”, `maskMode` w
+  `storage.sync`, w ustawieniach i w okienku wtyczki): na ChatGPT, Claude.ai, Gemini, Groku i Perplexity Enter w polu
+  wiadomości (bez Shift i poza kompozycją IME) albo kliknięcie przycisku wysyłania jest
+  przechwytywane w fazie capture, zanim zobaczy je strona (`lib/content/auto-mask.ts`). Jeśli
+  tekst zawiera dane, AInonim zamienia je na znaczniki (z uwzględnieniem odznaczeń i wyboru
+  „ogólnie” z panelu), zapisuje mapowanie jak przy „Zamaskuj zaznaczone” i wysyła wiadomość
+  ponownie (klik przycisku albo Enter). Na analizę czeka do 10 s; gdy się nie uda, nic nie
+  wysyła, ikona i panel mówią, że drugie wysłanie w ciągu 5 s pójdzie bez maskowania. Ikona
+  pokazuje „zamaskowano automatycznie (N)”, „Cofnij” działa, dopóki tekst nie zniknie z pola. Na
+  innych stronach tryb automatyczny nic nie zmienia: maskuje się z panelu.
+- Dziennik maskowania (zakładka „Dziennik” w ustawieniach, `lib/log/`): każde maskowanie,
+  ręczne i automatyczne, dopisuje wpis z czasem, nazwą hosta, sposobem i liczbą danych według
+  kategorii, bez wartości, znaczników i treści. Wpisy dopisuje tylko service worker (wiadomość
+  `ainonim/log-append`; host bierze z adresu ramki nadawcy, nie z wiadomości) do
+  `storage.local` (`maskingLog`, najwyżej 1000 wpisów), które ogranicza do zaufanych kontekstów,
+  więc content script może wpis dodać, ale nie odczytać dziennika. Zakładka pokazuje
+  podsumowanie, kategorie, strony i ostatnie wpisy, eksportuje CSV (komórki zaczynające się od
+  `= + - @` są neutralizowane) i otwiera raport do wydruku (`report.html`, „Zapisz jako PDF” w
+  oknie drukowania). Zapisywanie można wyłączyć w zakładce „Ogólne” (`maskingLogEnabled`).
+- Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane (poza wpisem w
+  dzienniku).
 
 ### Komunikacja
 
@@ -104,8 +131,10 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 - To pseudonimizacja, nie anonimizacja w rozumieniu RODO.
 - Wykrywanie działa na regułach, bez NER: samo nazwisko, nazwa miejscowości czy firma bez formy
   prawnej często umykają. Tekst trzeba przeczytać przed wysłaniem.
-- Nic nie jest maskowane automatycznie: w trybie „ostrzegaj” tekst wysłany bez kliknięcia
-  „Zamaskuj” idzie z danymi.
+- W trybie ręcznym (domyślnym) nic nie jest maskowane automatycznie: tekst wysłany bez kliknięcia
+  „Zamaskuj” idzie z danymi. Tryb automatyczny działa tylko na tych pięciu czatach i tylko dla
+  wysłania Enterem lub przyciskiem wysyłania; strona, która wysyła inaczej (np. własnym skrótem),
+  nie zostanie zatrzymana.
 - Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi i wysłanych wiadomości,
   atrybuty `title`, legenda przy bloku edytora ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
   nie to, co strona wyświetla.
@@ -113,7 +142,9 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 - Pliki i obrazy dołączane do czatu, pola w zamkniętych shadow root, edytory na `canvas` i
   `iframe` z innej domeny nie są obsługiwane.
 - Przycisk kopiowania bloku w ChatGPT kopiuje znaczniki, nie oryginały.
-- Adaptery ChatGPT i Claude.ai zależą od selektorów, które strony zmieniają.
+- Adaptery czatów zależą od selektorów, które strony zmieniają. Gemini sprawdzono na żywo
+  21.11.2026; w Groku tylko pole i wysłaną wiadomość (odpowiedzi wymagają konta), a Perplexity
+  wyłącznie na podstawie znanej budowy strony.
 
 ## Licencje
 

@@ -2,6 +2,7 @@
 // engine is running and pass the request on to the offscreen document. Conversation mappings
 // (lib/mapping/store.ts) stay here; a content script gets one only for its own chat site, and
 // only extension pages (the popup) may list or delete them all.
+import { type DetectionRules, refineResult } from './detection/refine';
 import { type SenderInfo, isExtensionPage, mayUseConversation } from './mapping/access';
 import { MappingConflictError } from './mapping/store';
 import {
@@ -28,6 +29,9 @@ import {
   isRestoreResponse,
 } from './messages';
 import { TimeoutError, errorMessage, withTimeout } from './timeout';
+import { type LogEntry, toLogEntry } from './log/entries';
+import { type DoneResponse, isLogAppendRequest } from './messages';
+import { normalizeHostname } from './settings';
 
 /** The conversation store, passed in so the worker can be tested without `storage.session`. */
 export interface MappingStore {
@@ -57,6 +61,8 @@ export interface WorkerDeps {
   closeOffscreen: () => Promise<void>;
   sendToOffscreen: (message: OffscreenRequest) => Promise<unknown>;
   mappings: MappingStore;
+  /** The user's switched-off categories and own words, read from storage.sync per analysis. */
+  detectionRules: () => Promise<DetectionRules>;
 }
 
 export type ContentResponse = AnalyzeResponse | RestoreResponse | MappingResponse;
@@ -137,6 +143,27 @@ async function runEngine(
   }
 }
 
+/**
+ * Analysis with the user's detection settings applied, so spans of switched-off categories never
+ * reach the content script or a stored mapping, and custom words get their tokens.
+ */
+async function analyze(
+  request: AnalyzeRequest,
+  mapping: Mapping,
+  deps: WorkerDeps,
+): Promise<AnalyzeResponse> {
+  let rules: DetectionRules;
+  try {
+    rules = await deps.detectionRules();
+  } catch {
+    // Analysing without them could leave the user's own words unmasked.
+    return failure(request.id, 'engine', 'The detection settings could not be read.');
+  }
+  const response = await runEngine(request, mapping, deps);
+  if (!response.ok) return response;
+  return { ...response, result: refineResult(request.text, mapping, response.result, rules) };
+}
+
 /** Analysis within a stored conversation: its mapping in, and with `persist` the new tokens out. */
 async function analyzeInConversation(
   request: AnalyzeRequest,
@@ -150,7 +177,7 @@ async function analyzeInConversation(
   } catch (error) {
     return storeFailure(id, error);
   }
-  const response = await runEngine(request, stored, deps);
+  const response = await analyze(request, stored, deps);
   if (!response.ok || request.persist !== true) return response;
   try {
     const mapping = await deps.mappings.merge(key, response.result.mapping);
@@ -203,7 +230,8 @@ export async function handleContentRequest(
     if (!mayUseConversation(key, senderUrl)) return forbidden(request.id);
     return analyzeInConversation(request, key, deps);
   }
-  return runEngine(request, request.mapping ?? {}, deps);
+  if (request.type === 'ainonim/analyze') return analyze(request, request.mapping ?? {}, deps);
+  return runEngine(request, request.mapping, deps);
 }
 
 /**
@@ -238,5 +266,41 @@ export async function handleManageMessage(
     }
   } catch (error) {
     return storeFailure(id, error);
+  }
+}
+
+/** What the worker needs to write the masking log, passed in so it can be tested without storage. */
+export interface LogDeps {
+  append: (entry: LogEntry) => Promise<void>;
+  isEnabled: () => Promise<boolean>;
+  now: () => number;
+}
+
+/**
+ * Answer `ainonim/log-append` from a content script. The entry's hostname comes from the frame
+ * the browser says sent it, never from the message, so a page cannot log maskings for another
+ * site. With the log turned off the request succeeds and nothing is written. Never rejects.
+ */
+export async function handleLogAppend(
+  message: { type: string; id?: unknown },
+  senderUrl: string | undefined,
+  deps: LogDeps,
+): Promise<DoneResponse> {
+  const id = typeof message.id === 'string' ? message.id : '';
+  if (!isLogAppendRequest(message)) {
+    return failure(id, 'invalid-request', `Malformed request of type ${message.type}.`);
+  }
+  let host: string;
+  try {
+    host = normalizeHostname(new URL(senderUrl ?? '').hostname);
+  } catch {
+    return failure(id, 'forbidden', 'Only a web page may log a masking.');
+  }
+  if (host === '') return failure(id, 'forbidden', 'Only a web page may log a masking.');
+  try {
+    if (await deps.isEnabled()) await deps.append(toLogEntry(message, host, deps.now()));
+    return { id, ok: true };
+  } catch {
+    return failure(id, 'engine', 'The masking log could not be written.');
   }
 }

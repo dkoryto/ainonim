@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AInonim – ustawienia</title>
+    <meta name="manifest.open_in_tab" content="true" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>AInonim</h1>
+      <p class="subtitle">Ustawienia</p>
+    </header>
+    <nav class="tabs" role="tablist" aria-label="Ustawienia">
+      <button type="button" role="tab" id="tab-general" aria-controls="panel-general">
+        Ogólne
+      </button>
+      <button type="button" role="tab" id="tab-categories" aria-controls="panel-categories">
+        Kategorie
+      </button>
+      <button type="button" role="tab" id="tab-words" aria-controls="panel-words">
+        Własne słowa
+      </button>
+      <button type="button" role="tab" id="tab-log" aria-controls="panel-log">Dziennik</button>
+      <button type="button" role="tab" id="tab-about" aria-controls="panel-about">O autorze</button>
+    </nav>
+    <main>
+      <section id="panel-general" role="tabpanel" aria-labelledby="tab-general"></section>
+      <section
+        id="panel-categories"
+        role="tabpanel"
+        aria-labelledby="tab-categories"
+        hidden
+      ></section>
+      <section id="panel-words" role="tabpanel" aria-labelledby="tab-words" hidden></section>
+      <section id="panel-log" role="tabpanel" aria-labelledby="tab-log" hidden></section>
+      <section id="panel-about" role="tabpanel" aria-labelledby="tab-about" hidden></section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

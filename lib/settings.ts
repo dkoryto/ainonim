@@ -1,4 +1,5 @@
 import { browser } from 'wxt/browser';
+import { ENGINE_ENTITY_TYPES } from './ui/labels';
 
 /**
  * How AInonim behaves on one site. Levels are ordered from the most to the least active; a
@@ -149,3 +150,221 @@ export function onChatDisplayChange(callback: (display: ChatDisplay) => void): (
     browser.storage.onChanged.removeListener(listener);
   };
 }
+
+type StorageChanges = Partial<Record<string, { oldValue?: unknown; newValue?: unknown }>>;
+
+/** Calls `callback` with the old and new raw value of a storage.sync key. Returns an unsubscribe. */
+function onSyncChange(key: string, callback: (oldValue: unknown, newValue: unknown) => void) {
+  const listener = (changes: StorageChanges, areaName: string): void => {
+    const change = changes[key];
+    if (areaName === 'sync' && change !== undefined) callback(change.oldValue, change.newValue);
+  };
+  browser.storage.onChanged.addListener(listener);
+  return (): void => {
+    browser.storage.onChanged.removeListener(listener);
+  };
+}
+
+/**
+ * storage.sync key holding the entity types the user switched off in the "Kategorie" tab, e.g.
+ * `["DATE", "LOCATION"]`. Absent means every type is detected.
+ */
+export const DISABLED_CATEGORIES_KEY = 'disabledCategories';
+
+/** Known entity types from a stored value, in ENGINE_ENTITY_TYPES order; the rest is dropped. */
+export function parseDisabledCategories(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const wanted = new Set(raw.filter((value): value is string => typeof value === 'string'));
+  return ENGINE_ENTITY_TYPES.filter((entityType) => wanted.has(entityType));
+}
+
+export async function getDisabledCategories(): Promise<string[]> {
+  const stored = await browser.storage.sync.get(DISABLED_CATEGORIES_KEY);
+  return parseDisabledCategories(stored[DISABLED_CATEGORIES_KEY]);
+}
+
+export async function setDisabledCategories(entityTypes: readonly string[]): Promise<void> {
+  const disabled = parseDisabledCategories(entityTypes);
+  if (disabled.length === 0) await browser.storage.sync.remove(DISABLED_CATEGORIES_KEY);
+  else await browser.storage.sync.set({ [DISABLED_CATEGORIES_KEY]: disabled });
+}
+
+/** Calls `callback` with the disabled types whenever they change. Returns an unsubscribe. */
+export function onDisabledCategoriesChange(callback: (disabled: string[]) => void): () => void {
+  return onSyncChange(DISABLED_CATEGORIES_KEY, (_oldValue, newValue) => {
+    callback(parseDisabledCategories(newValue));
+  });
+}
+
+/**
+ * One of the user's own words or phrases to mask ("Własne słowa" tab). With `regex` the value is
+ * a regular expression; without, it matches as a whole word, ignoring case. Kept in storage.sync
+ * so the list survives a reinstall; it never leaves the browser's own sync.
+ */
+export interface CustomWord {
+  value: string;
+  regex: boolean;
+}
+
+/** storage.sync key holding the CustomWord list; absent means none. */
+export const CUSTOM_WORDS_KEY = 'customWords';
+/** Caps that keep matching cheap: every entry runs over every analysed text. */
+export const MAX_CUSTOM_WORDS = 200;
+export const MAX_CUSTOM_WORD_LENGTH = 200;
+/** chrome.storage.sync's QUOTA_BYTES_PER_ITEM: the key plus the value's JSON. */
+export const SYNC_ITEM_QUOTA_BYTES = 8192;
+
+const REGEX_METACHARACTERS = /[[\]\\+*?{}()|^$]/;
+
+/** Whether an entry reads as a regular expression: it holds one of `[ ] \ + * ? { } ( ) | ^ $`. */
+export function looksLikeRegex(value: string): boolean {
+  return REGEX_METACHARACTERS.test(value);
+}
+
+/** Thrown when the list does not fit into one storage.sync item. */
+export class CustomWordsTooLargeError extends Error {
+  constructor(bytes: number) {
+    super(
+      `The list takes ${String(bytes)} bytes; storage.sync holds ${String(SYNC_ITEM_QUOTA_BYTES)}.`,
+    );
+    this.name = 'CustomWordsTooLargeError';
+  }
+}
+
+/** A stored or imported entry, trimmed; undefined when it is not usable. */
+export function parseCustomWord(raw: unknown): CustomWord | undefined {
+  if (!isRecord(raw) || typeof raw.value !== 'string') return undefined;
+  const value = raw.value.trim();
+  if (value === '' || value.length > MAX_CUSTOM_WORD_LENGTH) return undefined;
+  // An entry without the flag (written by hand) is classified the way the options page does it.
+  const regex = typeof raw.regex === 'boolean' ? raw.regex : looksLikeRegex(value);
+  return { value, regex };
+}
+
+/** What makes two entries the same: plain words match regardless of case, so they compare so. */
+export function customWordKey(word: CustomWord): string {
+  return word.regex ? `regex:${word.value}` : `word:${word.value.toLowerCase()}`;
+}
+
+/** Usable entries from a stored value, without duplicates and at most MAX_CUSTOM_WORDS. */
+export function parseCustomWords(raw: unknown): CustomWord[] {
+  if (!Array.isArray(raw)) return [];
+  const words: CustomWord[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const word = parseCustomWord(item);
+    if (!word || seen.has(customWordKey(word))) continue;
+    seen.add(customWordKey(word));
+    words.push(word);
+    if (words.length === MAX_CUSTOM_WORDS) break;
+  }
+  return words;
+}
+
+export async function getCustomWords(): Promise<CustomWord[]> {
+  const stored = await browser.storage.sync.get(CUSTOM_WORDS_KEY);
+  return parseCustomWords(stored[CUSTOM_WORDS_KEY]);
+}
+
+/**
+ * Store the usable entries of `words`. Rejects with CustomWordsTooLargeError before writing when
+ * they do not fit into one storage.sync item, and with the browser's error when the write fails.
+ */
+export async function setCustomWords(words: readonly CustomWord[]): Promise<void> {
+  const parsed = parseCustomWords(words);
+  if (parsed.length === 0) {
+    await browser.storage.sync.remove(CUSTOM_WORDS_KEY);
+    return;
+  }
+  const bytes = new TextEncoder().encode(CUSTOM_WORDS_KEY + JSON.stringify(parsed)).length;
+  if (bytes > SYNC_ITEM_QUOTA_BYTES) throw new CustomWordsTooLargeError(bytes);
+  await browser.storage.sync.set({ [CUSTOM_WORDS_KEY]: parsed });
+}
+
+/** Calls `callback` with the list whenever it changes. Returns an unsubscribe. */
+export function onCustomWordsChange(callback: (words: CustomWord[]) => void): () => void {
+  return onSyncChange(CUSTOM_WORDS_KEY, (_oldValue, newValue) => {
+    callback(parseCustomWords(newValue));
+  });
+}
+
+/** What the service worker applies to every analysis (lib/detection/refine.ts). */
+export interface DetectionSettings {
+  disabledCategories: string[];
+  customWords: CustomWord[];
+}
+
+export async function getDetectionSettings(): Promise<DetectionSettings> {
+  const stored = await browser.storage.sync.get([DISABLED_CATEGORIES_KEY, CUSTOM_WORDS_KEY]);
+  return {
+    disabledCategories: parseDisabledCategories(stored[DISABLED_CATEGORIES_KEY]),
+    customWords: parseCustomWords(stored[CUSTOM_WORDS_KEY]),
+  };
+}
+/**
+ * When AInonim masks: `manual` only from the panel at the field, `auto` also on its own when a
+ * message is sent from a chat site's composer (lib/content/auto-mask.ts). Other pages always
+ * work manually. One setting for every site, synced like the others.
+ */
+export const MASKING_MODES = ['manual', 'auto'] as const;
+export type MaskingMode = (typeof MASKING_MODES)[number];
+
+export const DEFAULT_MASKING_MODE: MaskingMode = 'manual';
+
+/** storage.sync key holding the MaskingMode; absent means the default. */
+export const MASK_MODE_KEY = 'maskMode';
+
+/** storage.sync key: `false` turns the masking log off; absent means on. */
+export const LOG_ENABLED_KEY = 'maskingLogEnabled';
+
+export const DEFAULT_LOG_ENABLED = true;
+
+export function isMaskingMode(value: unknown): value is MaskingMode {
+  return typeof value === 'string' && (MASKING_MODES as readonly string[]).includes(value);
+}
+
+const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
+
+/**
+ * get/set/onChange for one synced value with a default. The default is never stored, so an
+ * unchanged setting takes no sync quota and a later default change reaches everyone.
+ */
+function syncedSetting<T>(key: string, isValid: (value: unknown) => value is T, fallback: T) {
+  const read = (value: unknown): T => (isValid(value) ? value : fallback);
+  return {
+    get: async (): Promise<T> => read((await browser.storage.sync.get(key))[key]),
+    set: async (value: T): Promise<void> => {
+      if (!isValid(value)) throw new TypeError(`invalid value for ${key}: ${String(value)}`);
+      if (value === fallback) await browser.storage.sync.remove(key);
+      else await browser.storage.sync.set({ [key]: value });
+    },
+    onChange: (callback: (value: T) => void): (() => void) => {
+      const listener = (
+        changes: Partial<Record<string, { oldValue?: unknown; newValue?: unknown }>>,
+        areaName: string,
+      ): void => {
+        const change = changes[key];
+        if (areaName !== 'sync' || change === undefined) return;
+        const after = read(change.newValue);
+        if (read(change.oldValue) !== after) callback(after);
+      };
+      browser.storage.onChanged.addListener(listener);
+      return () => {
+        browser.storage.onChanged.removeListener(listener);
+      };
+    },
+  };
+}
+
+const maskingMode = syncedSetting(MASK_MODE_KEY, isMaskingMode, DEFAULT_MASKING_MODE);
+const logEnabled = syncedSetting(LOG_ENABLED_KEY, isBoolean, DEFAULT_LOG_ENABLED);
+
+export const getMaskingMode = maskingMode.get;
+export const setMaskingMode = maskingMode.set;
+/** Calls `callback` with the new mode whenever it changes. Returns an unsubscribe. */
+export const onMaskingModeChange = maskingMode.onChange;
+
+/** Whether maskings are written to the log (lib/log/). */
+export const getLogEnabled = logEnabled.get;
+export const setLogEnabled = logEnabled.set;
+export const onLogEnabledChange = logEnabled.onChange;
