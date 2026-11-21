@@ -11,7 +11,10 @@ import { clickGeneral, clickMask, clickRevert, clickRow, icon, openPanel, panel 
 // The parts of the chrome.* API the tests call inside the service worker.
 declare const chrome: {
   storage: {
-    sync: { set: (items: Record<string, unknown>) => Promise<void> };
+    sync: {
+      set: (items: Record<string, unknown>) => Promise<void>;
+      remove: (key: string) => Promise<void>;
+    };
     session: { get: (key: string) => Promise<Record<string, unknown>> };
   };
 };
@@ -307,6 +310,33 @@ test.describe('chat site (stand-in for chatgpt.com)', () => {
       'AInonim\nJan Kowalski – model napisał <OSOBA_1>\n' +
         'Janie Kowalski – model napisał <OSOBA_1:wołacz>',
     );
+  });
+
+  test('keeps the tokens on screen with the "Znaczniki" display and shows originals on hover', async ({
+    context,
+  }) => {
+    const page = await context.newPage();
+    await page.goto('https://chatgpt.com/c/test-peek');
+
+    await maskInComposer(page);
+    const answer = await streamAnswer(page, ['Dzień dobry, <OSOBA_1>!']);
+    await expect(answer).toHaveText('Dzień dobry, Jan Kowalski!');
+
+    // What the popup's switch writes.
+    const worker = await serviceWorker(context);
+    await worker.evaluate(() => chrome.storage.sync.set({ chatDisplay: 'peek' }));
+
+    await expect(answer).toHaveText('Dzień dobry, <OSOBA_1>!');
+    await expect(answer).toHaveAttribute('title', 'AInonim\n<OSOBA_1> = Jan Kowalski');
+    const marked = await page.evaluate(() =>
+      [...(CSS.highlights.get('ainonim-restored') ?? [])].map((range) =>
+        (range as Range).toString(),
+      ),
+    );
+    expect(marked).toEqual(['<OSOBA_1>']);
+
+    await worker.evaluate(() => chrome.storage.sync.remove('chatDisplay'));
+    await expect(answer).toHaveText('Dzień dobry, Jan Kowalski!');
   });
 
   test('restores the sent message, marks the values and copies only the originals', async ({

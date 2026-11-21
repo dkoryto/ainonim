@@ -27,13 +27,20 @@ export interface RestoredValue {
 }
 
 /**
- * The hover label of an element with restored values, one line per token, e.g.
- * "AInonim\nJan Kowalski – wysłano jako <OSOBA_1>".
+ * The hover label of an element with restored values, one line per token. With the originals on
+ * screen it names the token, e.g. "AInonim\nJan Kowalski – wysłano jako <OSOBA_1>"; with the
+ * tokens on screen (`peek`) it names the original, e.g. "AInonim\n<OSOBA_1> = Jan Kowalski".
  */
-export function restoredTitle(kind: MessageKind, values: readonly RestoredValue[]): string {
+export function restoredTitle(
+  kind: MessageKind,
+  values: readonly RestoredValue[],
+  peek = false,
+): string {
   const how = kind === 'sent' ? 'wysłano jako' : 'model napisał';
   const lines = new Map<string, string>();
-  for (const { token, value } of values) lines.set(token, `${value} – ${how} ${token}`);
+  for (const { token, value } of values) {
+    lines.set(token, peek ? `${token} = ${value}` : `${value} – ${how} ${token}`);
+  }
   return ['AInonim', ...lines.values()].join('\n');
 }
 

@@ -69,7 +69,9 @@ export interface StoredMappingsView {
   reload: () => Promise<void>;
 }
 
-const ERROR_TEXT = 'Nie udało się odczytać ani usunąć zapamiętanych danych.';
+const ERROR_TEXT =
+  'Nie udało się odczytać ani usunąć zapamiętanych danych. Jeśli wtyczka była właśnie ' +
+  'aktualizowana, przeładuj ją w chrome://extensions i odśwież karty z czatem.';
 
 /**
  * Draws the section into `container` (emptied first) and keeps it up to date after deletions.

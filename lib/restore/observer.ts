@@ -12,6 +12,8 @@
 //   character is added, so copying the text yields exactly the originals. The element holding
 //   restored text gets `data-ainonim-restored` and a `title` naming the token behind each value,
 //   so hovering shows what the chat saw without changing the layout.
+// - With the `peek` display the text is not rewritten at all: the tokens stay on screen, are
+//   highlighted the same way, and the hover label names the original behind each one.
 // - Sent messages are only read for plain text: an editor or text field inside one (the site's
 //   "edit message" mode) is left alone, without a legend. The composer is never touched.
 // - Editable blocks inside an answer (ChatGPT's e-mail "writing block" is a ProseMirror editor)
@@ -37,6 +39,8 @@ const COPY_TEXT_ATTRIBUTE = 'data-markdown-copy-text';
 export interface ObserveMessagesOptions {
   /** Source of declensions for cased tokens; the answers are repainted when one arrives. */
   declensions?: Pick<DeclensionCache, 'decline' | 'onChange'>;
+  /** True to keep the tokens on screen and show the originals on hover only; read on each pass. */
+  peek?: () => boolean;
 }
 
 /** Stops observing and puts the tokens back. `refresh()` re-applies, e.g. after a new mapping. */
@@ -47,9 +51,10 @@ interface Patch {
   source: string;
   /** The text AInonim wrote instead. */
   patched: string;
-  /** Values written in this node, with their offsets in `patched`. */
-  restored: (RestoredValue & { start: number; end: number })[];
 }
+
+/** A value shown in a text node: the original (restore) or its token (peek), with its offsets. */
+type Shown = RestoredValue & { start: number; end: number };
 
 function isEditable(el: Element): boolean {
   const value = el.getAttribute('contenteditable');
@@ -63,7 +68,9 @@ export function observeMessages(
   options: ObserveMessagesOptions = {},
 ): StopObserving {
   const decline = options.declensions?.decline;
+  const isPeek = options.peek ?? (() => false);
   const patches = new Map<Text, Patch>();
+  const shown = new Map<Text, Shown[]>();
   const marks = createRestoredMarks();
   const titled = new Set<HTMLElement>();
   const legends = new Map<HTMLElement, HTMLElement>();
@@ -76,19 +83,24 @@ export function observeMessages(
     return patch && node.data === patch.patched ? patch.source : node.data;
   };
 
-  const write = (node: Text, source: string, text: string, restored: Patch['restored']): void => {
+  const write = (node: Text, source: string, text: string, values: Shown[]): void => {
     if (text === source) {
-      marks.delete(node);
       if (patches.delete(node) && node.data !== source) node.data = source;
-      return;
+    } else {
+      patches.set(node, { source, patched: text });
+      if (node.data !== text) node.data = text;
     }
-    patches.set(node, { source, patched: text, restored });
-    if (node.data !== text) node.data = text;
-    marks.set(node, restored);
+    if (values.length === 0) {
+      shown.delete(node);
+      marks.delete(node);
+    } else {
+      shown.set(node, values);
+      marks.set(node, values);
+    }
   };
 
   // Restore the tokens of a run of adjacent text nodes, read as one string.
-  const restoreRun = (nodes: Text[], mapping: Mapping): void => {
+  const restoreRun = (nodes: Text[], mapping: Mapping, peek: boolean): void => {
     const sources = nodes.map(sourceOf);
     const full = sources.join('');
     const replacements = findTokens(full).flatMap((found) => {
@@ -101,9 +113,17 @@ export function observeMessages(
       const end = start + source.length;
       let text = '';
       let position = start;
-      const restored: Patch['restored'] = [];
+      const restored: Shown[] = [];
       for (const replacement of replacements) {
         if (replacement.end <= start || replacement.start >= end) continue;
+        if (peek) {
+          // The token stays; only the part of it inside this node is marked.
+          const { token, value } = replacement;
+          const from = Math.max(replacement.start, start) - start;
+          const to = Math.min(replacement.end, end) - start;
+          restored.push({ token, value, start: from, end: to });
+          continue;
+        }
         text += full.slice(position, Math.max(replacement.start, start));
         // The original goes where the token starts; the token's tail in later nodes is dropped.
         if (replacement.start >= start) {
@@ -113,16 +133,16 @@ export function observeMessages(
         }
         position = Math.min(replacement.end, end);
       }
-      text += full.slice(position, end);
+      text = peek ? source : text + full.slice(position, end);
       write(node, source, text, restored);
       start = end;
     }
   };
 
-  const updateTitle = (element: HTMLElement, kind: MessageKind): void => {
+  const updateTitle = (element: HTMLElement, kind: MessageKind, peek: boolean): void => {
     const values: RestoredValue[] = [];
     for (const child of element.childNodes) {
-      if (child instanceof Text) values.push(...(patches.get(child)?.restored ?? []));
+      if (child instanceof Text) values.push(...(shown.get(child) ?? []));
     }
     if (values.length === 0) {
       if (titled.delete(element)) {
@@ -134,7 +154,7 @@ export function observeMessages(
     // Never take over a title the site set itself.
     if (!titled.has(element) && element.hasAttribute('title')) return;
     titled.add(element);
-    const title = restoredTitle(kind, values);
+    const title = restoredTitle(kind, values, peek);
     if (element.getAttribute('title') === title) return;
     element.setAttribute(RESTORED_ATTRIBUTE, '');
     element.setAttribute('title', title);
@@ -192,6 +212,7 @@ export function observeMessages(
     kind: MessageKind,
     mapping: Mapping,
     composer: HTMLElement | null,
+    peek: boolean,
   ): void => {
     seenRoots.add(root);
     const editors: HTMLElement[] = [];
@@ -199,7 +220,7 @@ export function observeMessages(
     const walk = (element: Element): void => {
       let run: Text[] = [];
       const flush = (): void => {
-        if (run.length > 0) restoreRun(run, mapping);
+        if (run.length > 0) restoreRun(run, mapping, peek);
         run = [];
       };
       for (const child of element.childNodes) {
@@ -223,14 +244,15 @@ export function observeMessages(
     const editableAncestor = root.closest(EDITABLE);
     if (!(editableAncestor instanceof HTMLElement)) walk(root);
     else if (kind === 'answer') editors.push(editableAncestor);
-    for (const parent of parents) updateTitle(parent, kind);
+    for (const parent of parents) updateTitle(parent, kind, peek);
     for (const editor of editors) annotateEditable(editor, mapping);
   };
 
   const prune = (): void => {
-    for (const node of patches.keys()) {
+    for (const node of new Set([...patches.keys(), ...shown.keys()])) {
       if (node.isConnected) continue;
       patches.delete(node);
+      shown.delete(node);
       marks.delete(node);
     }
     for (const element of titled) if (!element.isConnected) titled.delete(element);
@@ -252,7 +274,8 @@ export function observeMessages(
     try {
       const mapping = getMapping();
       const composer = adapter.composer(doc);
-      for (const [root, kind] of roots) processRoot(root, kind, mapping, composer);
+      const peek = isPeek();
+      for (const [root, kind] of roots) processRoot(root, kind, mapping, composer, peek);
       prune();
     } catch {
       // Leave the page as it is.
@@ -284,6 +307,7 @@ export function observeMessages(
     unsubscribe?.();
     for (const [node, patch] of patches) if (node.data === patch.patched) node.data = patch.source;
     patches.clear();
+    shown.clear();
     marks.clear();
     for (const element of titled) {
       element.removeAttribute('title');

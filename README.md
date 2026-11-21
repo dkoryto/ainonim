@@ -42,6 +42,9 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   (`lib/restore/`), także w odmianie (`<OSOBA_1:wołacz>` → „Janie Kowalski”). Przywrócona
   wartość ma delikatne podświetlenie, a po najechaniu pokazuje, jaki zastępnik widział czat
   („Jan Kowalski – wysłano jako <OSOBA_1>”). Pole wpisywania wiadomości nigdy nie jest zmieniane.
+  W okienku wtyczki przełącznik „W odpowiedziach czatu pokazuj: Oryginały | Znaczniki” (`chatDisplay`
+  w `storage.sync`) pozwala zostawić na ekranie zastępniki: są wtedy podświetlone, a oryginał widać
+  tylko po najechaniu („<OSOBA_1> = Jan Kowalski”).
 - Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane.
 
 ### Komunikacja

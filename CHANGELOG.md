@@ -5,6 +5,21 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
+### Dodane
+
+- Przełącznik w okienku wtyczki „W odpowiedziach czatu pokazuj: Oryginały | Znaczniki”. Przy
+  „Znacznikach” odpowiedzi i wysłane wiadomości zostają ze znacznikami (`<OSOBA_1>`), które są
+  podświetlone; prawdziwą wartość widać po najechaniu („<OSOBA_1> = Jan Kowalski”). Zmiana działa
+  od razu w otwartych kartach.
+
+### Zmienione
+
+- Komunikat o błędzie w sekcji „Zapamiętane dane” podpowiada, że po aktualizacji wtyczkę trzeba
+  przeładować w chrome://extensions i odświeżyć karty z czatem (wtedy działa jeszcze stary
+  service worker, który nie zna nowych poleceń).
+
 ## [0.1.0] - 2026-11-21
 
 ### Dodane
@@ -56,6 +71,7 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/dkoryto/ainonim/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dkoryto/ainonim/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/dkoryto/ainonim/releases/tag/v0.0.1
