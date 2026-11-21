@@ -5,6 +5,12 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-21
+
+### Zmienione
+
+- Zakładka „O autorze” nie pokazuje już wiersza „Silnik” z linkiem do polanon.
+
 ## [0.3.0] - 2026-11-21
 
 ### Dodane
@@ -110,7 +116,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/dkoryto/ainonim/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/dkoryto/ainonim/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dkoryto/ainonim/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dkoryto/ainonim/compare/v0.0.1...v0.1.0

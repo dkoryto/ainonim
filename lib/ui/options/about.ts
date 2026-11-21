@@ -1,9 +1,8 @@
-// Tab "O autorze": who makes AInonim and what it is built on.
+// Tab "O autorze": who makes AInonim and which version this is.
 import { browser } from 'wxt/browser';
 import { heading, make } from './dom';
 
 export const AUTHOR = 'Dariusz Koryto';
-export const POLANON_URL = 'https://github.com/dkoryto/polanon';
 
 function row(doc: Document, term: string, value: Node | string): HTMLElement[] {
   const dd = make(doc, 'dd');
@@ -11,23 +10,11 @@ function row(doc: Document, term: string, value: Node | string): HTMLElement[] {
   return [make(doc, 'dt', undefined, term), dd];
 }
 
-function link(doc: Document, href: string, text: string): HTMLAnchorElement {
-  const anchor = make(doc, 'a', undefined, text);
-  anchor.href = href;
-  anchor.target = '_blank';
-  anchor.rel = 'noopener noreferrer';
-  return anchor;
-}
-
 export function mountAbout(panel: HTMLElement): void {
   const doc = panel.ownerDocument;
   const version = browser.runtime.getManifest().version;
   const details = make(doc, 'dl', 'about');
-  details.append(
-    ...row(doc, 'Autor', AUTHOR),
-    ...row(doc, 'Wersja', version),
-    ...row(doc, 'Silnik', link(doc, POLANON_URL, 'polanon – wykrywanie polskich danych osobowych')),
-  );
+  details.append(...row(doc, 'Autor', AUTHOR), ...row(doc, 'Wersja', version));
   panel.replaceChildren(
     ...heading(doc, 'O autorze'),
     make(
