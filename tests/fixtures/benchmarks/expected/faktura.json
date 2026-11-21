@@ -5,79 +5,92 @@
       "start": 43,
       "end": 65,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     },
     {
       "start": 66,
       "end": 83,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_1>"
     },
     {
       "start": 85,
       "end": 91,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_1>"
     },
     {
       "start": 106,
       "end": 116,
       "entity_type": "NIP",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NIP_1>"
     },
     {
       "start": 124,
       "end": 133,
       "entity_type": "REGON",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<REGON_1>"
     },
     {
       "start": 141,
       "end": 169,
       "entity_type": "IBAN",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<IBAN_1>"
     },
     {
       "start": 180,
       "end": 206,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_2>"
     },
     {
       "start": 207,
       "end": 220,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_2>"
     },
     {
       "start": 222,
       "end": 228,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_2>"
     },
     {
       "start": 241,
       "end": 251,
       "entity_type": "NIP",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NIP_2>"
     },
     {
       "start": 271,
       "end": 287,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 294,
       "end": 306,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     },
     {
       "start": 308,
       "end": 343,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     }
   ],
   "mapping": {

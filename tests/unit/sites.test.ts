@@ -71,6 +71,30 @@ describe('chatgpt', () => {
     expect(chatgpt.isAnswerElement(element('[data-response-body] li'))).toBe(true);
   });
 
+  it('finds sent messages, by role first and by the bubble on older markup', () => {
+    load('chatgpt-conversation.html');
+    expect(
+      chatgpt.sentMessageRoots(document).map((root) => root.dataset.userMessageBubble),
+    ).toEqual(['true']);
+    document.body.innerHTML =
+      '<div data-message-author-role="user"><div data-user-message-bubble="true">a</div></div>' +
+      '<div data-message-author-role="assistant"><p>b</p></div>';
+    expect(
+      chatgpt.sentMessageRoots(document).map((root) => root.dataset.messageAuthorRole),
+    ).toEqual(['user']);
+  });
+
+  it('never takes the composer, an editor or an answer for a sent message', () => {
+    document.body.innerHTML =
+      '<article data-turn="user"><div contenteditable="true" id="prompt-textarea"></div></article>' +
+      '<div contenteditable="true"><div data-user-message-bubble="true"></div></div>' +
+      '<div data-message-author-role="assistant"><div data-user-message-bubble="true"></div></div>';
+    expect(chatgpt.sentMessageRoots(document)).toEqual([]);
+    document.body.innerHTML =
+      '<article data-turn="user"><div contenteditable="true" id="prompt-textarea"></div></article>';
+    expect(chatgpt.sentMessageRoots(document)).toEqual([]);
+  });
+
   it('reports streaming from the stop button for the last answer only', () => {
     load('chatgpt-conversation.html');
     const [answer] = chatgpt.answerRoots(document);
@@ -91,6 +115,7 @@ describe('chatgpt', () => {
   it('finds nothing on an unknown layout', () => {
     document.body.innerHTML = '<div><p>nothing here</p></div>';
     expect(chatgpt.answerRoots(document)).toEqual([]);
+    expect(chatgpt.sentMessageRoots(document)).toEqual([]);
     expect(chatgpt.composer(document)).toBeNull();
   });
 });
@@ -109,6 +134,18 @@ describe('claude', () => {
     expect(claude.isAnswerElement(element('.standard-markdown p'))).toBe(true);
     expect(claude.isAnswerElement(element('[data-testid="user-message"] p'))).toBe(false);
     expect(claude.isAnswerElement(element('[data-testid="chat-input"]'))).toBe(false);
+  });
+
+  it('finds sent messages, falling back to the transcript row', () => {
+    expect(claude.sentMessageRoots(document).map((root) => root.dataset.testid)).toEqual([
+      'user-message',
+    ]);
+    document.body.innerHTML =
+      '<div data-testid="transcript-row" data-perf-row="human"><p>a</p></div>' +
+      '<div data-testid="transcript-row" data-perf-row="assistant"><p>b</p></div>';
+    expect(claude.sentMessageRoots(document).map((root) => root.dataset.perfRow)).toEqual([
+      'human',
+    ]);
   });
 
   it('reads streaming from data-is-streaming', () => {

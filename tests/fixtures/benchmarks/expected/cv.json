@@ -5,73 +5,85 @@
       "start": 19,
       "end": 34,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 35,
       "end": 52,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_1>"
     },
     {
       "start": 54,
       "end": 60,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_1>"
     },
     {
       "start": 73,
       "end": 88,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     },
     {
       "start": 97,
       "end": 127,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     },
     {
       "start": 135,
       "end": 146,
       "entity_type": "PESEL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<PESEL_1>"
     },
     {
       "start": 163,
       "end": 172,
       "entity_type": "PL_ID",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<DOWOD_1>"
     },
     {
       "start": 227,
       "end": 253,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     },
     {
       "start": 298,
       "end": 320,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_2>"
     },
     {
       "start": 415,
       "end": 430,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 458,
       "end": 469,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_2>"
     },
     {
       "start": 471,
       "end": 506,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_2>"
     }
   ],
   "mapping": {

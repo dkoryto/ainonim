@@ -1,4 +1,5 @@
-// Shows the originals in place of tokens in the model's answers, on screen only.
+// Shows the originals in place of tokens on screen only: in the model's answers and in the user's
+// own sent messages, which the site renders from the masked text it was sent.
 //
 // How the page is changed:
 // - Text of an answer is restored by rewriting the `data` of its text nodes in place. No node is
@@ -7,18 +8,23 @@
 //   sees that and restores the node before the next paint. A token split across adjacent text
 //   nodes ("<OSO" + "BA_1>") is restored once both halves are there; a token still being
 //   streamed stays as written until it is complete.
-// - The element holding restored text gets `data-ainonim-restored` and a `title` naming the
-//   tokens, so hovering shows what was replaced without changing the layout.
+// - Each restored value is highlighted (CSS Custom Highlight API, see ./marks): no element or
+//   character is added, so copying the text yields exactly the originals. The element holding
+//   restored text gets `data-ainonim-restored` and a `title` naming the token behind each value,
+//   so hovering shows what the chat saw without changing the layout.
+// - Sent messages are only read for plain text: an editor or text field inside one (the site's
+//   "edit message" mode) is left alone, without a legend. The composer is never touched.
 // - Editable blocks inside an answer (ChatGPT's e-mail "writing block" is a ProseMirror editor)
 //   are never written to: ProseMirror would revert the change or, worse, keep it in the user's
 //   document. Instead a read-only legend "token → original" is inserted just before the block,
 //   outside it, in a shadow root so the site's styles do not reach it. The block's
 //   `data-markdown-copy-text` (what its copy button copies) is left with tokens: fixing copy is
 //   out of scope.
-// - Stopping the observer puts every token back and removes titles and legends.
+// - Stopping the observer puts every token back and removes highlights, titles and legends.
 
 import { mapText } from '~/lib/fields/text';
 import type { SiteAdapter } from '~/lib/sites/types';
+import { type MessageKind, type RestoredValue, createRestoredMarks, restoredTitle } from './marks';
 import { type DeclensionCache, type Mapping, findTokens, resolveToken } from './tokens';
 
 export const RESTORED_ATTRIBUTE = 'data-ainonim-restored';
@@ -28,7 +34,7 @@ const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'NOSCRIPT'
 const EDITABLE = '[contenteditable]:not([contenteditable="false"])';
 const COPY_TEXT_ATTRIBUTE = 'data-markdown-copy-text';
 
-export interface ObserveAnswersOptions {
+export interface ObserveMessagesOptions {
   /** Source of declensions for cased tokens; the answers are repainted when one arrives. */
   declensions?: Pick<DeclensionCache, 'decline' | 'onChange'>;
 }
@@ -41,8 +47,8 @@ interface Patch {
   source: string;
   /** The text AInonim wrote instead. */
   patched: string;
-  /** Tokens restored in this node. */
-  tokens: string[];
+  /** Values written in this node, with their offsets in `patched`. */
+  restored: (RestoredValue & { start: number; end: number })[];
 }
 
 function isEditable(el: Element): boolean {
@@ -50,14 +56,15 @@ function isEditable(el: Element): boolean {
   return value !== null && value.toLowerCase() !== 'false';
 }
 
-export function observeAnswers(
+export function observeMessages(
   adapter: SiteAdapter,
   doc: Document,
   getMapping: () => Mapping,
-  options: ObserveAnswersOptions = {},
+  options: ObserveMessagesOptions = {},
 ): StopObserving {
   const decline = options.declensions?.decline;
   const patches = new Map<Text, Patch>();
+  const marks = createRestoredMarks();
   const titled = new Set<HTMLElement>();
   const legends = new Map<HTMLElement, HTMLElement>();
   const legendContent = new WeakMap<HTMLElement, string>();
@@ -69,13 +76,15 @@ export function observeAnswers(
     return patch && node.data === patch.patched ? patch.source : node.data;
   };
 
-  const write = (node: Text, source: string, text: string, tokens: string[]): void => {
+  const write = (node: Text, source: string, text: string, restored: Patch['restored']): void => {
     if (text === source) {
+      marks.delete(node);
       if (patches.delete(node) && node.data !== source) node.data = source;
       return;
     }
-    patches.set(node, { source, patched: text, tokens });
+    patches.set(node, { source, patched: text, restored });
     if (node.data !== text) node.data = text;
+    marks.set(node, restored);
   };
 
   // Restore the tokens of a run of adjacent text nodes, read as one string.
@@ -92,30 +101,30 @@ export function observeAnswers(
       const end = start + source.length;
       let text = '';
       let position = start;
-      const tokens: string[] = [];
+      const restored: Patch['restored'] = [];
       for (const replacement of replacements) {
         if (replacement.end <= start || replacement.start >= end) continue;
         text += full.slice(position, Math.max(replacement.start, start));
         // The original goes where the token starts; the token's tail in later nodes is dropped.
         if (replacement.start >= start) {
-          text += replacement.value;
-          tokens.push(replacement.token);
+          const { token, value } = replacement;
+          restored.push({ token, value, start: text.length, end: text.length + value.length });
+          text += value;
         }
         position = Math.min(replacement.end, end);
       }
       text += full.slice(position, end);
-      write(node, source, text, tokens);
+      write(node, source, text, restored);
       start = end;
     }
   };
 
-  const updateTitle = (element: HTMLElement): void => {
-    const tokens = new Set<string>();
+  const updateTitle = (element: HTMLElement, kind: MessageKind): void => {
+    const values: RestoredValue[] = [];
     for (const child of element.childNodes) {
-      if (child instanceof Text)
-        for (const token of patches.get(child)?.tokens ?? []) tokens.add(token);
+      if (child instanceof Text) values.push(...(patches.get(child)?.restored ?? []));
     }
-    if (tokens.size === 0) {
+    if (values.length === 0) {
       if (titled.delete(element)) {
         element.removeAttribute('title');
         element.removeAttribute(RESTORED_ATTRIBUTE);
@@ -125,7 +134,7 @@ export function observeAnswers(
     // Never take over a title the site set itself.
     if (!titled.has(element) && element.hasAttribute('title')) return;
     titled.add(element);
-    const title = `AInonim: ${[...tokens].join(', ')}`;
+    const title = restoredTitle(kind, values);
     if (element.getAttribute('title') === title) return;
     element.setAttribute(RESTORED_ATTRIBUTE, '');
     element.setAttribute('title', title);
@@ -178,7 +187,12 @@ export function observeAnswers(
     renderLegend(block, [...entries]);
   };
 
-  const processRoot = (root: HTMLElement, mapping: Mapping, composer: HTMLElement | null): void => {
+  const processRoot = (
+    root: HTMLElement,
+    kind: MessageKind,
+    mapping: Mapping,
+    composer: HTMLElement | null,
+  ): void => {
     seenRoots.add(root);
     const editors: HTMLElement[] = [];
     const parents = new Set<HTMLElement>();
@@ -198,7 +212,7 @@ export function observeAnswers(
         if (child === composer || SKIPPED_TAGS.has(child.tagName)) continue;
         if (child.hasAttribute(LEGEND_ATTRIBUTE)) continue;
         if (isEditable(child)) {
-          editors.push(child);
+          if (kind === 'answer') editors.push(child);
           continue;
         }
         walk(child);
@@ -207,14 +221,18 @@ export function observeAnswers(
       if (element instanceof HTMLElement) parents.add(element);
     };
     const editableAncestor = root.closest(EDITABLE);
-    if (editableAncestor instanceof HTMLElement) editors.push(editableAncestor);
-    else walk(root);
-    for (const parent of parents) updateTitle(parent);
+    if (!(editableAncestor instanceof HTMLElement)) walk(root);
+    else if (kind === 'answer') editors.push(editableAncestor);
+    for (const parent of parents) updateTitle(parent, kind);
     for (const editor of editors) annotateEditable(editor, mapping);
   };
 
   const prune = (): void => {
-    for (const node of patches.keys()) if (!node.isConnected) patches.delete(node);
+    for (const node of patches.keys()) {
+      if (node.isConnected) continue;
+      patches.delete(node);
+      marks.delete(node);
+    }
     for (const element of titled) if (!element.isConnected) titled.delete(element);
     for (const [block, host] of legends) {
       if (block.isConnected) continue;
@@ -223,13 +241,18 @@ export function observeAnswers(
     }
   };
 
-  const run = (roots: HTMLElement[]): void => {
+  const allRoots = (): [HTMLElement, MessageKind][] => [
+    ...adapter.answerRoots(doc).map((root): [HTMLElement, MessageKind] => [root, 'answer']),
+    ...adapter.sentMessageRoots(doc).map((root): [HTMLElement, MessageKind] => [root, 'sent']),
+  ];
+
+  const run = (roots: [HTMLElement, MessageKind][]): void => {
     if (stopped) return;
     // Any failure (a site change we did not foresee) means no restore, never a broken page.
     try {
       const mapping = getMapping();
       const composer = adapter.composer(doc);
-      for (const root of roots) processRoot(root, mapping, composer);
+      for (const [root, kind] of roots) processRoot(root, kind, mapping, composer);
       prune();
     } catch {
       // Leave the page as it is.
@@ -239,17 +262,15 @@ export function observeAnswers(
   };
 
   const observer = new MutationObserver((records) => {
-    const roots = adapter
-      .answerRoots(doc)
-      .filter(
-        (root) => !seenRoots.has(root) || records.some((record) => root.contains(record.target)),
-      );
+    const roots = allRoots().filter(
+      ([root]) => !seenRoots.has(root) || records.some((record) => root.contains(record.target)),
+    );
     if (roots.length > 0) run(roots);
     else prune();
   });
 
   const refresh = (): void => {
-    run(adapter.answerRoots(doc));
+    run(allRoots());
   };
 
   const unsubscribe = options.declensions?.onChange(refresh);
@@ -263,6 +284,7 @@ export function observeAnswers(
     unsubscribe?.();
     for (const [node, patch] of patches) if (node.data === patch.patched) node.data = patch.source;
     patches.clear();
+    marks.clear();
     for (const element of titled) {
       element.removeAttribute('title');
       element.removeAttribute(RESTORED_ATTRIBUTE);

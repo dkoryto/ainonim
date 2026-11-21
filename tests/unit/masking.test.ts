@@ -1,16 +1,16 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditableField } from '~/lib/fields/text';
-import type { AnalyzeResponse, AnalyzeResult } from '~/lib/messages';
-import { startMasking, type MaskingOptions } from '~/lib/content/masking';
-import type { BadgeOptions, BadgeSummary } from '~/lib/ui/badge';
+import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/messages';
+import { applyChoices, maskSpans, startMasking, type MaskingOptions } from '~/lib/content/masking';
+import type { BadgeOptions, BadgeState, MaskChoice, MaskMode } from '~/lib/ui/badge';
 
 // The badge is replaced by a recorder: its own rendering is covered in badge.test.ts, and here
 // only matters what the controller tells it and which buttons it wires up.
 interface FakeBadge {
   field: EditableField;
   options: BadgeOptions;
-  updates: BadgeSummary[];
+  updates: BadgeState[];
   destroyed: boolean;
 }
 
@@ -21,7 +21,9 @@ vi.mock('~/lib/ui/badge', () => ({
     const badge: FakeBadge = { field, options, updates: [], destroyed: false };
     badges.push(badge);
     return {
-      update: (summary: BadgeSummary) => badge.updates.push(summary),
+      update: (state: BadgeState) => badge.updates.push(state),
+      setOpen: () => undefined,
+      isOpen: () => false,
       destroy: () => {
         badge.destroyed = true;
       },
@@ -29,18 +31,35 @@ vi.mock('~/lib/ui/badge', () => ({
   },
 }));
 
+const paints = vi.hoisted(() => [] as { field: unknown; spans: readonly unknown[] }[]);
+
+vi.mock('~/lib/ui/highlight', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/lib/ui/highlight')>();
+  return {
+    ...actual,
+    paintSpans: (field: EditableField, spans: readonly Span[]) => {
+      paints.push({ field, spans });
+      return actual.paintSpans(field, spans);
+    },
+  };
+});
+
 const DEBOUNCE_MS = 100;
 const ORIGINAL = 'Jan Kowalski, PESEL 50810112354';
 const MASKED = '<OSOBA_1>, PESEL <PESEL_1>';
 const RESULT: AnalyzeResult = {
   anonymized: MASKED,
   spans: [
-    { start: 0, end: 12, entity_type: 'OSOBA', score: 1 },
-    { start: 20, end: 31, entity_type: 'PESEL', score: 1 },
+    { start: 0, end: 12, entity_type: 'PERSON', score: 1, token: '<OSOBA_1>' },
+    { start: 20, end: 31, entity_type: 'PESEL', score: 1, token: '<PESEL_1>' },
   ],
   mapping: { '<OSOBA_1>': 'Jan Kowalski', '<PESEL_1>': '50810112354' },
 };
-const EMPTY_SUMMARY: BadgeSummary = { count: 0, byType: {} };
+const [JAN, PESEL] = RESULT.spans as [Span, Span];
+const ITEMS = [
+  { span: JAN, original: 'Jan Kowalski', label: 'osoba', general: '[osoba]' },
+  { span: PESEL, original: '50810112354', label: 'PESEL', general: '[PESEL]' },
+];
 
 function ok(result: AnalyzeResult): AnalyzeResponse {
   return { id: 'x', ok: true, result, analyzeMs: 1, loadMs: 0 };
@@ -78,9 +97,18 @@ function onlyBadge(): FakeBadge {
   return badges[0] as FakeBadge;
 }
 
-/** Click "Zamaskuj" and wait for the write (which yields to timers in rich editors). */
-async function clickMask(badge: FakeBadge): Promise<void> {
-  badge.options.onMask();
+const lastState = (): BadgeState | undefined => onlyBadge().updates.at(-1);
+
+function choose(spans: readonly Span[], mode: MaskMode = 'token'): MaskChoice[] {
+  return spans.map((span) => ({ span, mode }));
+}
+
+/** Click "Zamaskuj" with `choices` checked and wait for the write (rich editors yield to timers). */
+async function clickMask(
+  badge: FakeBadge,
+  choices: MaskChoice[] = choose(RESULT.spans),
+): Promise<void> {
+  badge.options.onMask(choices);
   await vi.advanceTimersByTimeAsync(0);
 }
 
@@ -94,6 +122,7 @@ function deferred(): { promise: Promise<AnalyzeResponse>; resolve: (r: AnalyzeRe
 beforeEach(() => {
   vi.useFakeTimers();
   badges.length = 0;
+  paints.length = 0;
   warnings = [];
   vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
     warnings.push(String(message));
@@ -112,7 +141,7 @@ afterEach(() => {
 });
 
 describe('preview while typing', () => {
-  it('analyses the settled text without persisting and shows what was found', async () => {
+  it('analyses the settled text without persisting and lists what was found', async () => {
     start();
     const field = textarea();
 
@@ -121,25 +150,44 @@ describe('preview while typing', () => {
     expect(analyze).toHaveBeenCalledExactlyOnceWith(ORIGINAL, false);
     const badge = onlyBadge();
     expect(badge.field).toBe(field);
-    expect(badge.updates.at(-1)).toEqual({ count: 2, byType: { OSOBA: 1, PESEL: 1 } });
+    expect(badge.updates.map((state) => state.status)).toEqual(['analysing', 'done']);
+    expect(lastState()).toEqual({ status: 'done', items: ITEMS, revert: 'none' });
   });
 
-  it('shows no badge for text without personal data', async () => {
+  it('reports a text without personal data as clear', async () => {
     start();
     await type(textarea(), 'Dzień dobry');
 
     expect(analyze).toHaveBeenCalledOnce();
+    expect(lastState()).toEqual({ status: 'done', items: [], revert: 'none' });
+  });
+
+  it('shows nothing for a field that holds only blanks', async () => {
+    start();
+    await type(textarea(), ' \n ');
+
+    expect(analyze).not.toHaveBeenCalled();
     expect(badges).toEqual([]);
   });
 
-  it('empties the badge once the personal data is gone', async () => {
+  it('hides the icon again once the field is emptied', async () => {
+    start();
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    await type(field, '');
+
+    expect(lastState()).toEqual({ status: 'idle', items: [], revert: 'none' });
+  });
+
+  it('empties the list once the personal data is gone', async () => {
     start();
     const field = textarea();
     await type(field, ORIGINAL);
 
     await type(field, 'Dzień dobry');
 
-    expect(onlyBadge().updates.at(-1)).toEqual(EMPTY_SUMMARY);
+    expect(lastState()?.items).toEqual([]);
   });
 
   it('drops an answer for a text the user has typed past', async () => {
@@ -153,10 +201,10 @@ describe('preview while typing', () => {
     slow.resolve(ok(RESULT));
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(badges).toEqual([]);
+    expect(onlyBadge().updates.map((state) => state.status)).toEqual(['analysing']);
   });
 
-  it('hides the badge on a failed analysis and logs only the failure code', async () => {
+  it('reports a failed analysis and logs only the failure code', async () => {
     start();
     const field = textarea();
     await type(field, ORIGINAL);
@@ -164,11 +212,11 @@ describe('preview while typing', () => {
 
     await type(field, `${ORIGINAL}.`);
 
-    expect(onlyBadge().updates.at(-1)).toEqual(EMPTY_SUMMARY);
+    expect(lastState()).toEqual({ status: 'failed', items: [], revert: 'none' });
     expect(warnings).toEqual(['AInonim: analysis failed (timeout)']);
   });
 
-  it('skips a text that is too long and hides the badge', async () => {
+  it('skips a text that is too long and hides the icon', async () => {
     start();
     const field = textarea();
     await type(field, ORIGINAL);
@@ -176,21 +224,7 @@ describe('preview while typing', () => {
     await type(field, `${ORIGINAL} ${'x'.repeat(50_000)}`);
 
     expect(analyze).toHaveBeenCalledOnce();
-    expect(onlyBadge().updates.at(-1)).toEqual(EMPTY_SUMMARY);
-  });
-
-  it('hides the badge on "×" until the text changes', async () => {
-    start();
-    const field = textarea();
-    await type(field, ORIGINAL);
-    const badge = onlyBadge();
-
-    badge.options.onIgnore?.();
-    expect(badge.updates.at(-1)).toEqual(EMPTY_SUMMARY);
-
-    analyze.mockResolvedValueOnce(ok(RESULT));
-    await type(field, `${ORIGINAL} `);
-    expect(badge.updates.at(-1)?.count).toBe(2);
+    expect(lastState()?.status).toBe('idle');
   });
 });
 
@@ -204,7 +238,19 @@ describe('"Zamaskuj"', () => {
 
     expect(field.value).toBe(MASKED);
     expect(analyze).toHaveBeenCalledOnce();
-    expect(onlyBadge().updates.at(-1)).toEqual(EMPTY_SUMMARY);
+    expect(lastState()).toEqual({ status: 'analysing', items: [], revert: 'ready' });
+  });
+
+  it('analyses the masked text and keeps "Cofnij" ready', async () => {
+    start({ reusePreview: true });
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    await clickMask(onlyBadge());
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+
+    expect(analyze).toHaveBeenLastCalledWith(MASKED, false);
+    expect(lastState()).toEqual({ status: 'done', items: [], revert: 'ready' });
   });
 
   it('analyses again with persist on a chat site, where the preview stored no tokens', async () => {
@@ -225,7 +271,7 @@ describe('"Zamaskuj"', () => {
     const slow = deferred();
     analyze.mockImplementationOnce(() => slow.promise);
 
-    onlyBadge().options.onMask();
+    onlyBadge().options.onMask(choose(RESULT.spans));
     field.value = `${ORIGINAL}, tel.`;
     slow.resolve(ok(RESULT));
     await vi.advanceTimersByTimeAsync(0);
@@ -253,13 +299,198 @@ describe('"Zamaskuj"', () => {
     const slow = deferred();
     analyze.mockImplementationOnce(() => slow.promise);
 
-    onlyBadge().options.onMask();
-    onlyBadge().options.onMask();
+    onlyBadge().options.onMask(choose(RESULT.spans));
+    onlyBadge().options.onMask(choose(RESULT.spans));
     slow.resolve(ok(RESULT));
     await vi.advanceTimersByTimeAsync(0);
 
     expect(analyze).toHaveBeenCalledTimes(2);
     expect(field.value).toBe(MASKED);
+  });
+});
+
+describe('masking a subset', () => {
+  it('masks only the values left checked', async () => {
+    start({ reusePreview: true });
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    await clickMask(onlyBadge(), choose([PESEL]));
+
+    expect(field.value).toBe('Jan Kowalski, PESEL <PESEL_1>');
+    expect(analyze).toHaveBeenCalledOnce();
+  });
+
+  it('uses the tokens of the persisted analysis on a chat site', async () => {
+    start({ reusePreview: false });
+    const field = textarea();
+    await type(field, ORIGINAL);
+    const persisted: AnalyzeResult = {
+      ...RESULT,
+      spans: [
+        { ...JAN, token: '<OSOBA_3>' },
+        { ...PESEL, token: '<PESEL_2>' },
+      ],
+    };
+    analyze.mockResolvedValueOnce(ok(persisted));
+
+    await clickMask(onlyBadge(), choose([JAN]));
+
+    expect(analyze).toHaveBeenLastCalledWith(ORIGINAL, true);
+    expect(field.value).toBe('<OSOBA_3>, PESEL 50810112354');
+  });
+
+  it('writes nothing when the text changed since the panel was filled', async () => {
+    start({ reusePreview: true });
+    const field = textarea();
+    await type(field, ORIGINAL);
+    field.value = `Pan ${ORIGINAL}`;
+
+    await clickMask(onlyBadge());
+
+    expect(field.value).toBe(`Pan ${ORIGINAL}`);
+    expect(warnings).toEqual([
+      'AInonim: the field changed since the analysis; nothing was written',
+    ]);
+  });
+
+  it('repaints only the checked values while the text is unchanged', async () => {
+    start();
+    const field = textarea();
+    await type(field, ORIGINAL);
+    const { options } = onlyBadge();
+
+    options.onSelectionChange?.([PESEL]);
+    expect(paints.at(-1)).toEqual({ field, spans: [PESEL] });
+
+    field.value = 'Jan';
+    options.onSelectionChange?.([JAN]);
+    expect(paints).toHaveLength(1);
+  });
+});
+
+describe('generalised values', () => {
+  it('writes tokens and generalised text side by side', async () => {
+    start({ reusePreview: true });
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    await clickMask(onlyBadge(), [
+      { span: JAN, mode: 'general' },
+      { span: PESEL, mode: 'token' },
+    ]);
+
+    expect(field.value).toBe('[osoba], PESEL <PESEL_1>');
+  });
+
+  it('uses persisted tokens only for the token rows on a chat site', async () => {
+    start({ reusePreview: false });
+    const field = textarea();
+    await type(field, ORIGINAL);
+    analyze.mockResolvedValueOnce(
+      ok({ ...RESULT, spans: [JAN, { ...PESEL, token: '<PESEL_4>' }] }),
+    );
+
+    await clickMask(onlyBadge(), [
+      { span: JAN, mode: 'general' },
+      { span: PESEL, mode: 'token' },
+    ]);
+
+    expect(analyze).toHaveBeenLastCalledWith(ORIGINAL, true);
+    expect(field.value).toBe('[osoba], PESEL <PESEL_4>');
+  });
+
+  it('stores nothing on a chat site when every value is generalised', async () => {
+    start({ reusePreview: false });
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    await clickMask(onlyBadge(), choose(RESULT.spans, 'general'));
+
+    expect(analyze).not.toHaveBeenCalledWith(ORIGINAL, true);
+    expect(field.value).toBe('[osoba], PESEL [PESEL]');
+  });
+});
+
+describe('"Cofnij"', () => {
+  async function maskedField(): Promise<HTMLTextAreaElement> {
+    start({ reusePreview: true });
+    const field = textarea();
+    await type(field, ORIGINAL);
+    await clickMask(onlyBadge(), [
+      { span: JAN, mode: 'general' },
+      { span: PESEL, mode: 'token' },
+    ]);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    return field;
+  }
+
+  it('puts back the text from before the masking and lists its values again', async () => {
+    const field = await maskedField();
+
+    onlyBadge().options.onRevert();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(field.value).toBe(ORIGINAL);
+    expect(lastState()).toEqual({ status: 'done', items: ITEMS, revert: 'none' });
+    // The restored text can be masked again at once.
+    await clickMask(onlyBadge());
+    expect(field.value).toBe(MASKED);
+  });
+
+  it('is offered only while the field holds exactly the masked text', async () => {
+    const field = await maskedField();
+
+    await type(field, '[osoba], PESEL <PESEL_1>!');
+    expect(lastState()?.revert).toBe('stale');
+
+    onlyBadge().options.onRevert();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(field.value).toBe('[osoba], PESEL <PESEL_1>!');
+    expect(warnings).toEqual([
+      'AInonim: the field changed since the masking; nothing was restored',
+    ]);
+
+    await type(field, '[osoba], PESEL <PESEL_1>');
+    expect(lastState()?.revert).toBe('ready');
+  });
+
+  it('does nothing before any masking', async () => {
+    start();
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    onlyBadge().options.onRevert();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(field.value).toBe(ORIGINAL);
+    expect(warnings).toEqual([]);
+  });
+});
+
+describe('maskSpans and applyChoices', () => {
+  it('gives the anonymized text when every span is masked, in any order', () => {
+    expect(maskSpans(ORIGINAL, [PESEL, JAN])).toBe(MASKED);
+  });
+
+  it('leaves the text alone without spans', () => {
+    expect(maskSpans(ORIGINAL, [])).toBe(ORIGINAL);
+    expect(applyChoices(ORIGINAL, [])).toBe(ORIGINAL);
+  });
+
+  it('writes each value as its row asks', () => {
+    const text = 'Urodzona 12.03.1988, ul. Długa 5, 00-950 Warszawa';
+    const date: Span = { start: 9, end: 19, entity_type: 'BIRTH_DATE', score: 1, token: '<D_1>' };
+    const street: Span = { start: 21, end: 32, entity_type: 'ADDRESS', score: 1, token: '<A_1>' };
+    const code: Span = { start: 34, end: 40, entity_type: 'POSTAL_CODE', score: 1, token: '<K_1>' };
+
+    expect(
+      applyChoices(text, [
+        { span: street, mode: 'general' },
+        { span: date, mode: 'general' },
+        { span: code, mode: 'token' },
+      ]),
+    ).toBe('Urodzona 1988 r., Warszawa, <K_1> Warszawa');
   });
 });
 
@@ -294,7 +525,7 @@ describe('cleanup', () => {
     const slow = deferred();
     analyze.mockImplementationOnce(() => slow.promise);
 
-    onlyBadge().options.onMask();
+    onlyBadge().options.onMask(choose(RESULT.spans));
     stop?.();
     slow.resolve(ok(RESULT));
     await vi.advanceTimersByTimeAsync(0);

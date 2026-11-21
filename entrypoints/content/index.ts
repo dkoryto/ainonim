@@ -1,6 +1,7 @@
 // The content script on every page: watches fields for personal data (lib/content/masking.ts)
 // and, on chat sites, restores tokens in the model's answers (lib/restore/observer.ts). The site's
 // level from the popup decides whether anything runs; at `off` nothing is left on the page.
+import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import {
   analyzeInConversation,
@@ -11,8 +12,8 @@ import {
 } from '~/lib/client';
 import { type Conversation, trackConversation } from '~/lib/content/conversation';
 import { startMasking } from '~/lib/content/masking';
-import type { AnalyzeResponse } from '~/lib/messages';
-import { observeAnswers } from '~/lib/restore/observer';
+import { type AnalyzeResponse, isMappingsChangedNotice } from '~/lib/messages';
+import { observeMessages } from '~/lib/restore/observer';
 import { createDeclensionCache, findTokens } from '~/lib/restore/tokens';
 import {
   DEFAULT_SITE_LEVEL,
@@ -62,20 +63,26 @@ function start(adapter: SiteAdapter | null): () => void {
       refresh();
     },
   });
-  const stopAnswers = observeAnswers(adapter, document, () => conversation.mapping(), {
+  const stopMessages = observeMessages(adapter, document, () => conversation.mapping(), {
     declensions: createDeclensionCache(declineToken),
   });
   refresh = () => {
-    stopAnswers.refresh();
+    stopMessages.refresh();
   };
   const stopMasking = startMasking({
     analyze: (text, persist) => analyzeInChat(conversation, text, persist),
     reusePreview: false,
     exclude: (field) => adapter.isAnswerElement(field),
   });
+  // The popup deleted stored mappings: drop this tab's copy if its conversation was among them.
+  const onNotice = (message: unknown, sender: { id?: string }): undefined => {
+    if (sender.id === browser.runtime.id && isMappingsChangedNotice(message)) conversation.reload();
+  };
+  browser.runtime.onMessage.addListener(onNotice);
   return () => {
+    browser.runtime.onMessage.removeListener(onNotice);
     stopMasking();
-    stopAnswers();
+    stopMessages();
     conversation.stop();
   };
 }

@@ -1,4 +1,4 @@
-// Messages between the content script, the service worker and the offscreen document.
+// Messages between the content script, the service worker, the offscreen document and the popup.
 
 export interface Span {
   /** Offsets into the analyzed text in UTF-16 code units, i.e. JavaScript string indices. */
@@ -6,6 +6,8 @@ export interface Span {
   end: number;
   entity_type: string;
   score: number;
+  /** What stands in the span's place in `anonymized`, e.g. `<OSOBA_1>` or `<OSOBA_1:dopełniacz>`. */
+  token: string;
 }
 
 export interface AnalyzeResult {
@@ -79,6 +81,45 @@ export type MappingRequest = MappingGetRequest | MappingRenameRequest;
 
 export type ContentRequest = AnalyzeRequest | RestoreRequest | MappingRequest;
 
+/** Popup -> service worker: every stored conversation with its mapping, most recent first. */
+export interface MappingsListRequest {
+  type: 'ainonim/mappings-list';
+  id: string;
+}
+
+/** Popup -> service worker: delete the stored mapping of one conversation. */
+export interface MappingDeleteRequest {
+  type: 'ainonim/mapping-delete';
+  id: string;
+  conversationKey: string;
+}
+
+/** Popup -> service worker: delete every stored mapping. */
+export interface MappingsClearRequest {
+  type: 'ainonim/mappings-clear';
+  id: string;
+}
+
+/**
+ * Requests that see or delete the mappings of every site. Only extension pages may send them
+ * (lib/mapping/access.ts); a content script gets `forbidden`.
+ */
+export type ManageRequest = MappingsListRequest | MappingDeleteRequest | MappingsClearRequest;
+
+export const MANAGE_REQUEST_TYPES: readonly string[] = [
+  'ainonim/mappings-list',
+  'ainonim/mapping-delete',
+  'ainonim/mappings-clear',
+] satisfies ManageRequest['type'][];
+
+/**
+ * Service worker -> content scripts, after mappings were deleted: re-read the conversation's
+ * mapping. It carries nothing else, so every tab may receive it.
+ */
+export interface MappingsChangedNotice {
+  type: 'ainonim/mappings-changed';
+}
+
 /** Service worker -> offscreen document: answered once Pyodide and polanon are loaded. */
 export interface OffscreenReadyRequest {
   type: 'ainonim/offscreen-ready';
@@ -110,7 +151,7 @@ export type OffscreenRequest =
  * - `too-long`: the text is longer than MAX_TEXT_LENGTH,
  * - `timeout`: the engine did not answer in time,
  * - `engine`: Pyodide, polanon or the messaging between contexts failed,
- * - `forbidden`: the sender may not use the conversation it named,
+ * - `forbidden`: the sender may not use the conversation it named, or may not manage mappings,
  * - `conflict`: a token is already stored for a different value in that conversation.
  */
 export type ErrorCode =
@@ -138,6 +179,20 @@ export type AnalyzeResponse =
 export type RestoreResponse = { id: string; ok: true; text: string } | Failure;
 
 export type MappingResponse = { id: string; ok: true; mapping: Mapping } | Failure;
+
+export interface StoredConversation {
+  /** The conversation key, e.g. `chatgpt:<conversation id>`. */
+  key: string;
+  mapping: Mapping;
+}
+
+export type MappingsListResponse =
+  { id: string; ok: true; conversations: StoredConversation[] } | Failure;
+
+/** The answer to a delete or clear. */
+export type DoneResponse = { id: string; ok: true } | Failure;
+
+export type ManageResponse = MappingsListResponse | DoneResponse;
 
 export type ReadyResponse = { id: string; ok: true; loadMs: number } | Failure;
 
@@ -196,6 +251,23 @@ export function isContentRequest(value: unknown): value is ContentRequest {
   }
 }
 
+export function isManageRequest(value: unknown): value is ManageRequest {
+  if (!isRecord(value) || typeof value.id !== 'string') return false;
+  switch (value.type) {
+    case 'ainonim/mappings-list':
+    case 'ainonim/mappings-clear':
+      return true;
+    case 'ainonim/mapping-delete':
+      return typeof value.conversationKey === 'string';
+    default:
+      return false;
+  }
+}
+
+export function isMappingsChangedNotice(value: unknown): value is MappingsChangedNotice {
+  return isRecord(value) && value.type === 'ainonim/mappings-changed';
+}
+
 export function isOffscreenRequest(value: unknown): value is OffscreenRequest {
   if (!isRecord(value) || typeof value.id !== 'string') return false;
   if (value.type === 'ainonim/offscreen-ready') return true;
@@ -242,6 +314,22 @@ export function isMappingResponse(value: unknown): value is MappingResponse {
   return isResponse(value, (response) => isMapping(response.mapping));
 }
 
+function isStoredConversation(value: unknown): value is StoredConversation {
+  return isRecord(value) && typeof value.key === 'string' && isMapping(value.mapping);
+}
+
+export function isMappingsListResponse(value: unknown): value is MappingsListResponse {
+  return isResponse(
+    value,
+    (response) =>
+      Array.isArray(response.conversations) && response.conversations.every(isStoredConversation),
+  );
+}
+
+export function isDoneResponse(value: unknown): value is DoneResponse {
+  return isResponse(value, () => true);
+}
+
 export function isReadyResponse(value: unknown): value is ReadyResponse {
   return isResponse(value, (response) => typeof response.loadMs === 'number');
 }
@@ -252,7 +340,8 @@ function isSpan(value: unknown): value is Span {
     Number.isInteger(value.start) &&
     Number.isInteger(value.end) &&
     typeof value.entity_type === 'string' &&
-    typeof value.score === 'number'
+    typeof value.score === 'number' &&
+    typeof value.token === 'string'
   );
 }
 

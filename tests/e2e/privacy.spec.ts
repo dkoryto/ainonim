@@ -28,6 +28,7 @@ import type { BrowserContext, Locator, Page } from '@playwright/test';
 import { test as base, expect, launchWithExtension, serviceWorker } from './fixtures';
 import { type FixtureServer, startFixtureServer } from './lib-page';
 import { NetworkRecorder, type RecordedRequest } from './network-recorder';
+import { clickMask, openPanel, panel } from './panel';
 
 declare const chrome: { runtime: { getURL: (path: string) => string } };
 
@@ -154,24 +155,18 @@ test.afterAll(async () => {
   await server.close();
 });
 
-/** The badge on screen; badges of fields masked earlier stay in the DOM, hidden. */
-function badge(page: Page): Locator {
-  return page.locator('ainonim-badge').filter({ visible: true });
-}
-
 /**
- * Type into `field`, wait for the analysis to show the badge and click "Zamaskuj". The badge's
- * shadow root is closed, so the button is clicked by position: it sits left of the "×" at the
- * pill's right end.
+ * Type into `field`, open the panel from the field's icon once the analysis found the three
+ * values, click "Zamaskuj zaznaczone" and close the panel again (see tests/e2e/panel.ts).
  */
 async function typeAndMask(page: Page, field: Locator): Promise<void> {
   await field.click();
   await page.keyboard.type(TYPED);
-  await expect(badge(page)).toBeVisible({ timeout: 30_000 });
-  const box = await badge(page).boundingBox();
-  if (!box) throw new Error('the badge is not rendered');
-  await page.mouse.click(box.x + box.width - 45, box.y + box.height / 2);
-  await expect(badge(page)).toHaveCount(0);
+  await openPanel(page, field, 3);
+  await clickMask(page);
+  await expect.poll(() => fieldText(field)).toContain('<PESEL_1>');
+  await page.keyboard.press('Escape');
+  await expect(panel(page)).toHaveCount(0);
 }
 
 async function fieldText(field: Locator): Promise<string> {

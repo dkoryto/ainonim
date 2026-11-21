@@ -1,7 +1,8 @@
 // What the service worker does with a request from a content script: check it, make sure the
 // engine is running and pass the request on to the offscreen document. Conversation mappings
-// (lib/mapping/store.ts) stay here; a content script gets one only for its own chat site.
-import { mayUseConversation } from './mapping/access';
+// (lib/mapping/store.ts) stay here; a content script gets one only for its own chat site, and
+// only extension pages (the popup) may list or delete them all.
+import { type SenderInfo, isExtensionPage, mayUseConversation } from './mapping/access';
 import { MappingConflictError } from './mapping/store';
 import {
   type AnalyzeRequest,
@@ -9,10 +10,12 @@ import {
   type ContentRequest,
   ENGINE_READY_TIMEOUT_MS,
   type Failure,
+  type ManageResponse,
   type Mapping,
   type MappingRequest,
   type MappingResponse,
   type OffscreenRequest,
+  type StoredConversation,
   REQUEST_TIMEOUT_MS,
   type ReadyResponse,
   type RestoreRequest,
@@ -20,6 +23,7 @@ import {
   checkTextLength,
   failure,
   isAnalyzeResponse,
+  isManageRequest,
   isReadyResponse,
   isRestoreResponse,
 } from './messages';
@@ -30,6 +34,22 @@ export interface MappingStore {
   get: (key: string) => Promise<Mapping>;
   merge: (key: string, mapping: Mapping) => Promise<Mapping>;
   rename: (fromKey: string, toKey: string) => Promise<Mapping>;
+}
+
+/** What the popup may do with the stored mappings. */
+export interface MappingAdmin {
+  list: () => Promise<StoredConversation[]>;
+  remove: (key: string) => Promise<boolean>;
+  clearAll: () => Promise<void>;
+}
+
+export interface ManageDeps {
+  admin: MappingAdmin;
+  /** Tell open tabs that mappings were deleted, so they drop their copies. Must not reject. */
+  notifyChanged: () => Promise<void>;
+  /** `browser.runtime.id` and the extension's origin (`browser.runtime.getURL('/')`). */
+  extensionId: string;
+  extensionOrigin: string;
 }
 
 export interface WorkerDeps {
@@ -184,4 +204,39 @@ export async function handleContentRequest(
     return analyzeInConversation(request, key, deps);
   }
   return runEngine(request, request.mapping ?? {}, deps);
+}
+
+/**
+ * Answer a message whose type is one of MANAGE_REQUEST_TYPES (list or delete stored mappings).
+ * Only an extension page (the popup) may send them: anything else, a content script above all,
+ * gets `forbidden` before the message is even validated and without the store being touched.
+ * Never rejects.
+ */
+export async function handleManageMessage(
+  message: { type: string; id?: unknown },
+  sender: SenderInfo,
+  deps: ManageDeps,
+): Promise<ManageResponse> {
+  const id = typeof message.id === 'string' ? message.id : '';
+  if (!isExtensionPage(sender, deps.extensionId, deps.extensionOrigin)) {
+    return failure(id, 'forbidden', 'Only the extension popup may manage stored mappings.');
+  }
+  if (!isManageRequest(message)) {
+    return failure(id, 'invalid-request', `Malformed request of type ${message.type}.`);
+  }
+  try {
+    switch (message.type) {
+      case 'ainonim/mappings-list':
+        return { id, ok: true, conversations: await deps.admin.list() };
+      case 'ainonim/mapping-delete':
+        if (await deps.admin.remove(message.conversationKey)) await deps.notifyChanged();
+        return { id, ok: true };
+      case 'ainonim/mappings-clear':
+        await deps.admin.clearAll();
+        await deps.notifyChanged();
+        return { id, ok: true };
+    }
+  } catch (error) {
+    return storeFailure(id, error);
+  }
 }

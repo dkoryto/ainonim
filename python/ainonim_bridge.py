@@ -4,11 +4,15 @@ Rules only, no spaCy: NER needs native wheels that do not exist for Pyodide.
 """
 
 import json
+import re
 from bisect import bisect_left
 
-from polanon import Anonymizer, default_guards
+from polanon import CASED_TOKEN_PATTERN, Anonymizer, default_guards
 
 _anonymizer = Anonymizer(default_guards(with_ner=False))
+
+# polanon's own token format, with the optional grammatical case: `<OSOBA_1:dopełniacz>`.
+_TOKEN = re.compile(CASED_TOKEN_PATTERN)
 
 
 def _load_mapping(mapping_json: str) -> dict[str, str]:
@@ -29,12 +33,31 @@ def _to_utf16(text: str):
     return lambda index: index + bisect_left(astral, index)
 
 
+def _tokens(anonymized: str, spans) -> list[str]:
+    """Return the token that replaced each span (sorted by start) in `anonymized`.
+
+    Walks the spans in order, tracking how far each earlier replacement moved the text.
+    """
+    tokens = []
+    shift = 0
+    for span in spans:
+        match = _TOKEN.match(anonymized, span.start + shift)
+        if match is None:
+            raise ValueError("a span has no token at its place in the anonymized text")
+        tokens.append(match.group(0))
+        shift += len(match.group(0)) - (span.end - span.start)
+    return tokens
+
+
 def analyze(text: str, mapping_json: str) -> str:
     """Mask `text`, keeping the tokens `mapping_json` already gave out, and return JSON.
 
-    Span offsets are UTF-16 code units, the indices of the same string in JavaScript.
+    Span offsets are UTF-16 code units, the indices of the same string in JavaScript. Each span
+    carries the token that stands in its place in `anonymized`.
     """
     result = _anonymizer.anonymize_sync(text, _load_mapping(mapping_json))
+    spans = sorted(result.spans, key=lambda span: span.start)
+    tokens = _tokens(result.anonymized, spans)
     utf16 = _to_utf16(text)
     return json.dumps(
         {
@@ -45,8 +68,9 @@ def analyze(text: str, mapping_json: str) -> str:
                     "end": utf16(span.end),
                     "entity_type": span.entity_type,
                     "score": span.score,
+                    "token": token,
                 }
-                for span in result.spans
+                for span, token in zip(spans, tokens, strict=True)
             ],
             "mapping": result.mapping,
         },

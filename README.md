@@ -25,16 +25,23 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
 
 - Czyta poziom strony z popupu (`lib/settings.ts`); przy `off` nic nie robi i usuwa wszystko,
   co dodał.
-- Po przerwie w pisaniu (`lib/fields/watch.ts`) wysyła tekst pola do analizy. Gdy coś znajdzie,
-  pokazuje plakietkę w rogu pola z liczbą i rodzajami danych oraz przyciskiem „Zamaskuj”, a w
-  edytorach contenteditable podświetla znalezione fragmenty (`lib/ui/`). „Zamaskuj” wpisuje w
-  pole tekst z zastępnikami (`<OSOBA_1>`), „×” chowa plakietkę do następnej zmiany tekstu.
+- Po przerwie w pisaniu (`lib/fields/watch.ts`) wysyła tekst pola do analizy. W prawym dolnym
+  rogu pola, w którym coś wpisano, pokazuje ikonę AInonim ze stanem analizy (pulsuje w trakcie,
+  czerwona liczba znalezionych danych albo zielony znaczek, gdy nic nie znalazła), a w edytorach
+  contenteditable podświetla znalezione fragmenty (`lib/ui/`). Kliknięcie ikony (albo Enter na
+  niej) otwiera panel z listą wartości: każdą można odznaczyć i zamienić na zastępnik
+  („znacznik”, `<OSOBA_1>`) albo na tekst ogólny („ogólnie”: rok zamiast daty, miasto zamiast
+  adresu, `[osoba]`; `lib/content/generalise.ts`, bez zapisu w mapowaniu). „Zamaskuj
+  zaznaczone” wpisuje wynik w pole, „Cofnij” przywraca tekst sprzed ostatniego maskowania, dopóki
+  pole go nie zmieniło. Esc albo „×” zamyka panel.
 - Na ChatGPT i Claude.ai (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
   „zastępnik → oryginał” trzyma service worker w `storage.session` (tylko w pamięci), a strona
   dostaje je tylko dla własnej witryny. Nowa rozmowa ma klucz tymczasowy, który po nadaniu
-  identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu zastępniki są
-  zamieniane na oryginały tylko na ekranie (`lib/restore/`), także w odmianie
-  (`<OSOBA_1:wołacz>` → „Janie Kowalski”).
+  identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu i we własnych
+  wysłanych wiadomościach zastępniki są zamieniane na oryginały tylko na ekranie
+  (`lib/restore/`), także w odmianie (`<OSOBA_1:wołacz>` → „Janie Kowalski”). Przywrócona
+  wartość ma delikatne podświetlenie, a po najechaniu pokazuje, jaki zastępnik widział czat
+  („Jan Kowalski – wysłano jako <OSOBA_1>”). Pole wpisywania wiadomości nigdy nie jest zmieniane.
 - Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane.
 
 ### Komunikacja
@@ -96,8 +103,8 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
   prawnej często umykają. Tekst trzeba przeczytać przed wysłaniem.
 - Nic nie jest maskowane automatycznie: w trybie „ostrzegaj” tekst wysłany bez kliknięcia
   „Zamaskuj” idzie z danymi.
-- Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi, legenda przy bloku edytora
-  ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
+- Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi i wysłanych wiadomości,
+  atrybuty `title`, legenda przy bloku edytora ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
   nie to, co strona wyświetla.
 - Strona widzi treść pola, zanim zostanie zamaskowana.
 - Pliki i obrazy dołączane do czatu, pola w zamkniętych shadow root, edytory na `canvas` i

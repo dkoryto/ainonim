@@ -5,97 +5,113 @@
       "start": 41,
       "end": 86,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     },
     {
       "start": 115,
       "end": 130,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_1>"
     },
     {
       "start": 132,
       "end": 138,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_1>"
     },
     {
       "start": 154,
       "end": 166,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     },
     {
       "start": 176,
       "end": 201,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     },
     {
       "start": 214,
       "end": 228,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 236,
       "end": 247,
       "entity_type": "PESEL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<PESEL_1>"
     },
     {
       "start": 264,
       "end": 274,
       "entity_type": "BIRTH_DATE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<DATA_URODZENIA_1>"
     },
     {
       "start": 282,
       "end": 299,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_2>"
     },
     {
       "start": 301,
       "end": 307,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_2>"
     },
     {
       "start": 327,
       "end": 338,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_2>"
     },
     {
       "start": 395,
       "end": 413,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 420,
       "end": 431,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_3>"
     },
     {
       "start": 676,
       "end": 690,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1:biernik>"
     },
     {
       "start": 1124,
       "end": 1140,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_3>"
     },
     {
       "start": 1172,
       "end": 1184,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_4>"
     }
   ],
   "mapping": {

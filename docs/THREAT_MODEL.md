@@ -21,7 +21,7 @@ podmieniane z powrotem na oryginały, tylko w widoku strony.
 | ----------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | Tekst edytowanego pola              | DOM strony; kopia w content scripcie, service workerze i offscreen                        | jak dane, które wpisał użytkownik               |
 | Mapowanie znacznik → oryginał       | `storage.session` (pamięć), dostęp przez service worker; kopia robocza w content scripcie | jak oryginalne dane: odwraca maskowanie         |
-| Przywrócone oryginały               | DOM strony czatu (tekst odpowiedzi, atrybuty `title`, legenda)                            | jak oryginalne dane                             |
+| Przywrócone oryginały               | DOM strony czatu (tekst odpowiedzi i wysłanych wiadomości, atrybuty `title`, legenda)     | jak oryginalne dane                             |
 | Ustawienia stron                    | `storage.sync`: nazwa hosta → tryb (`warn` / `off`)                                       | niska: lista hostów, bez treści pól             |
 | Kod rozszerzenia (Pyodide, polanon) | paczka rozszerzenia                                                                       | integralność: decyduje o tym, co jest wykrywane |
 
@@ -33,6 +33,7 @@ podmieniane z powrotem na oryginały, tylko w widoku strony.
 | Content script (izolowany świat)       | tekst pola, wynik analizy, mapowanie bieżącej rozmowy                 | tak, ale działa w karcie razem z niezaufaną stroną i dzieli z nią DOM |
 | Service worker                         | żądania z kart, mapowania wszystkich rozmów                           | tak                                                                   |
 | Dokument offscreen (Pyodide + polanon) | tekst do analizy i mapowanie, które dostaje od service workera        | tak; przyjmuje żądania tylko spoza kart (`sender.tab` puste)          |
+| Popup rozszerzenia                     | mapowania wszystkich rozmów (sekcja „Zapamiętane dane”)               | tak; strona rozszerzenia, poza DOM-em stron                           |
 | Dostawca AI / operator formularza      | to, co strona wyśle: tekst po maskowaniu albo bez niego               | **nie**; to granica, dla której rozszerzenie istnieje                 |
 
 Skrypty strony nie mają dostępu do pamięci izolowanego świata ani do API rozszerzenia. Mają za to
@@ -53,6 +54,12 @@ pełny dostęp do DOM-u, który content script czyta i zmienia.
   dostępu `TRUSTED_CONTEXTS`, więc content scripty nie czytają ich bezpośrednio, a skrypty strony
   w ogóle. Service worker oddaje mapowanie tylko dla rozmowy, której klucz zaczyna się od
   identyfikatora strony nadawcy (np. `chatgpt:` dla karty chatgpt.com) (`lib/mapping/access.ts`). Content script z chatgpt.com nie dostanie mapowania rozmowy z Claude.ai.
+- **Podgląd i usuwanie mapowań tylko z popupu.** Wiadomości `ainonim/mappings-list`,
+  `ainonim/mapping-delete` i `ainonim/mappings-clear` service worker obsługuje tylko wtedy, gdy
+  nadawca to strona rozszerzenia: `sender.id` jest identyfikatorem AInonim, a `sender.url` leży
+  w originie `chrome-extension://<id>/` (`isExtensionPage` w `lib/mapping/access.ts`). Content
+  script, także na stronie czatu, dostaje `forbidden`, zanim wiadomość zostanie w ogóle
+  sprawdzona. Popup wstawia oryginały wyłącznie przez `textContent` i ich nie loguje.
 
 ## Czego nie chroni
 
@@ -62,9 +69,11 @@ Po przywróceniu oryginały stoją w DOM-ie strony czatu jako zwykły tekst. Skr
 je odczytać tak samo, jak każdy inny tekst na ekranie, i np. wysłać do swojego serwera albo
 zapisać w historii. Dotyczy to:
 
-- tekstu odpowiedzi (podmienione `data` węzłów tekstowych),
-- atrybutu `title` elementu z przywróconym tekstem; dziś zawiera tylko znaczniki
-  (`AInonim: <OSOBA_1>`), ale każda zmiana na „znacznik → oryginał” też trafi do DOM-u,
+- tekstu odpowiedzi i własnych wysłanych wiadomości (podmienione `data` węzłów tekstowych),
+- atrybutu `title` elementu z przywróconym tekstem: para oryginał – znacznik
+  (`Jan Kowalski – wysłano jako <OSOBA_1>`), czyli te same dane, które już stoją w tekście obok,
+- zakresów podświetlenia (CSS Custom Highlight API, `CSS.highlights`), które wskazują przywrócone
+  wartości w tych samych węzłach tekstowych,
 - legendy „znacznik → oryginał” przy edytowalnym bloku ChatGPT („writing block”). Legenda jest w
   **otwartym** shadow root (`attachShadow({ mode: 'open' })` w `lib/restore/observer.ts`), więc
   skrypt strony dosięga jej przez `element.shadowRoot`.
@@ -78,8 +87,9 @@ Możliwe zmiany na przyszłość (niezaplanowane w MVP): legenda w zamkniętym s
 ale nie uniemożliwia odczytu, bo tekst nadal jest renderowany w stronie), pokazywanie oryginałów
 w panelu bocznym rozszerzenia (`side_panel`), poza DOM-em strony, zamiast podmiany w odpowiedzi.
 
-Odznaka „Zamaskuj” jest w zamkniętym shadow root (`lib/ui/badge.ts`) i pokazuje tylko liczbę i
-rodzaje danych, nie wartości.
+Ikona przy polu i panel z listą znalezionych wartości są w zamkniętych shadow root
+(`lib/ui/badge.ts`, `lib/ui/icon.ts`); skrypty strony nie sięgają do ich treści (a wartości i tak
+widzą w polu, z którego pochodzą).
 
 ### Pole przed maskowaniem
 
@@ -152,6 +162,12 @@ Przed wydaniem selektory sprawdza ręczna lista z [release.md](release.md).
   mapowanie przez wiadomości ze sprawdzeniem prefiksu strony.
 - Mapowanie bieżącej rozmowy jest też w pamięci content scriptu (izolowany świat), bo przywracanie
   odbywa się w karcie.
+- Użytkownik może w popupie („Zapamiętane dane”) obejrzeć mapowania i usunąć jedną rozmowę albo
+  wszystkie. Po usunięciu service worker wysyła do wszystkich kart powiadomienie
+  `ainonim/mappings-changed` (bez żadnych danych ani kluczy); content script czatu pobiera wtedy
+  mapowanie swojej rozmowy od nowa i przestaje przywracać usunięte znaczniki, a już przywrócone
+  wracają do postaci znaczników. Treści, którą strona odczytała z DOM-u wcześniej, to nie cofa.
+- Popup pokazuje oryginały na ekranie: kto patrzy na ekran, ten je widzi.
 - Poza zakresem: inne rozszerzenie z szerokimi uprawnieniami, złośliwe oprogramowanie na
   komputerze, osoba z dostępem do odblokowanej sesji przeglądarki i narzędzi deweloperskich. Mogą
   odczytać pamięć przeglądarki, DOM i treść pól niezależnie od AInonim.

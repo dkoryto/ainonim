@@ -21,3 +21,33 @@ export function mayUseConversation(key: string, senderUrl: string | undefined): 
   const site = siteOf(key);
   return site !== null && adapterFor(senderUrl)?.id === site;
 }
+
+/** What the service worker knows about the sender of a message (a subset of MessageSender). */
+export interface SenderInfo {
+  id?: string;
+  url?: string;
+}
+
+/**
+ * True for a page of this extension (the popup, also when opened in a tab). Only such pages may
+ * list or delete the mappings of every site. A content script's sender URL is the URL of the web
+ * page it runs in, which can never be on the extension's origin, and its sender id is ours too,
+ * so the URL decides.
+ */
+export function isExtensionPage(
+  sender: SenderInfo,
+  extensionId: string,
+  extensionOrigin: string,
+): boolean {
+  if (sender.id !== extensionId || sender.url === undefined) return false;
+  try {
+    const page = new URL(sender.url);
+    const extension = new URL(extensionOrigin);
+    // Compared by scheme and host: `URL.origin` is "null" for non-web schemes outside Chrome.
+    return (
+      extension.host !== '' && page.protocol === extension.protocol && page.host === extension.host
+    );
+  } catch {
+    return false;
+  }
+}

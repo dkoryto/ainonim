@@ -39,16 +39,26 @@ const PAGE_FILES = new Map([
 
 /** @param {import('@playwright/test').Page} page */
 async function waitForBadge(page) {
-  await page.locator('ainonim-badge').waitFor({ state: 'visible', timeout: 60_000 });
-  // The badge is placed on the next animation frame and its text may still change.
+  // The panel opens from the icon in the field's corner (see tests/e2e/panel.ts).
+  const icon = page.locator('ainonim-icon');
+  await icon.waitFor({ state: 'visible', timeout: 60_000 });
+  await icon.click();
+  const panel = page.locator('ainonim-badge');
+  await panel.waitFor({ state: 'visible', timeout: 10_000 });
+  // Header and actions are ~73 px; the rows appear once the analysis is done.
+  const deadline = Date.now() + 60_000;
+  while (((await panel.boundingBox())?.height ?? 0) < 120 && Date.now() < deadline) {
+    await page.waitForTimeout(200);
+  }
+  // The panel is placed on the next animation frame.
   await page.waitForTimeout(500);
 }
 
-/** "Zamaskuj" sits 45 px from the badge's right end (as in tests/e2e/content.spec.ts). */
+/** "Zamaskuj zaznaczone" fills the left of the panel's bottom bar (see tests/e2e/content.spec.ts). */
 async function clickMask(page) {
   const box = await page.locator('ainonim-badge').boundingBox();
-  if (!box) throw new Error('the badge is not rendered');
-  await page.mouse.click(box.x + box.width - 45, box.y + box.height / 2);
+  if (!box) throw new Error('the panel is not rendered');
+  await page.mouse.click(box.x + 40, box.y + box.height - 22);
 }
 
 async function shoot(page, name) {

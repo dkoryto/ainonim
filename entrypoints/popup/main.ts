@@ -1,5 +1,7 @@
 import { browser } from 'wxt/browser';
+import { manageClient } from '~/lib/manage-client';
 import { getSiteLevel, isSiteLevel, onSiteLevelChange, setSiteLevel } from '~/lib/settings';
+import { conversationKeyOfUrl, createStoredMappingsView } from '~/lib/ui/stored-mappings';
 import { describeTabUrl, unsupportedNote } from './tab-target';
 
 function element<T extends HTMLElement>(id: string, type: new () => T): T {
@@ -18,10 +20,13 @@ async function init(): Promise<void> {
   const hostLine = element('host', HTMLParagraphElement);
   const fieldset = element('level', HTMLFieldSetElement);
   const note = element('note', HTMLParagraphElement);
+  const stored = element('stored', HTMLElement);
 
   // The popup is opened by the user's click, so activeTab exposes this tab's URL without `tabs`.
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   const target = describeTabUrl(tab?.url);
+
+  void createStoredMappingsView(stored, manageClient, conversationKeyOfUrl(tab?.url)).reload();
 
   if (target.kind === 'unsupported') {
     note.textContent = unsupportedNote(target);
