@@ -46,6 +46,13 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   w `storage.sync`) pozwala zostawić na ekranie zastępniki: są wtedy podświetlone, a oryginał widać
   tylko po najechaniu („<OSOBA_1> = Jan Kowalski”).
 - Na innych stronach każda analiza jest niezależna i nic nie jest zapisywane.
+- Ustawienia wykrywania (strona ustawień, zakładki „Kategorie” i „Własne słowa”, w
+  `storage.sync`) stosuje service worker do każdej analizy (`lib/detection/`), zanim zapisze
+  mapowanie: wyłączone rodzaje danych (`disabledCategories`) nie trafiają do panelu, podświetleń
+  ani mapowania, a własne słowa i wyrażenia regularne (`customWords`, eksport/import do pliku
+  JSON) są maskowane jako `<SLOWO_1>`, `<SLOWO_2>`… i przywracane w odpowiedziach jak inne
+  zastępniki. Zwykły wpis pasuje jako całe słowo bez względu na wielkość liter (także z polskimi
+  literami); wzorce z zagnieżdżonymi powtórzeniami i nieprawidłowe są pomijane.
 
 ### Komunikacja
 

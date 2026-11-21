@@ -2,6 +2,7 @@
 // engine is running and pass the request on to the offscreen document. Conversation mappings
 // (lib/mapping/store.ts) stay here; a content script gets one only for its own chat site, and
 // only extension pages (the popup) may list or delete them all.
+import { type DetectionRules, refineResult } from './detection/refine';
 import { type SenderInfo, isExtensionPage, mayUseConversation } from './mapping/access';
 import { MappingConflictError } from './mapping/store';
 import {
@@ -57,6 +58,8 @@ export interface WorkerDeps {
   closeOffscreen: () => Promise<void>;
   sendToOffscreen: (message: OffscreenRequest) => Promise<unknown>;
   mappings: MappingStore;
+  /** The user's switched-off categories and own words, read from storage.sync per analysis. */
+  detectionRules: () => Promise<DetectionRules>;
 }
 
 export type ContentResponse = AnalyzeResponse | RestoreResponse | MappingResponse;
@@ -137,6 +140,27 @@ async function runEngine(
   }
 }
 
+/**
+ * Analysis with the user's detection settings applied, so spans of switched-off categories never
+ * reach the content script or a stored mapping, and custom words get their tokens.
+ */
+async function analyze(
+  request: AnalyzeRequest,
+  mapping: Mapping,
+  deps: WorkerDeps,
+): Promise<AnalyzeResponse> {
+  let rules: DetectionRules;
+  try {
+    rules = await deps.detectionRules();
+  } catch {
+    // Analysing without them could leave the user's own words unmasked.
+    return failure(request.id, 'engine', 'The detection settings could not be read.');
+  }
+  const response = await runEngine(request, mapping, deps);
+  if (!response.ok) return response;
+  return { ...response, result: refineResult(request.text, mapping, response.result, rules) };
+}
+
 /** Analysis within a stored conversation: its mapping in, and with `persist` the new tokens out. */
 async function analyzeInConversation(
   request: AnalyzeRequest,
@@ -150,7 +174,7 @@ async function analyzeInConversation(
   } catch (error) {
     return storeFailure(id, error);
   }
-  const response = await runEngine(request, stored, deps);
+  const response = await analyze(request, stored, deps);
   if (!response.ok || request.persist !== true) return response;
   try {
     const mapping = await deps.mappings.merge(key, response.result.mapping);
@@ -203,7 +227,8 @@ export async function handleContentRequest(
     if (!mayUseConversation(key, senderUrl)) return forbidden(request.id);
     return analyzeInConversation(request, key, deps);
   }
-  return runEngine(request, request.mapping ?? {}, deps);
+  if (request.type === 'ainonim/analyze') return analyze(request, request.mapping ?? {}, deps);
+  return runEngine(request, request.mapping, deps);
 }
 
 /**
