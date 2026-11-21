@@ -7,7 +7,12 @@ import {
   REQUEST_TIMEOUT_MS,
 } from '~/lib/messages';
 import { MappingConflictError } from '~/lib/mapping/store';
-import { type MappingStore, handleContentRequest } from '~/lib/worker';
+import {
+  type ManageDeps,
+  type MappingStore,
+  handleContentRequest,
+  handleManageMessage,
+} from '~/lib/worker';
 
 const PAGE = 'http://127.0.0.1/';
 const CHATGPT = 'https://chatgpt.com/c/abc';
@@ -356,5 +361,120 @@ describe('handleContentRequest with conversations', () => {
     );
 
     expect(response).toMatchObject({ ok: false, code: 'invalid-request' });
+  });
+});
+
+describe('handleManageMessage', () => {
+  const EXTENSION_ID = 'abcdefghijklmnopabcdefghijklmnop';
+  const ORIGIN = `chrome-extension://${EXTENSION_ID}/`;
+  const POPUP = { id: EXTENSION_ID, url: `${ORIGIN}popup.html` };
+  const CONTENT_SCRIPT = { id: EXTENSION_ID, url: CHATGPT };
+  const stored = [{ key: 'chatgpt:abc', mapping: { '<OSOBA_1>': 'Jan' } }];
+
+  function manageDeps() {
+    const deps = {
+      admin: {
+        list: vi.fn(() => Promise.resolve(stored)),
+        remove: vi.fn<ManageDeps['admin']['remove']>(() => Promise.resolve(true)),
+        clearAll: vi.fn(() => Promise.resolve()),
+      },
+      notifyChanged: vi.fn(() => Promise.resolve()),
+      extensionId: EXTENSION_ID,
+      extensionOrigin: ORIGIN,
+    } satisfies ManageDeps;
+    return deps;
+  }
+
+  const list = { type: 'ainonim/mappings-list', id: 'l' };
+  const remove = { type: 'ainonim/mapping-delete', id: 'd', conversationKey: 'chatgpt:abc' };
+  const clear = { type: 'ainonim/mappings-clear', id: 'c' };
+
+  it('lists the stored conversations for the popup', async () => {
+    const deps = manageDeps();
+
+    expect(await handleManageMessage(list, POPUP, deps)).toEqual({
+      id: 'l',
+      ok: true,
+      conversations: stored,
+    });
+    expect(deps.notifyChanged).not.toHaveBeenCalled();
+  });
+
+  it('deletes one conversation for the popup and tells the tabs', async () => {
+    const deps = manageDeps();
+
+    expect(await handleManageMessage(remove, POPUP, deps)).toEqual({ id: 'd', ok: true });
+    expect(deps.admin.remove).toHaveBeenCalledWith('chatgpt:abc');
+    expect(deps.notifyChanged).toHaveBeenCalledOnce();
+  });
+
+  it('does not notify the tabs when the deleted conversation was not stored', async () => {
+    const deps = manageDeps();
+    deps.admin.remove.mockResolvedValueOnce(false);
+
+    expect(await handleManageMessage(remove, POPUP, deps)).toEqual({ id: 'd', ok: true });
+    expect(deps.notifyChanged).not.toHaveBeenCalled();
+  });
+
+  it('clears everything for the popup and tells the tabs', async () => {
+    const deps = manageDeps();
+
+    expect(await handleManageMessage(clear, POPUP, deps)).toEqual({ id: 'c', ok: true });
+    expect(deps.admin.clearAll).toHaveBeenCalledOnce();
+    expect(deps.notifyChanged).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['a content script on a chat site', CONTENT_SCRIPT],
+    ['a content script on any page', { id: EXTENSION_ID, url: PAGE }],
+    ['another extension', { id: 'other', url: 'chrome-extension://other/popup.html' }],
+    ['a sender without a URL', { id: EXTENSION_ID }],
+  ])('refuses %s without touching the store', async (_case, sender) => {
+    const deps = manageDeps();
+
+    for (const message of [list, remove, clear]) {
+      expect(await handleManageMessage(message, sender, deps)).toMatchObject({
+        id: message.id,
+        ok: false,
+        code: 'forbidden',
+      });
+    }
+    expect(deps.admin.list).not.toHaveBeenCalled();
+    expect(deps.admin.remove).not.toHaveBeenCalled();
+    expect(deps.admin.clearAll).not.toHaveBeenCalled();
+    expect(deps.notifyChanged).not.toHaveBeenCalled();
+  });
+
+  it('refuses a malformed request from a content script as forbidden, not invalid', async () => {
+    const response = await handleManageMessage(
+      { type: 'ainonim/mapping-delete', id: 7 },
+      CONTENT_SCRIPT,
+      manageDeps(),
+    );
+
+    expect(response).toMatchObject({ id: '', ok: false, code: 'forbidden' });
+  });
+
+  it('answers a malformed request from the popup with invalid-request', async () => {
+    const deps = manageDeps();
+
+    const response = await handleManageMessage(
+      { type: 'ainonim/mapping-delete', id: 'd' },
+      POPUP,
+      deps,
+    );
+
+    expect(response).toMatchObject({ id: 'd', ok: false, code: 'invalid-request' });
+    expect(deps.admin.remove).not.toHaveBeenCalled();
+  });
+
+  it('answers a store failure with a fixed message', async () => {
+    const deps = manageDeps();
+    deps.admin.list.mockRejectedValueOnce(new Error('Jan Kowalski'));
+
+    const response = await handleManageMessage(list, POPUP, deps);
+
+    expect(response).toMatchObject({ id: 'l', ok: false, code: 'engine' });
+    expect(JSON.stringify(response)).not.toContain('Jan');
   });
 });

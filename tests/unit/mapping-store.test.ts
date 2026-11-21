@@ -8,6 +8,7 @@ import {
   clearMapping,
   conversationKey,
   getMapping,
+  listMappings,
   mergeMapping,
   renameMapping,
 } from '~/lib/mapping/store';
@@ -103,16 +104,53 @@ describe('clearMapping / clearAll', () => {
   });
 
   it('removes one conversation', async () => {
-    await clearMapping(CHAT);
+    expect(await clearMapping(CHAT)).toBe(true);
 
     expect(await getMapping(CHAT)).toEqual({});
     expect(await getMapping(OTHER)).toEqual({ '<OSOBA_1>': 'Anna Nowak' });
+  });
+
+  it('reports a conversation that was not stored', async () => {
+    expect(await clearMapping('chatgpt:unknown')).toBe(false);
+    expect(await listMappings()).toHaveLength(2);
+  });
+
+  it('rejects an invalid key', async () => {
+    await expect(clearMapping('')).rejects.toThrow(TypeError);
   });
 
   it('removes everything from storage', async () => {
     await clearAll();
 
     expect(await fakeBrowser.storage.session.get(STORAGE_KEY)).toEqual({});
+  });
+});
+
+describe('listMappings', () => {
+  it('is empty when nothing is stored', async () => {
+    expect(await listMappings()).toEqual([]);
+  });
+
+  it('lists every conversation with its mapping, most recently used first', async () => {
+    await mergeMapping(CHAT, { '<OSOBA_1>': 'Jan Kowalski' });
+    await mergeMapping(OTHER, { '<OSOBA_1>': 'Anna Nowak', '<PESEL_1>': '50810112354' });
+    await getMapping(CHAT);
+
+    expect(await listMappings()).toEqual([
+      { key: CHAT, mapping: { '<OSOBA_1>': 'Jan Kowalski' } },
+      { key: OTHER, mapping: { '<OSOBA_1>': 'Anna Nowak', '<PESEL_1>': '50810112354' } },
+    ]);
+  });
+
+  it('does not count listing as using a conversation', async () => {
+    await mergeMapping(CHAT, { '<OSOBA_1>': 'Jan Kowalski' });
+    await mergeMapping(OTHER, { '<OSOBA_1>': 'Anna Nowak' });
+    const before = await fakeBrowser.storage.session.get(STORAGE_KEY);
+
+    await listMappings();
+
+    expect(await fakeBrowser.storage.session.get(STORAGE_KEY)).toEqual(before);
+    expect((await listMappings()).map((conversation) => conversation.key)).toEqual([OTHER, CHAT]);
   });
 });
 

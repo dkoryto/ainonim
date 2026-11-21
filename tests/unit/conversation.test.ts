@@ -29,6 +29,37 @@ function setup(startUrl: string, stored: Record<string, Mapping> = {}) {
 }
 
 describe('trackConversation', () => {
+  it('reloads the mapping after the popup deleted it', async () => {
+    const stored: Record<string, Mapping> = { 'chatgpt:abc': JAN };
+    const { conversation, deps } = setup('https://chatgpt.com/c/abc', stored);
+    await Promise.resolve();
+    delete stored['chatgpt:abc'];
+    deps.onChange.mockClear();
+
+    conversation.reload();
+    await Promise.resolve();
+
+    expect(deps.getMapping).toHaveBeenLastCalledWith('chatgpt:abc');
+    expect(conversation.mapping()).toEqual({});
+    expect(deps.onChange).toHaveBeenCalled();
+  });
+
+  it('reloads a new chat under its temporary key and ignores a reload after stop', async () => {
+    const { conversation, deps } = setup('https://chatgpt.com/');
+    const temporary = conversation.key();
+    conversation.update(temporary, JAN);
+
+    conversation.reload();
+    await Promise.resolve();
+
+    expect(deps.getMapping).toHaveBeenCalledWith(temporary);
+    expect(conversation.mapping()).toEqual({});
+
+    conversation.stop();
+    conversation.reload();
+    expect(deps.getMapping).toHaveBeenCalledTimes(1);
+  });
+
   it('loads the stored mapping of the conversation the page opens with', async () => {
     const { conversation, deps } = setup('https://chatgpt.com/c/abc', { 'chatgpt:abc': JAN });
     await Promise.resolve();

@@ -12,6 +12,7 @@
 // Never log mapping values or include them in errors.
 
 import { browser } from 'wxt/browser';
+import type { StoredConversation } from '~/lib/messages';
 
 export type Mapping = Record<string, string>;
 
@@ -185,11 +186,27 @@ export function renameMapping(fromKey: string, toKey: string): Promise<Mapping> 
   });
 }
 
-export function clearMapping(key: string): Promise<void> {
+/**
+ * Every stored conversation, most recently used first. Listing does not count as using a
+ * conversation, so the order and the LRU cap stay as they were.
+ */
+export function listMappings(): Promise<StoredConversation[]> {
+  return serialized(async () => {
+    const state = await load();
+    return [...state]
+      .sort(([, a], [, b]) => b.usedAt - a.usedAt)
+      .map(([key, entry]) => ({ key, mapping: toRecord(entry.mapping) }));
+  });
+}
+
+/** Removes one conversation; returns whether it was stored. */
+export function clearMapping(key: string): Promise<boolean> {
   return serialized(async () => {
     assertKey(key);
     const state = await load();
-    if (state.delete(key)) await save(state);
+    if (!state.delete(key)) return false;
+    await save(state);
+    return true;
   });
 }
 
