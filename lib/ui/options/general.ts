@@ -82,7 +82,7 @@ export const MASKING_MODE_OPTIONS = [
     label: 'Automatycznie przy wysyłce',
     hint:
       'Przed wysłaniem wiadomości w czacie wszystkie znalezione dane zostają zamienione na ' +
-      'znaczniki (wybory z panelu są uwzględniane). Działa w ChatGPT i Claude.ai; na innych ' +
+      'znaczniki (wybory z panelu są uwzględniane). Działa w ChatGPT, Claude, Gemini, Groku i Perplexity; na innych ' +
       'stronach maskujesz ręcznie z panelu.',
   },
 ] as const;

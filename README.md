@@ -53,7 +53,7 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   zastępniki. Zwykły wpis pasuje jako całe słowo bez względu na wielkość liter (także z polskimi
   literami); wzorce z zagnieżdżonymi powtórzeniami i nieprawidłowe są pomijane.
 - Maskowanie automatyczne (ustawienie „Maskowanie: Automatycznie przy wysyłce”, `maskMode` w
-  `storage.sync`, w ustawieniach i w okienku wtyczki): na ChatGPT i Claude.ai Enter w polu
+  `storage.sync`, w ustawieniach i w okienku wtyczki): na ChatGPT, Claude.ai, Gemini, Groku i Perplexity Enter w polu
   wiadomości (bez Shift i poza kompozycją IME) albo kliknięcie przycisku wysyłania jest
   przechwytywane w fazie capture, zanim zobaczy je strona (`lib/content/auto-mask.ts`). Jeśli
   tekst zawiera dane, AInonim zamienia je na znaczniki (z uwzględnieniem odznaczeń i wyboru
@@ -132,7 +132,7 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 - Wykrywanie działa na regułach, bez NER: samo nazwisko, nazwa miejscowości czy firma bez formy
   prawnej często umykają. Tekst trzeba przeczytać przed wysłaniem.
 - W trybie ręcznym (domyślnym) nic nie jest maskowane automatycznie: tekst wysłany bez kliknięcia
-  „Zamaskuj” idzie z danymi. Tryb automatyczny działa tylko na ChatGPT i Claude.ai i tylko dla
+  „Zamaskuj” idzie z danymi. Tryb automatyczny działa tylko na tych pięciu czatach i tylko dla
   wysłania Enterem lub przyciskiem wysyłania; strona, która wysyła inaczej (np. własnym skrótem),
   nie zostanie zatrzymana.
 - Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi i wysłanych wiadomości,

@@ -5,6 +5,45 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-21
+
+### Dodane
+
+- Gemini, Grok i Perplexity: wykrywanie w polu wiadomości, przywracanie oryginałów w
+  odpowiedziach i wysłanych wiadomościach, zapamiętane dane i tryb automatyczny, jak w ChatGPT
+  i Claude.ai. Gemini sprawdzony na żywej stronie, Grok częściowo (odpowiedzi wymagają konta),
+  Perplexity według znanej budowy strony.
+- Strona ustawień (link „Ustawienia” w okienku wtyczki) z zakładkami: Ogólne, Kategorie, Własne
+  słowa, Dziennik, O autorze.
+- Maskowanie automatyczne przy wysyłce (Ogólne, także przełącznik w okienku): Enter albo przycisk
+  wysyłania w czacie najpierw zamienia znalezione dane na znaczniki, potem wysyła. Gdy analiza się
+  nie uda, wiadomość nie wychodzi; drugie wysłanie w ciągu 5 s idzie bez maskowania.
+- Kategorie: każdy rodzaj danych (osoba, PESEL, e-mail, adres…) można wyłączyć; wyłączone nie są
+  pokazywane, maskowane ani zapamiętywane.
+- Własne słowa: słowa, frazy i wyrażenia regularne do maskowania jako `<SLOWO_1>`, `<SLOWO_2>`…,
+  z eksportem i importem listy (JSON) oraz „Usuń wszystkie”. Lista zostaje w ustawieniach
+  przeglądarki (synchronizowanych z kontem).
+- Dziennik maskowania: kiedy, na jakiej stronie, ręcznie czy automatycznie i ile danych jakiego
+  rodzaju zamaskowano, bez treści i samych danych. Podsumowanie, eksport CSV, raport do
+  zapisania jako PDF, czyszczenie; zapisywanie można wyłączyć.
+- Zakładka „O autorze”.
+
+### Zmienione
+
+- Ikona po automatycznym maskowaniu pokazuje niebieską liczbę i „zamaskowano automatycznie (N)”.
+
+### Poprawione
+
+- Ukryte pole schowka edytora Quill (Gemini i inne strony) nie jest już traktowane jak pole
+  tekstowe.
+
+### Bezpieczeństwo
+
+- Wpisy dziennika dopisuje tylko service worker; host bierze z adresu karty, czas z własnego
+  zegara, a skrypt na stronie nie może dziennika odczytać. Eksport CSV neutralizuje formuły.
+- Własne wzorce mają limity (długość, liczba wpisów i trafień); wzorce z zagnieżdżonymi
+  powtórzeniami i dopasowujące pusty tekst są odrzucane.
+
 ## [0.2.0] - 2026-11-21
 
 ### Dodane
@@ -71,7 +110,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/dkoryto/ainonim/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dkoryto/ainonim/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dkoryto/ainonim/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/dkoryto/ainonim/releases/tag/v0.0.1
