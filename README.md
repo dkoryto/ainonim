@@ -34,7 +34,7 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   adresu, `[osoba]`; `lib/content/generalise.ts`, bez zapisu w mapowaniu). „Zamaskuj
   zaznaczone” wpisuje wynik w pole, „Cofnij” przywraca tekst sprzed ostatniego maskowania, dopóki
   pole go nie zmieniło. Esc albo „×” zamyka panel.
-- Na ChatGPT, Claude.ai, Gemini, Grok i Perplexity (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
+- Na ChatGPT, Claude.ai, Gemini, Grok, Perplexity, Kimi, DeepSeek, Mistral Le Chat, Microsoft Copilot i Qwen (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
   „zastępnik → oryginał” trzyma service worker w `storage.session` (tylko w pamięci), a strona
   dostaje je tylko dla własnej witryny. Nowa rozmowa ma klucz tymczasowy, który po nadaniu
   identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu i we własnych
