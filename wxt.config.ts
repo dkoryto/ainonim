@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { defineConfig } from 'wxt';
-import { POLANON_WHEEL, PYODIDE_DIR, PYODIDE_FILES, PYODIDE_LOCK_FILE } from './lib/runtime-files';
+import {
+  POLANON_WHEEL,
+  PYODIDE_DIR,
+  PYODIDE_FILES,
+  PYODIDE_LOCK_FILE,
+} from './lib/offscreen/runtime-files';
 
 const pyodidePackage = resolve(import.meta.dirname, 'node_modules/pyodide');
 

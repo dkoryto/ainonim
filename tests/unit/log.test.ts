@@ -10,10 +10,10 @@ import {
   reportOf,
   summarize,
   toLogEntry,
-} from '~/lib/log/entries';
+} from '~/lib/shared/log-entries';
 import { LOG_STORAGE_KEY, appendLogEntry, clearLog, onLogChange, readLog } from '~/lib/log/store';
-import { isLogAppendRequest } from '~/lib/messages';
-import { handleLogAppend, type LogDeps } from '~/lib/worker';
+import { isLogAppendRequest } from '~/lib/shared/messages';
+import { handleLogAppend, type LogDeps } from '~/lib/background/worker';
 
 const REPORT = { source: 'manual', masked: 2, generalised: 1, categories: { PERSON: 2, PESEL: 1 } };
 

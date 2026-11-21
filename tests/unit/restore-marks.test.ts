@@ -1,6 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { RESTORED_HIGHLIGHT, createRestoredMarks, restoredTitle } from '~/lib/restore/marks';
+import {
+  RESTORED_HIGHLIGHT,
+  createRestoredMarks,
+  restoredTitle,
+} from '~/lib/content/restore/marks';
 
 // happy-dom lacks the Custom Highlight API; a Highlight is a set of ranges, the registry a map.
 class FakeHighlight extends Set<AbstractRange> {}
@@ -69,7 +73,7 @@ describe('createRestoredMarks', () => {
     installApi();
     vi.resetModules();
     const replaceSync = vi.spyOn(CSSStyleSheet.prototype, 'replaceSync');
-    const fresh = await import('~/lib/restore/marks');
+    const fresh = await import('~/lib/content/restore/marks');
     const adopted = document.adoptedStyleSheets.length;
     const marks = fresh.createRestoredMarks();
     marks.set(textNode('Jan'), [{ start: 0, end: 3 }]);

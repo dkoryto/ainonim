@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
-import { replaceFieldText } from '~/lib/fields/write';
+import { replaceFieldText } from '~/lib/content/fields/write';
 
 function control<K extends 'textarea' | 'input'>(tag: K, value = ''): HTMLElementTagNameMap[K] {
   const element = document.createElement(tag);

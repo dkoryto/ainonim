@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Span } from '~/lib/messages';
+import type { Span } from '~/lib/shared/messages';
 import {
   badgeIconRoot,
   badgeShadowRoot,
@@ -9,7 +9,7 @@ import {
   type BadgeItem,
   type BadgeOptions,
   type BadgeState,
-} from '~/lib/ui/badge';
+} from '~/lib/content/ui/badge';
 
 // happy-dom neither lays out nor reports intersections, so the observers and the animation frame
 // are driven by hand.

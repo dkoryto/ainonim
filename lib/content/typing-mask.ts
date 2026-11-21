@@ -6,8 +6,8 @@
 //
 // Privacy rule for this file: nothing of the text is logged.
 
-import { findField } from '~/lib/fields/editable';
-import { type EditableField, isTextControl, readText } from '~/lib/fields/text';
+import { findField } from '~/lib/content/fields/editable';
+import { type EditableField, isTextControl, readText } from '~/lib/content/fields/text';
 
 /** Pause after the last edit before a field is masked automatically. */
 export const TYPING_PAUSE_MS = 1500;

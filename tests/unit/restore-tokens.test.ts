@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createDeclensionCache, findTokens, restoreTokens } from '~/lib/restore/tokens';
+import { createDeclensionCache, findTokens, restoreTokens } from '~/lib/shared/tokens';
 
 const mapping = {
   '<OSOBA_1>': 'Jan Kowalski',

@@ -1,12 +1,12 @@
 // The options page: one tab per area. Each tab's content is drawn by its own module in
-// lib/ui/options/, which gets the empty panel and owns everything inside it.
-import { mountAbout } from '~/lib/ui/options/about';
-import { mountCategories } from '~/lib/ui/options/categories';
-import { mountGeneral } from '~/lib/ui/options/general';
-import { mountLog } from '~/lib/ui/options/log';
-import { mountSites } from '~/lib/ui/options/sites';
-import { mountWords } from '~/lib/ui/options/words';
-import { setupTabs } from './tabs';
+// lib/pages/options/, which gets the empty panel and owns everything inside it.
+import { mountAbout } from '~/lib/pages/options/about';
+import { mountCategories } from '~/lib/pages/options/categories';
+import { mountGeneral } from '~/lib/pages/options/general';
+import { mountLog } from '~/lib/pages/options/log';
+import { mountSites } from '~/lib/pages/options/sites';
+import { mountWords } from '~/lib/pages/options/words';
+import { setupTabs } from '~/lib/pages/options/tabs';
 
 const MOUNTS: Record<string, (panel: HTMLElement) => void | Promise<void>> = {
   general: mountGeneral,

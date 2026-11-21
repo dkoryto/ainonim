@@ -8,7 +8,7 @@ import {
   failure,
   isAinonimMessage,
   isContentRequest,
-} from '~/lib/messages';
+} from '~/lib/shared/messages';
 import {
   clearAll,
   clearMapping,
@@ -16,9 +16,9 @@ import {
   listMappings,
   mergeMapping,
   renameMapping,
-} from '~/lib/mapping/store';
-import { createOffscreenKeeper } from '~/lib/offscreen-document';
-import { detectionRules } from '~/lib/detection/refine';
+} from '~/lib/background/mapping/store';
+import { createOffscreenKeeper } from '~/lib/background/offscreen-document';
+import { detectionRules } from '~/lib/background/refine';
 import { getDetectionSettings, getLogEnabled } from '~/lib/settings';
 import {
   type LogDeps,
@@ -27,7 +27,7 @@ import {
   handleContentRequest,
   handleLogAppend,
   handleManageMessage,
-} from '~/lib/worker';
+} from '~/lib/background/worker';
 
 /**
  * Tell every tab that mappings were deleted; chat tabs then re-read theirs. The notice carries no

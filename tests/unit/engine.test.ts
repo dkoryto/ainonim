@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type Engine, createEngineHandler } from '~/lib/engine';
-import { MAX_TEXT_LENGTH } from '~/lib/messages';
+import { type Engine, createEngineHandler } from '~/lib/offscreen/engine';
+import { MAX_TEXT_LENGTH } from '~/lib/shared/messages';
 
 const analyzeJson = JSON.stringify({
   anonymized: '<OSOBA_1>',

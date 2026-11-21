@@ -84,8 +84,8 @@ async function serve(name: string): Promise<[string, string]> {
 }
 
 /**
- * Add a `lib/` module (path relative to the repository root, e.g. `lib/fields/write.ts`) to the
- * page; its exports become `window[globalName]`. Call it again after a navigation.
+ * Add a `lib/` module (path relative to the repository root, e.g. `lib/content/fields/write.ts`) to
+ * the page; its exports become `window[globalName]`. Call it again after a navigation.
  */
 export async function injectLib(page: Page, modulePath: string, globalName: string): Promise<void> {
   await page.addScriptTag({ content: await bundle(modulePath, globalName) });

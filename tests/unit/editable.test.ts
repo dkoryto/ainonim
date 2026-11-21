@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
-import { findField, isExcluded } from '~/lib/fields/editable';
+import { findField, isExcluded } from '~/lib/content/fields/editable';
 
 function mount(html: string, selector: string, parent: Node = document.body): HTMLElement {
   const wrapper = document.createElement('div');

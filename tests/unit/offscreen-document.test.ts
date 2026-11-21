@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createOffscreenKeeper } from '~/lib/offscreen-document';
+import { createOffscreenKeeper } from '~/lib/background/offscreen-document';
 
 /** Behaves like Chrome: one document at most, creating a second one throws. */
 function fakeChrome() {

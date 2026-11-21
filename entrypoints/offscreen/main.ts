@@ -3,9 +3,9 @@
 import type { PyodideAPI, loadPyodide as LoadPyodide } from 'pyodide';
 import { browser } from 'wxt/browser';
 import bridgeSource from '~/python/ainonim_bridge.py?raw';
-import { type Engine, createEngineHandler } from '~/lib/engine';
-import { failure, isAinonimMessage, isOffscreenRequest } from '~/lib/messages';
-import { POLANON_WHEEL, PYODIDE_DIR, PYODIDE_LOCK_FILE } from '~/lib/runtime-files';
+import { type Engine, createEngineHandler } from '~/lib/offscreen/engine';
+import { failure, isAinonimMessage, isOffscreenRequest } from '~/lib/shared/messages';
+import { POLANON_WHEEL, PYODIDE_DIR, PYODIDE_LOCK_FILE } from '~/lib/offscreen/runtime-files';
 
 type BridgeFunction = (text: string, mappingJson: string) => string;
 

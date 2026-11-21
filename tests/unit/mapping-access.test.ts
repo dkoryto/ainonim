@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isExtensionPage, mayUseConversation } from '~/lib/mapping/access';
+import { isExtensionPage, mayUseConversation } from '~/lib/background/mapping/access';
 
 describe('mayUseConversation', () => {
   it.each([

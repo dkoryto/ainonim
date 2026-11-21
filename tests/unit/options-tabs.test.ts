@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { setupTabs, tabFromHash } from '~/entrypoints/options/tabs';
+import { setupTabs, tabFromHash } from '~/lib/pages/options/tabs';
 
 const NAMES = ['general', 'categories', 'about'];
 

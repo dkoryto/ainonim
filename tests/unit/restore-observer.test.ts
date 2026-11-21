@@ -7,9 +7,9 @@ import {
   RESTORED_ATTRIBUTE,
   type StopObserving,
   observeMessages,
-} from '~/lib/restore/observer';
-import { RESTORED_HIGHLIGHT } from '~/lib/restore/marks';
-import { createDeclensionCache } from '~/lib/restore/tokens';
+} from '~/lib/content/restore/observer';
+import { RESTORED_HIGHLIGHT } from '~/lib/content/restore/marks';
+import { createDeclensionCache } from '~/lib/shared/tokens';
 import { chatgpt } from '~/lib/sites/chatgpt';
 import { claude } from '~/lib/sites/claude';
 

@@ -2,10 +2,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type MaskingOptions, startMasking } from '~/lib/content/masking';
 import { type TypingMasker, startTypingMask } from '~/lib/content/typing-mask';
-import type { EditableField } from '~/lib/fields/text';
-import type { MaskingReport } from '~/lib/log/entries';
-import type { AnalyzeResponse, AnalyzeResult } from '~/lib/messages';
-import type { BadgeItem, BadgeOptions, BadgeState } from '~/lib/ui/badge';
+import type { EditableField } from '~/lib/content/fields/text';
+import type { MaskingReport } from '~/lib/shared/log-entries';
+import type { AnalyzeResponse, AnalyzeResult } from '~/lib/shared/messages';
+import type { BadgeItem, BadgeOptions, BadgeState } from '~/lib/content/ui/badge';
 
 // The badge is a recorder that masks as an untouched panel does: every value, in its default mode.
 interface FakeBadge {
@@ -15,7 +15,7 @@ interface FakeBadge {
 
 const badges = vi.hoisted(() => [] as FakeBadge[]);
 
-vi.mock('~/lib/ui/badge', () => ({
+vi.mock('~/lib/content/ui/badge', () => ({
   createBadge: (_field: unknown, options: BadgeOptions) => {
     const badge: FakeBadge = { options, updates: [] };
     badges.push(badge);

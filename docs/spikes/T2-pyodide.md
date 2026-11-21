@@ -53,7 +53,7 @@ Pojedyncze próby (ms): zimny start 1432,5 / 1447,8 / 1453,8 / 1425,7 / 1446,2; 
   `fetch` → `pyodide.unpackArchive(buffer, 'wheel')` (rozpakowanie do site-packages).
 - `python/ainonim_bridge.py` jest wbudowany w skrypt offscreen (`?raw`) i wykonywany przez
   `runPython` we własnej przestrzeni nazw; `analyze(text)` zwraca JSON (`anonymized`, `spans`,
-  `mapping`), który JS waliduje (`lib/messages.ts`).
+  `mapping`), który JS waliduje (`lib/shared/messages.ts`).
 - `loader` Pyodide (`pyodide.mjs`) jest ładowany dynamicznym `import()` z adresu w paczce, a nie
   bundlowany przez Vite, żeby sam znalazł swoje pliki obok.
 - CSP stron rozszerzenia: `script-src 'self' 'wasm-unsafe-eval'; object-src 'self';`. Nie było
@@ -64,7 +64,7 @@ Pojedyncze próby (ms): zimny start 1432,5 / 1447,8 / 1453,8 / 1425,7 / 1446,2; 
 - Dokument offscreen tworzony leniwie przy pierwszym żądaniu (`chrome.offscreen.createDocument`,
   powód `WORKERS`), potem wykrywany przez `chrome.runtime.getContexts` i używany ponownie;
   równoległe pierwsze żądania czekają na tę samą obietnicę utworzenia.
-- Wiadomości mają typy i `id` żądania (`lib/messages.ts`). Offscreen przyjmuje żądania tylko spoza
+- Wiadomości mają typy i `id` żądania (`lib/shared/messages.ts`). Offscreen przyjmuje żądania tylko spoza
   kart (`sender.tab` puste), bo content scripty też dosięgają stron rozszerzenia.
 
 ## Wątki

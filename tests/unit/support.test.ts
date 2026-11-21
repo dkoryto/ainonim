@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
-import { createSupportLinks, reviewUrl, storeUrl } from '~/lib/support';
+import { createSupportLinks, reviewUrl, storeUrl } from '~/lib/pages/support';
 
 describe('support links', () => {
   it('builds the store and review URLs from the extension id', () => {

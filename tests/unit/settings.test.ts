@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { describeTabUrl, unsupportedNote } from '~/entrypoints/popup/tab-target';
+import { describeTabUrl, unsupportedNote } from '~/lib/pages/tab-target';
 import {
   CATEGORY_MODES_KEY,
   type CategoryMode,

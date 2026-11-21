@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EditableField } from '~/lib/fields/text';
-import { watchFields, type WatchOptions } from '~/lib/fields/watch';
+import type { EditableField } from '~/lib/content/fields/text';
+import { watchFields, type WatchOptions } from '~/lib/content/fields/watch';
 
 let stop: (() => void) | undefined;
 let onText: ReturnType<typeof vi.fn<(field: EditableField, text: string) => void>>;

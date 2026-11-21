@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { labelFor } from '~/lib/ui/labels';
+import { labelFor } from '~/lib/shared/labels';
 
 describe('labelFor', () => {
   it('names entity types in Polish', () => {

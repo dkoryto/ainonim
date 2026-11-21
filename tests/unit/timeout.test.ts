@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TimeoutError, describeError, withTimeout } from '~/lib/timeout';
+import { TimeoutError, describeError, withTimeout } from '~/lib/shared/timeout';
 
 beforeEach(() => {
   vi.useFakeTimers();

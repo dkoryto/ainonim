@@ -116,7 +116,7 @@ bezczynności i interpreter trzeba by ładować od nowa.
 
 **Content script** (`entrypoints/content/`) działa na każdej stronie, we wszystkich ramkach:
 
-- `lib/site-access.ts` decyduje, czy ma działać na stronie (`siteScope`, `allowedSites`,
+- `lib/sites/access.ts` decyduje, czy ma działać na stronie (`siteScope`, `allowedSites`,
   `siteLevels`), i reaguje na każdą zmianę; po wyłączeniu usuwa wszystko, co dodał.
 - `lib/fields/` obserwuje pola (także edytory contenteditable: ProseMirror, Lexical, Quill),
   czyta ich tekst i wpisuje wynik maskowania.
@@ -130,7 +130,7 @@ bezczynności i interpreter trzeba by ładować od nowa.
   API. Pola wpisywania wiadomości nigdy nie zmienia.
 - `lib/ui/` rysuje ikonę i panel w zamkniętym shadow root.
 
-**Service worker** (`entrypoints/background.ts`, `lib/worker.ts`) tworzy dokument offscreen przy
+**Service worker** (`entrypoints/background.ts`, `lib/background/worker.ts`) tworzy dokument offscreen przy
 pierwszym żądaniu, stosuje wyłączone kategorie i własne słowa (`lib/detection/`), trzyma mapowania
 rozmów (`lib/mapping/`) i dopisuje wpisy dziennika (`lib/log/`).
 
@@ -139,15 +139,15 @@ zakładki w `lib/ui/options/`) i raport do druku (`entrypoints/report/`).
 
 ### Komunikacja
 
-- Content scripty wołają funkcje z `lib/client.ts` (`analyzeText`, `analyzeInConversation`,
+- Content scripty wołają funkcje z `lib/content/client.ts` (`analyzeText`, `analyzeInConversation`,
   `restoreText`, `getConversationMapping`, `renameConversation`). Żadna nie rzuca wyjątku:
   zwracają `{ ok: true, … }` albo `{ ok: false, code, error }`, gdzie `code` to
   `invalid-request`, `too-long`, `timeout`, `engine`, `forbidden` lub `conflict`. Opis błędu
   podaje etap, na którym wystąpił (np. `worker:create-offscreen: Error: …`).
 - Żądania z kluczem rozmowy service worker przyjmuje tylko wtedy, gdy witryna klucza (`chatgpt:`)
-  zgadza się z adresem ramki nadawcy (`lib/mapping/access.ts`); inaczej odpowiada `forbidden`.
+  zgadza się z adresem ramki nadawcy (`lib/background/mapping/access.ts`); inaczej odpowiada `forbidden`.
   Listę i usuwanie zapamiętanych danych obsługują tylko strony rozszerzenia.
-- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/messages.ts`).
+- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/shared/messages.ts`).
 - Limit tekstu: 50 000 znaków, sprawdzany w kliencie, w service workerze i w offscreen.
 - Czas: do 20 s na gotowość silnika (utworzenie offscreen i ładowanie Pyodide), potem 5 s na samo
   `analyze`/`restore`. Po przekroczeniu czasu service worker zamyka dokument offscreen, bo Pythona

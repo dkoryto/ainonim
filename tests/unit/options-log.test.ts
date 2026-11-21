@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import type { LogEntry } from '~/lib/log/entries';
-import { mountGeneral } from '~/lib/ui/options/general';
-import { type LogTabDeps, PAGE_SIZE, csvFileName, mountLog } from '~/lib/ui/options/log';
+import type { LogEntry } from '~/lib/shared/log-entries';
+import { mountGeneral } from '~/lib/pages/options/general';
+import { type LogTabDeps, PAGE_SIZE, csvFileName, mountLog } from '~/lib/pages/options/log';
 
 function entry(index: number, overrides: Partial<LogEntry> = {}): LogEntry {
   return {

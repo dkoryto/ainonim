@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { detectionRules, mergeCustomMatches, refineResult } from '~/lib/detection/refine';
-import type { AnalyzeResult, Span } from '~/lib/messages';
+import { detectionRules, mergeCustomMatches, refineResult } from '~/lib/background/refine';
+import type { AnalyzeResult, Span } from '~/lib/shared/messages';
 
 const span = (start: number, end: number, entity_type: string, token: string): Span => ({
   start,

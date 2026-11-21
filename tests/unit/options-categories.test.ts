@@ -9,8 +9,8 @@ import {
   getDisabledCategories,
   setDisabledCategories,
 } from '~/lib/settings';
-import { categoryGroups, mountCategories } from '~/lib/ui/options/categories';
-import { CUSTOM_ENTITY_TYPE, ENGINE_ENTITY_TYPES } from '~/lib/ui/labels';
+import { categoryGroups, mountCategories } from '~/lib/pages/options/categories';
+import { CUSTOM_ENTITY_TYPE, ENGINE_ENTITY_TYPES } from '~/lib/shared/labels';
 
 function boxes(panel: HTMLElement): HTMLInputElement[] {
   return [...panel.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];

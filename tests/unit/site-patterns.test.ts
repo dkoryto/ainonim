@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { matchesSitePattern, parseSitePattern } from '~/lib/site-patterns';
+import { matchesSitePattern, parseSitePattern } from '~/lib/settings/site-patterns';
 import {
   ALLOWED_SITES_KEY,
   MAX_ALLOWED_SITES,

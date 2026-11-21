@@ -10,7 +10,7 @@ import {
   setSiteScope,
 } from '~/lib/settings';
 import { adapters } from '~/lib/sites';
-import { chatName, mountSites } from '~/lib/ui/options/sites';
+import { chatName, mountSites } from '~/lib/pages/options/sites';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 

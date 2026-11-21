@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { MAX_CUSTOM_WORDS, getCustomWords, setCustomWords } from '~/lib/settings';
-import { EXPORT_FORMAT, exportWords, importWords, mountWords } from '~/lib/ui/options/words';
+import { EXPORT_FORMAT, exportWords, importWords, mountWords } from '~/lib/pages/options/words';
 
 const word = (value: string) => ({ value, regex: false });
 

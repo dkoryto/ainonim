@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generalise } from '~/lib/content/generalise';
-import type { Span } from '~/lib/messages';
+import type { Span } from '~/lib/shared/messages';
 
 /** The generalised form of `value`, found as `entity_type` where it stands in `text`. */
 function of(text: string, value: string, entity_type: string): string {

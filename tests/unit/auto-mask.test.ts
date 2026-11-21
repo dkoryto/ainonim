@@ -2,9 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { interceptSends } from '~/lib/content/auto-mask';
 import { type MaskingOptions, startMasking } from '~/lib/content/masking';
-import type { MaskingReport } from '~/lib/log/entries';
-import type { AnalyzeResponse, AnalyzeResult } from '~/lib/messages';
-import type { BadgeItem, BadgeOptions, BadgeState, MaskChoice } from '~/lib/ui/badge';
+import type { MaskingReport } from '~/lib/shared/log-entries';
+import type { AnalyzeResponse, AnalyzeResult } from '~/lib/shared/messages';
+import type { BadgeItem, BadgeOptions, BadgeState, MaskChoice } from '~/lib/content/ui/badge';
 
 // The badge is a recorder (its rendering is covered in badge.test.ts). `panelChoices` stands in
 // for what the user set in the panel; by default every value is checked and masked with a token.
@@ -18,7 +18,7 @@ const fake = vi.hoisted(() => ({
   panelChoices: null as ((items: readonly BadgeItem[]) => MaskChoice[]) | null,
 }));
 
-vi.mock('~/lib/ui/badge', () => ({
+vi.mock('~/lib/content/ui/badge', () => ({
   createBadge: (_field: unknown, options: BadgeOptions) => {
     const badge: FakeBadge = { options, updates: [] };
     fake.badges.push(badge);

@@ -1,9 +1,9 @@
-// Driving AInonim's icon and panel (lib/ui/badge.ts) from Playwright. Both live in closed shadow
-// roots, so their controls are clicked by position. The panel's layout: a header (~29 px), one
-// row per value (or one line of text when there is none), then the actions bar: 8 px padding
+// Driving AInonim's icon and panel (lib/content/ui/badge.ts) from Playwright. Both live in closed
+// shadow roots, so their controls are clicked by position. The panel's layout: a header (~29 px),
+// one row per value (or one line of text when there is none), then the actions bar: 8 px padding
 // around "Zamaskuj zaznaczone" (filling the left), "Cofnij" (64 px, when offered) and "×" (28 px),
-// 6 px apart. Each row ends, 10 px from the panel's right edge, with "znacznik | ogólnie", two
-// 54 px buttons.
+// 6 px apart. Each row ends, 10 px from the panel's right edge, with "znacznik | ogólnie", two 54
+// px buttons.
 import { type Locator, type Page, expect } from '@playwright/test';
 
 const HEADER_HEIGHT = 29;

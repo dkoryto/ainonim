@@ -49,15 +49,15 @@ pełny dostęp do DOM-u, który content script czyta i zmienia.
   listę pakietów, więc interpreter nie ma czego pobierać z CDN.
 - **Pola z sekretami.** Pola `type="password"`, pola z `autocomplete` `current-password`,
   `new-password`, `one-time-code` i `cc-*` oraz pola ukryte, wyłączone i tylko do odczytu nie są
-  czytane (`lib/fields/editable.ts`).
+  czytane (`lib/content/fields/editable.ts`).
 - **Mapowanie poza zasięgiem strony.** Mapowania są w `storage.session` z domyślnym poziomem
   dostępu `TRUSTED_CONTEXTS`, więc content scripty nie czytają ich bezpośrednio, a skrypty strony
   w ogóle. Service worker oddaje mapowanie tylko dla rozmowy, której klucz zaczyna się od
-  identyfikatora strony nadawcy (np. `chatgpt:` dla karty chatgpt.com) (`lib/mapping/access.ts`). Content script z chatgpt.com nie dostanie mapowania rozmowy z Claude.ai.
+  identyfikatora strony nadawcy (np. `chatgpt:` dla karty chatgpt.com) (`lib/background/mapping/access.ts`). Content script z chatgpt.com nie dostanie mapowania rozmowy z Claude.ai.
 - **Podgląd i usuwanie mapowań tylko z popupu.** Wiadomości `ainonim/mappings-list`,
   `ainonim/mapping-delete` i `ainonim/mappings-clear` service worker obsługuje tylko wtedy, gdy
   nadawca to strona rozszerzenia: `sender.id` jest identyfikatorem AInonim, a `sender.url` leży
-  w originie `chrome-extension://<id>/` (`isExtensionPage` w `lib/mapping/access.ts`). Content
+  w originie `chrome-extension://<id>/` (`isExtensionPage` w `lib/background/mapping/access.ts`). Content
   script, także na stronie czatu, dostaje `forbidden`, zanim wiadomość zostanie w ogóle
   sprawdzona. Popup wstawia oryginały wyłącznie przez `textContent` i ich nie loguje.
 
@@ -75,7 +75,7 @@ zapisać w historii. Dotyczy to:
 - zakresów podświetlenia (CSS Custom Highlight API, `CSS.highlights`), które wskazują przywrócone
   wartości w tych samych węzłach tekstowych,
 - legendy „znacznik → oryginał” przy edytowalnym bloku ChatGPT („writing block”). Legenda jest w
-  **otwartym** shadow root (`attachShadow({ mode: 'open' })` w `lib/restore/observer.ts`), więc
+  **otwartym** shadow root (`attachShadow({ mode: 'open' })` w `lib/content/restore/observer.ts`), więc
   skrypt strony dosięga jej przez `element.shadowRoot`.
 
 AInonim chroni przed wysłaniem danych **w prompcie**, nie przed odczytaniem przez stronę tego,
@@ -88,7 +88,7 @@ ale nie uniemożliwia odczytu, bo tekst nadal jest renderowany w stronie), pokaz
 w panelu bocznym rozszerzenia (`side_panel`), poza DOM-em strony, zamiast podmiany w odpowiedzi.
 
 Ikona przy polu i panel z listą znalezionych wartości są w zamkniętych shadow root
-(`lib/ui/badge.ts`, `lib/ui/icon.ts`); skrypty strony nie sięgają do ich treści (a wartości i tak
+(`lib/content/ui/badge.ts`, `lib/content/ui/icon.ts`); skrypty strony nie sięgają do ich treści (a wartości i tak
 widzą w polu, z którego pochodzą).
 
 ### Pole przed maskowaniem
@@ -158,7 +158,7 @@ Przed wydaniem selektory sprawdza ręczna lista z [release.md](release.md).
 - Mapowania są w `storage.session`: w pamięci, znikają po zamknięciu przeglądarki (także po
   wyłączeniu lub aktualizacji rozszerzenia). Po tym czasie odpowiedzi zostają ze znacznikami.
 - Najwyżej 50 rozmów; najdawniej używane są usuwane.
-- Moduł `lib/mapping/store.ts` działa tylko w service workerze, a content script dostaje
+- Moduł `lib/background/mapping/store.ts` działa tylko w service workerze, a content script dostaje
   mapowanie przez wiadomości ze sprawdzeniem prefiksu strony.
 - Mapowanie bieżącej rozmowy jest też w pamięci content scriptu (izolowany świat), bo przywracanie
   odbywa się w karcie.

@@ -5,7 +5,7 @@ import {
   compileCustomWords,
   findCustomMatches,
   hasNestedQuantifier,
-} from '~/lib/detection/custom-words';
+} from '~/lib/shared/custom-words';
 
 const word = (value: string) => ({ value, regex: false });
 const regex = (value: string) => ({ value, regex: true });

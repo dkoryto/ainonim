@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type DetectionRules, detectionRules } from '~/lib/detection/refine';
+import { type DetectionRules, detectionRules } from '~/lib/background/refine';
 import {
   type AnalyzeRequest,
   type AnalyzeResult,
@@ -7,14 +7,14 @@ import {
   MAX_TEXT_LENGTH,
   type OffscreenRequest,
   REQUEST_TIMEOUT_MS,
-} from '~/lib/messages';
-import { MappingConflictError } from '~/lib/mapping/store';
+} from '~/lib/shared/messages';
+import { MappingConflictError } from '~/lib/background/mapping/store';
 import {
   type ManageDeps,
   type MappingStore,
   handleContentRequest,
   handleManageMessage,
-} from '~/lib/worker';
+} from '~/lib/background/worker';
 
 const PAGE = 'http://127.0.0.1/';
 const CHATGPT = 'https://chatgpt.com/c/abc';

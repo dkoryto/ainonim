@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { mapText, rangeFor, readText } from '~/lib/fields/text';
+import { mapText, rangeFor, readText } from '~/lib/content/fields/text';
 
 function editor(html: string): HTMLElement {
   const root = document.createElement('div');

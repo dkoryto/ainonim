@@ -8,7 +8,7 @@ import {
   test as base,
   chromium,
 } from '@playwright/test';
-import type { AnalyzeResponse, Mapping, RestoreResponse } from '~/lib/messages';
+import type { AnalyzeResponse, Mapping, RestoreResponse } from '~/lib/shared/messages';
 
 // The e2e build (`npm run build:e2e`): the production package plus the test bridge content script.
 const EXTENSION_PATH = resolve(import.meta.dirname, '../../.output/chrome-mv3-e2e');

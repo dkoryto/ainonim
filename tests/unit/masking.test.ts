@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EditableField } from '~/lib/fields/text';
-import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/messages';
+import type { EditableField } from '~/lib/content/fields/text';
+import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/shared/messages';
 import {
   applyChoices,
   maskSpans,
@@ -9,7 +9,7 @@ import {
   startMasking,
   type MaskingOptions,
 } from '~/lib/content/masking';
-import type { BadgeOptions, BadgeState, MaskChoice, MaskMode } from '~/lib/ui/badge';
+import type { BadgeOptions, BadgeState, MaskChoice, MaskMode } from '~/lib/content/ui/badge';
 
 // The badge is replaced by a recorder: its own rendering is covered in badge.test.ts, and here
 // only matters what the controller tells it and which buttons it wires up.
@@ -22,7 +22,7 @@ interface FakeBadge {
 
 const badges = vi.hoisted(() => [] as FakeBadge[]);
 
-vi.mock('~/lib/ui/badge', () => ({
+vi.mock('~/lib/content/ui/badge', () => ({
   createBadge: (field: EditableField, options: BadgeOptions) => {
     const badge: FakeBadge = { field, options, updates: [], destroyed: false };
     badges.push(badge);
@@ -39,8 +39,8 @@ vi.mock('~/lib/ui/badge', () => ({
 
 const paints = vi.hoisted(() => [] as { field: unknown; spans: readonly unknown[] }[]);
 
-vi.mock('~/lib/ui/highlight', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('~/lib/ui/highlight')>();
+vi.mock('~/lib/content/ui/highlight', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/lib/content/ui/highlight')>();
   return {
     ...actual,
     paintSpans: (field: EditableField, spans: readonly Span[]) => {

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearSpans, HIGHLIGHT_NAME, paintSpans } from '~/lib/ui/highlight';
+import { clearSpans, HIGHLIGHT_NAME, paintSpans } from '~/lib/content/ui/highlight';
 
 // happy-dom has neither `Highlight` nor `CSS.highlights` (and returns a new `CSS` object on every
 // read); a Highlight is a set of ranges and the registry a map from name to Highlight, which is all
@@ -101,7 +101,7 @@ describe('paintSpans', () => {
     // happy-dom drops ::highlight() rules when parsing, so read the CSS the module hands over.
     vi.resetModules();
     const replaceSync = vi.spyOn(CSSStyleSheet.prototype, 'replaceSync');
-    const fresh = await import('~/lib/ui/highlight');
+    const fresh = await import('~/lib/content/ui/highlight');
     const adopted = document.adoptedStyleSheets.length;
     const field = editor('<p>Jan Kowalski</p>');
     fresh.paintSpans(field, [spanOf(field, 'Jan')]);

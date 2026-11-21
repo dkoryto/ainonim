@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { trackConversation } from '~/lib/content/conversation';
-import type { Mapping, MappingResponse } from '~/lib/messages';
+import type { Mapping, MappingResponse } from '~/lib/shared/messages';
 import { chatgpt } from '~/lib/sites/chatgpt';
 
 const JAN: Mapping = { '<OSOBA_1>': 'Jan Kowalski' };

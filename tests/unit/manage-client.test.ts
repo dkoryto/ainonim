@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MANAGE_TIMEOUT_MS, createManageClient } from '~/lib/manage-client';
-import type { ManageRequest } from '~/lib/messages';
+import { MANAGE_TIMEOUT_MS, createManageClient } from '~/lib/pages/manage-client';
+import type { ManageRequest } from '~/lib/shared/messages';
 
 /** A worker that answers each request with `answer(request)`. */
 function clientAnswering(answer: (request: ManageRequest) => unknown) {

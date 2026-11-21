@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StoredConversation } from '~/lib/messages';
+import type { StoredConversation } from '~/lib/shared/messages';
 import {
   type StoredMappingsActions,
   conversationKeyOfUrl,
@@ -9,7 +9,7 @@ import {
   describeKey,
   orderConversations,
   tokenLabel,
-} from '~/lib/ui/stored-mappings';
+} from '~/lib/pages/stored-mappings';
 
 const CHAT = 'chatgpt:0123456789abcdef';
 const CLAUDE = 'claude:abc';

@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { isExcluded } from '~/lib/fields/editable';
+import { isExcluded } from '~/lib/content/fields/editable';
 import { gemini } from '~/lib/sites/gemini';
 import { grok } from '~/lib/sites/grok';
 import { adapterFor } from '~/lib/sites/index';

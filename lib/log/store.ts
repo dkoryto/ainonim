@@ -1,13 +1,13 @@
 // Where the masking log is kept: `storage.local` under LOG_STORAGE_KEY, oldest entry first.
 //
-// Only the service worker appends (lib/worker.ts, `ainonim/log-append`): it takes the hostname
-// from the sender's URL and the time from its own clock, checks the report, and serialises the
-// writes of every tab. The options page and the report read and clear the log directly. The
+// Only the service worker appends (lib/background/worker.ts, `ainonim/log-append`): it takes the
+// hostname from the sender's URL and the time from its own clock, checks the report, and serialises
+// the writes of every tab. The options page and the report read and clear the log directly. The
 // worker also limits `storage.local` to trusted contexts, so a content script can append through
 // the worker but cannot read the log back.
 
 import { browser } from 'wxt/browser';
-import { type LogEntry, appendEntry, parseLog } from './entries';
+import { type LogEntry, appendEntry, parseLog } from '~/lib/shared/log-entries';
 
 export const LOG_STORAGE_KEY = 'maskingLog';
 

@@ -11,7 +11,7 @@ import {
   listMappings,
   mergeMapping,
   renameMapping,
-} from '~/lib/mapping/store';
+} from '~/lib/background/mapping/store';
 
 const CHAT = 'chatgpt:abc';
 const OTHER = 'claude:xyz';

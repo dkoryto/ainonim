@@ -4,8 +4,8 @@ import { basename, join } from 'node:path';
 import { type PyodideAPI, loadPyodide } from 'pyodide';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { maskSpans } from '~/lib/content/masking';
-import { type AnalyzeResult, type Span, parseAnalyzeResult } from '~/lib/messages';
-import { POLANON_WHEEL } from '~/lib/runtime-files';
+import { type AnalyzeResult, type Span, parseAnalyzeResult } from '~/lib/shared/messages';
+import { POLANON_WHEEL } from '~/lib/offscreen/runtime-files';
 
 type BridgeFunction = (text: string, mappingJson: string) => string;
 
@@ -126,7 +126,7 @@ describe('mapping and restore', () => {
     expect(restore('<OSOBA_1:wołacz>', mapping)).toBe('Janie Kowalski');
   });
 
-  // Custom words (lib/detection/refine.ts) get `<SLOWO_n>` tokens that polanon never hands out.
+  // Custom words (lib/background/refine.ts) get `<SLOWO_n>` tokens that polanon never hands out.
   it('restores custom word tokens and finds their values again in the next text', () => {
     const mapping = { '<SLOWO_1>': 'Projekt Feniks' };
 

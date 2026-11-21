@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLIENT_TIMEOUT_MS, type SendMessage, createClient } from '~/lib/client';
-import { type ContentRequest, MAX_TEXT_LENGTH } from '~/lib/messages';
+import { CLIENT_TIMEOUT_MS, type SendMessage, createClient } from '~/lib/content/client';
+import { type ContentRequest, MAX_TEXT_LENGTH } from '~/lib/shared/messages';
 
 const analyzeResult = { anonymized: '<OSOBA_1>', spans: [], mapping: { '<OSOBA_1>': 'Jan' } };
 

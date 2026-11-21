@@ -13,7 +13,7 @@ import {
   isReadyResponse,
   isRestoreResponse,
   parseAnalyzeResult,
-} from '~/lib/messages';
+} from '~/lib/shared/messages';
 
 const analyzeResult = {
   anonymized: '<OSOBA_1>, PESEL <PESEL_1>',

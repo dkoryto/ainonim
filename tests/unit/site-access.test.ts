@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { accessText } from '~/entrypoints/popup/tab-target';
+import { accessText } from '~/lib/pages/tab-target';
 import {
   type SiteAccess,
   type SiteAccessSettings,
@@ -8,7 +8,7 @@ import {
   getSiteAccess,
   resolveSiteAccess,
   watchSiteAccess,
-} from '~/lib/site-access';
+} from '~/lib/sites/access';
 import { setAllowedSites, setSiteLevel, setSiteScope } from '~/lib/settings';
 
 beforeEach(() => {
