@@ -16,6 +16,8 @@ import {
   renameMapping,
 } from '~/lib/mapping/store';
 import { createOffscreenKeeper } from '~/lib/offscreen-document';
+import { detectionRules } from '~/lib/detection/refine';
+import { getDetectionSettings } from '~/lib/settings';
 import {
   type ManageDeps,
   type WorkerDeps,
@@ -62,6 +64,7 @@ export default defineBackground(() => {
     sendToOffscreen: (message) => browser.runtime.sendMessage(message),
     // storage.session keeps its default TRUSTED_CONTEXTS access: only this worker reads mappings.
     mappings: { get: getMapping, merge: mergeMapping, rename: renameMapping },
+    detectionRules: async () => detectionRules(await getDetectionSettings()),
   };
 
   const manageDeps: ManageDeps = {

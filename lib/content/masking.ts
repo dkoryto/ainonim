@@ -17,8 +17,11 @@ import {
   type RevertState,
   createBadge,
 } from '~/lib/ui/badge';
+import { replaceAll } from '~/lib/spans';
 import { clearSpans, paintSpans } from '~/lib/ui/highlight';
 import { labelFor } from '~/lib/ui/labels';
+
+export { maskSpans } from '~/lib/spans';
 
 export interface MaskingOptions {
   /**
@@ -53,13 +56,6 @@ interface FieldState {
   busy: boolean;
 }
 
-/** One stretch of the text and what is written in its place. */
-interface Replacement {
-  start: number;
-  end: number;
-  text: string;
-}
-
 /** How long after DOM removals the fields are checked for having left the page. */
 const SWEEP_DELAY_MS = 200;
 
@@ -70,24 +66,6 @@ function itemsOf(text: string, result: AnalyzeResult): BadgeItem[] {
     label: labelFor(span.entity_type),
     general: generalise(span, text),
   }));
-}
-
-/** `text` with each replacement's stretch replaced by its text. The stretches must not overlap. */
-function replaceAll(text: string, replacements: readonly Replacement[]): string {
-  let result = text;
-  // From the end backwards, so the offsets of the stretches still to do stay valid.
-  for (const { start, end, text: value } of [...replacements].sort((a, b) => b.start - a.start)) {
-    result = result.slice(0, start) + value + result.slice(end);
-  }
-  return result;
-}
-
-/** `text` with only `spans` replaced by their tokens. With every span of a result: `anonymized`. */
-export function maskSpans(text: string, spans: readonly Span[]): string {
-  return replaceAll(
-    text,
-    spans.map((span) => ({ start: span.start, end: span.end, text: span.token })),
-  );
 }
 
 /** `text` with each chosen span replaced by its token or by its generalised text. */

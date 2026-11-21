@@ -126,6 +126,19 @@ describe('mapping and restore', () => {
     expect(restore('<OSOBA_1:wołacz>', mapping)).toBe('Janie Kowalski');
   });
 
+  // Custom words (lib/detection/refine.ts) get `<SLOWO_n>` tokens that polanon never hands out.
+  it('restores custom word tokens and finds their values again in the next text', () => {
+    const mapping = { '<SLOWO_1>': 'Projekt Feniks' };
+
+    expect(restore('O <SLOWO_1> i <SLOWO_1:wołacz>.', JSON.stringify(mapping))).toBe(
+      'O Projekt Feniks i Projekt Feniks.',
+    );
+    const result = analyze('Jan Kowalski pisze o Projekt Feniks.', mapping);
+    expect(result.anonymized).toBe('<OSOBA_1> pisze o <SLOWO_1>.');
+    expect(result.spans.at(-1)).toMatchObject({ entity_type: 'SLOWO', token: '<SLOWO_1>' });
+    expect(result.mapping).toEqual({ ...mapping, '<OSOBA_1>': 'Jan Kowalski' });
+  });
+
   it('rejects a mapping that is not an object of strings', () => {
     expect(() => analyzeJson('Jan Kowalski', '[]')).toThrow('mapping_json');
     expect(() => restore('<OSOBA_1>', '{"<OSOBA_1>": 1}')).toThrow('mapping_json');
