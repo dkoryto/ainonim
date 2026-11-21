@@ -12,6 +12,11 @@ export interface SiteAdapter {
   /** The elements holding the model's answers, in document order, none inside another. */
   answerRoots(doc: Document): HTMLElement[];
   /**
+   * The elements holding the user's own sent messages, in document order, none inside another,
+   * never inside an answer and never the composer or inside it.
+   */
+  sentMessageRoots(doc: Document): HTMLElement[];
+  /**
    * True for an element inside a model answer, including editable blocks the site renders in an
    * answer (ChatGPT's writing block). The field watcher uses it to leave answers alone.
    */
@@ -67,6 +72,24 @@ export function outermostMatches(doc: Document, selectors: readonly string[]): H
     return found.filter((el) => !found.some((other) => other !== el && other.contains(el)));
   }
   return [];
+}
+
+/**
+ * The outermost matches of `selectors` that are neither inside an answer nor an editor, and do
+ * not hold the composer: a selector that drifts onto the input area must not reach it.
+ */
+export function sentRoots(
+  doc: Document,
+  selectors: readonly string[],
+  isAnswerElement: (el: Element) => boolean,
+  composer: HTMLElement | null,
+): HTMLElement[] {
+  return outermostMatches(doc, selectors).filter(
+    (root) =>
+      !isAnswerElement(root) &&
+      !(composer && root.contains(composer)) &&
+      closestMatch(root, '[contenteditable]:not([contenteditable="false"])') === null,
+  );
 }
 
 /** The first capture group of `pattern` in the URL's path, or null. */

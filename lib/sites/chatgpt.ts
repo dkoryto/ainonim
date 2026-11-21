@@ -7,6 +7,7 @@ import {
   outermostMatches,
   pathId,
   queryAll,
+  sentRoots,
 } from './types';
 
 const HOSTS = new Set(['chatgpt.com', 'chat.openai.com']);
@@ -27,6 +28,12 @@ const ANSWER_ROOTS = [
   '[data-chatgpt-selection-message-id] .markdown',
 ];
 
+const SENT_MESSAGE_ROOTS = [
+  '[data-message-author-role="user"]',
+  '[data-user-message-bubble]',
+  'article[data-turn="user"]',
+];
+
 // Anything inside an answer: the answer roots plus the writing block, which carries its own
 // marker in case it is ever rendered outside the response body.
 const WRITING_BLOCK = '[data-testid="chatgpt-writing-block"]';
@@ -42,13 +49,18 @@ function isAnswerElement(el: Element): boolean {
   return closestMatch(el, INSIDE_ANSWER) !== null;
 }
 
+// The writing block holds a ProseMirror editor too, so the generic fallbacks skip answers.
+function composer(doc: Document): HTMLElement | null {
+  return firstMatch(doc, COMPOSER, (el) => !isAnswerElement(el));
+}
+
 export const chatgpt: SiteAdapter = {
   id: 'chatgpt',
   matches: (url) => HOSTS.has(url.hostname),
   conversationId: (url) => pathId(url, CONVERSATION_PATH),
-  // The writing block holds a ProseMirror editor too, so the generic fallbacks skip answers.
-  composer: (doc) => firstMatch(doc, COMPOSER, (el) => !isAnswerElement(el)),
+  composer,
   answerRoots: (doc) => outermostMatches(doc, ANSWER_ROOTS),
+  sentMessageRoots: (doc) => sentRoots(doc, SENT_MESSAGE_ROOTS, isAnswerElement, composer(doc)),
   isAnswerElement,
   editableAnswerBlock: (editor) => closestMatch(editor, WRITING_BLOCK) as HTMLElement | null,
   isStreaming(answer) {

@@ -12,7 +12,7 @@ import {
 import { type Conversation, trackConversation } from '~/lib/content/conversation';
 import { startMasking } from '~/lib/content/masking';
 import type { AnalyzeResponse } from '~/lib/messages';
-import { observeAnswers } from '~/lib/restore/observer';
+import { observeMessages } from '~/lib/restore/observer';
 import { createDeclensionCache, findTokens } from '~/lib/restore/tokens';
 import {
   DEFAULT_SITE_LEVEL,
@@ -62,11 +62,11 @@ function start(adapter: SiteAdapter | null): () => void {
       refresh();
     },
   });
-  const stopAnswers = observeAnswers(adapter, document, () => conversation.mapping(), {
+  const stopMessages = observeMessages(adapter, document, () => conversation.mapping(), {
     declensions: createDeclensionCache(declineToken),
   });
   refresh = () => {
-    stopAnswers.refresh();
+    stopMessages.refresh();
   };
   const stopMasking = startMasking({
     analyze: (text, persist) => analyzeInChat(conversation, text, persist),
@@ -75,7 +75,7 @@ function start(adapter: SiteAdapter | null): () => void {
   });
   return () => {
     stopMasking();
-    stopAnswers();
+    stopMessages();
     conversation.stop();
   };
 }

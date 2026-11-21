@@ -302,7 +302,55 @@ test.describe('chat site (stand-in for chatgpt.com)', () => {
     ]);
 
     await expect(answer).toHaveText('Dzień dobry, Jan Kowalski! Witaj, Janie Kowalski.');
-    await expect(answer).toHaveAttribute('title', 'AInonim: <OSOBA_1>, <OSOBA_1:wołacz>');
+    await expect(answer).toHaveAttribute(
+      'title',
+      'AInonim\nJan Kowalski – model napisał <OSOBA_1>\n' +
+        'Janie Kowalski – model napisał <OSOBA_1:wołacz>',
+    );
+  });
+
+  test('restores the sent message, marks the values and copies only the originals', async ({
+    context,
+  }) => {
+    const page = await context.newPage();
+    await page.goto('https://chatgpt.com/c/test-sent');
+
+    await maskInComposer(page);
+    // The site renders the sent bubble from the masked text it was sent.
+    await page.evaluate(() => {
+      const message = document.createElement('div');
+      message.dataset.messageAuthorRole = 'user';
+      const text = document.createElement('div');
+      text.id = 'sent';
+      text.textContent = 'Napisz do <OSOBA_1>, PESEL <PESEL_1>.';
+      message.append(text);
+      document.querySelector('main')?.prepend(message);
+    });
+
+    const sent = page.locator('#sent');
+    await expect(sent).toHaveText('Napisz do Jan Kowalski, PESEL 50810112354.');
+    await expect(sent).toHaveAttribute(
+      'title',
+      'AInonim\nJan Kowalski – wysłano jako <OSOBA_1>\n50810112354 – wysłano jako <PESEL_1>',
+    );
+    // The composer keeps the masked text: it is never restored.
+    await expect(page.getByRole('textbox', { name: 'Zapytaj ChatGPT' })).toHaveText(
+      '<OSOBA_1>, PESEL <PESEL_1>',
+    );
+    const marked = await page.evaluate(() =>
+      [...(CSS.highlights.get('ainonim-restored') ?? [])].map((range) =>
+        (range as Range).toString(),
+      ),
+    );
+    expect(marked).toEqual(['Jan Kowalski', '50810112354']);
+    const copied = await page.evaluate(() => {
+      const selection = getSelection();
+      const node = document.getElementById('sent');
+      if (!selection || !node) return null;
+      selection.selectAllChildren(node);
+      return selection.toString();
+    });
+    expect(copied).toBe('Napisz do Jan Kowalski, PESEL 50810112354.');
   });
 
   test('moves a new chat mapping to the id the URL gets', async ({ context }) => {
