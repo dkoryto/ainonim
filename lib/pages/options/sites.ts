@@ -1,7 +1,6 @@
 // Tab "Strony": where AInonim works. The scope (every site, AI chats only, or an allow-list), the
 // chat sites AInonim supports, the allow-list and the block-list (sites set to "Wyłączone", the
 // same setting as the switch in the popup).
-import { SITE_PATTERN_PROBLEMS, parseSitePattern } from '~/lib/settings/site-patterns';
 import {
   MAX_ALLOWED_SITES,
   SYNC_ITEM_QUOTA_BYTES,
@@ -18,6 +17,8 @@ import {
   removeAllowedSite,
   setSiteLevel,
   setSiteScope,
+  SITE_PATTERN_PROBLEMS,
+  parseSitePattern,
 } from '~/lib/settings';
 import { type SiteAdapter, adapters } from '~/lib/sites';
 import { heading, make } from './dom';

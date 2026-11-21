@@ -2,7 +2,6 @@
 // AInonim") and the allow-list together. The content script starts and stops on this, the popup
 // explains it.
 import { browser } from 'wxt/browser';
-import { matchesSitePattern } from '~/lib/settings/site-patterns';
 import {
   ALLOWED_SITES_KEY,
   DEFAULT_SITE_LEVEL,
@@ -15,6 +14,7 @@ import {
   normalizeHostname,
   parseAllowedSites,
   parseSiteLevels,
+  matchesSitePattern,
 } from '~/lib/settings';
 import { adapterFor } from '~/lib/sites';
 
