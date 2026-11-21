@@ -31,9 +31,10 @@ export interface PaintSpan {
 }
 
 const fieldRanges = new WeakMap<EditableField, Range[]>();
-let sheet: CSSStyleSheet | null = null;
+const sheets = new Map<string, CSSStyleSheet>();
 
-function highlightApi(): HighlightRegistry | null {
+/** The page's highlight registry, or null when the browser lacks the Custom Highlight API. */
+export function highlightRegistry(): HighlightRegistry | null {
   return typeof CSS !== 'undefined' && 'highlights' in CSS && typeof Highlight === 'function'
     ? CSS.highlights
     : null;
@@ -48,11 +49,16 @@ function sharedHighlight(registry: HighlightRegistry): Highlight {
   return highlight;
 }
 
-// Re-checked on every paint because a page may overwrite `adoptedStyleSheets`.
-function ensureStyle(): void {
+/**
+ * Adopt a constructed stylesheet holding `css`, once per distinct `css`. Call it on every paint:
+ * a page may overwrite `adoptedStyleSheets`.
+ */
+export function adoptStyle(css: string): void {
+  let sheet = sheets.get(css);
   if (!sheet) {
     sheet = new CSSStyleSheet();
-    sheet.replaceSync(HIGHLIGHT_CSS);
+    sheet.replaceSync(css);
+    sheets.set(css, sheet);
   }
   if (!document.adoptedStyleSheets.includes(sheet)) {
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
@@ -74,7 +80,7 @@ function removeRanges(registry: HighlightRegistry, field: EditableField): void {
  * `CSS.highlights`.
  */
 export function paintSpans(field: EditableField, spans: readonly PaintSpan[]): boolean {
-  const registry = highlightApi();
+  const registry = highlightRegistry();
   if (!registry || isTextControl(field)) return false;
   removeRanges(registry, field);
   const map = mapText(field);
@@ -85,7 +91,7 @@ export function paintSpans(field: EditableField, spans: readonly PaintSpan[]): b
     if (range) ranges.push(range);
   }
   if (ranges.length === 0) return true;
-  ensureStyle();
+  adoptStyle(HIGHLIGHT_CSS);
   const highlight = sharedHighlight(registry);
   for (const range of ranges) highlight.add(range);
   fieldRanges.set(field, ranges);
@@ -94,6 +100,6 @@ export function paintSpans(field: EditableField, spans: readonly PaintSpan[]): b
 
 /** Remove the highlights painted for `field`, leaving other fields' highlights in place. */
 export function clearSpans(field: EditableField): void {
-  const registry = highlightApi();
+  const registry = highlightRegistry();
   if (registry) removeRanges(registry, field);
 }

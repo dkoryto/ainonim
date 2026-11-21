@@ -21,7 +21,7 @@ podmieniane z powrotem na oryginały, tylko w widoku strony.
 | ----------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | Tekst edytowanego pola              | DOM strony; kopia w content scripcie, service workerze i offscreen                        | jak dane, które wpisał użytkownik               |
 | Mapowanie znacznik → oryginał       | `storage.session` (pamięć), dostęp przez service worker; kopia robocza w content scripcie | jak oryginalne dane: odwraca maskowanie         |
-| Przywrócone oryginały               | DOM strony czatu (tekst odpowiedzi, atrybuty `title`, legenda)                            | jak oryginalne dane                             |
+| Przywrócone oryginały               | DOM strony czatu (tekst odpowiedzi i wysłanych wiadomości, atrybuty `title`, legenda)     | jak oryginalne dane                             |
 | Ustawienia stron                    | `storage.sync`: nazwa hosta → tryb (`warn` / `off`)                                       | niska: lista hostów, bez treści pól             |
 | Kod rozszerzenia (Pyodide, polanon) | paczka rozszerzenia                                                                       | integralność: decyduje o tym, co jest wykrywane |
 
@@ -62,9 +62,11 @@ Po przywróceniu oryginały stoją w DOM-ie strony czatu jako zwykły tekst. Skr
 je odczytać tak samo, jak każdy inny tekst na ekranie, i np. wysłać do swojego serwera albo
 zapisać w historii. Dotyczy to:
 
-- tekstu odpowiedzi (podmienione `data` węzłów tekstowych),
-- atrybutu `title` elementu z przywróconym tekstem; dziś zawiera tylko znaczniki
-  (`AInonim: <OSOBA_1>`), ale każda zmiana na „znacznik → oryginał” też trafi do DOM-u,
+- tekstu odpowiedzi i własnych wysłanych wiadomości (podmienione `data` węzłów tekstowych),
+- atrybutu `title` elementu z przywróconym tekstem: para oryginał – znacznik
+  (`Jan Kowalski – wysłano jako <OSOBA_1>`), czyli te same dane, które już stoją w tekście obok,
+- zakresów podświetlenia (CSS Custom Highlight API, `CSS.highlights`), które wskazują przywrócone
+  wartości w tych samych węzłach tekstowych,
 - legendy „znacznik → oryginał” przy edytowalnym bloku ChatGPT („writing block”). Legenda jest w
   **otwartym** shadow root (`attachShadow({ mode: 'open' })` w `lib/restore/observer.ts`), więc
   skrypt strony dosięga jej przez `element.shadowRoot`.
