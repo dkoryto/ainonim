@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import { manageClient } from '~/lib/manage-client';
 import {
+  addAllowedSite,
   getChatDisplay,
   getMaskingMode,
   getSiteLevel,
@@ -14,8 +15,9 @@ import {
   setMaskingMode,
   setSiteLevel,
 } from '~/lib/settings';
+import { type SiteAccess, watchSiteAccess } from '~/lib/site-access';
 import { conversationKeyOfUrl, createStoredMappingsView } from '~/lib/ui/stored-mappings';
-import { describeTabUrl, unsupportedNote } from './tab-target';
+import { accessText, describeTabUrl, unsupportedNote } from './tab-target';
 
 function element<T extends HTMLElement>(id: string, type: new () => T): T {
   const found = document.getElementById(id);
@@ -69,6 +71,29 @@ async function initMaskingMode(fieldset: HTMLFieldSetElement): Promise<void> {
   });
 }
 
+/** The effective state for this site, and "Dodaj do listy" when only the allow-list keeps it off. */
+function initAccess(url: string, hostname: string): void {
+  const box = element('access', HTMLDivElement);
+  const text = element('access-text', HTMLParagraphElement);
+  const allow = element('allow-site', HTMLButtonElement);
+  const show = (access: SiteAccess): void => {
+    text.textContent = accessText(access);
+    box.dataset.level = access.level;
+    allow.hidden = access.reason !== 'not-listed';
+    allow.disabled = false;
+    box.hidden = false;
+  };
+  allow.addEventListener('click', () => {
+    allow.disabled = true;
+    addAllowedSite(hostname).catch((error: unknown) => {
+      console.error('AInonim: adding the site to the list failed', error);
+      text.textContent = 'Nie udało się dodać strony do listy.';
+      allow.disabled = false;
+    });
+  });
+  watchSiteAccess(url, show);
+}
+
 async function init(): Promise<void> {
   const hostLine = element('host', HTMLParagraphElement);
   const fieldset = element('level', HTMLFieldSetElement);
@@ -95,6 +120,7 @@ async function init(): Promise<void> {
 
   const { hostname } = target;
   hostLine.textContent = hostname;
+  initAccess(tab?.url ?? '', hostname);
   showLevel(fieldset, await getSiteLevel(hostname));
   fieldset.hidden = false;
 

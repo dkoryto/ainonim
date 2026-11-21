@@ -17,6 +17,10 @@
       <label><input type="radio" name="level" value="warn" /> Ostrzegaj</label>
       <label><input type="radio" name="level" value="off" /> Wyłączone</label>
     </fieldset>
+    <div id="access" class="access" hidden>
+      <p id="access-text" class="access-text"></p>
+      <button id="allow-site" type="button" class="secondary" hidden>Dodaj do listy</button>
+    </div>
     <p id="note" class="note" hidden></p>
     <fieldset id="mask-mode">
       <legend>Maskowanie</legend>
@@ -40,7 +44,7 @@
     </fieldset>
     <section id="stored" class="stored" aria-labelledby="stored-title"></section>
     <p class="settings-link">
-      <a id="settings" href="#">Ustawienia: kategorie, własne słowa, dziennik…</a>
+      <a id="settings" href="#">Ustawienia: strony, kategorie, własne słowa…</a>
     </p>
     <p class="info">Wykrywanie działa lokalnie w przeglądarce, tekst nigdzie nie jest wysyłany.</p>
     <script type="module" src="./main.ts"></script>

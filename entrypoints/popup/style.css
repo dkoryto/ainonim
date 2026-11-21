@@ -256,3 +256,35 @@ fieldset label:has(input:focus-visible) {
 .settings-link a {
   color: var(--accent);
 }
+
+.access {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 10px;
+}
+
+.access-text {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.access[data-level='off'] .access-text {
+  color: var(--danger);
+}
+
+.access button {
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.access button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

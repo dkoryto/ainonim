@@ -405,3 +405,68 @@ ul.words {
   align-items: center;
   gap: 8px;
 }
+
+.section-title {
+  margin: 24px 0 4px;
+  font-size: 15px;
+}
+
+.sites,
+.chat-names {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chat-names li {
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.site-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+}
+
+.sites-empty {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+
+.site-add {
+  display: flex;
+  gap: 8px;
+}
+
+.site-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+
+.site-input[aria-invalid='true'] {
+  border-color: var(--danger);
+}

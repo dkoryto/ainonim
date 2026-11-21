@@ -1,6 +1,7 @@
 // The content script on every page: watches fields for personal data (lib/content/masking.ts)
 // and, on chat sites, restores tokens in the model's answers (lib/restore/observer.ts). The site's
-// level from the popup decides whether anything runs; at `off` nothing is left on the page.
+// effective level (lib/site-access.ts: the site's own level, the scope and the allow-list) decides
+// whether anything runs; at `off` nothing is left on the page.
 import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import {
@@ -21,17 +22,14 @@ import {
   type ChatDisplay,
   DEFAULT_CHAT_DISPLAY,
   DEFAULT_MASKING_MODE,
-  DEFAULT_SITE_LEVEL,
   type MaskingMode,
   type SiteLevel,
   getChatDisplay,
   getMaskingMode,
-  getSiteLevel,
   onChatDisplayChange,
   onMaskingModeChange,
-  normalizeHostname,
-  onSiteLevelChange,
 } from '~/lib/settings';
+import { watchSiteAccess } from '~/lib/site-access';
 import { type SiteAdapter, adapterFor } from '~/lib/sites';
 
 /** polanon's restore of one cased token, e.g. `<OSOBA_1:wołacz>` -> "Janie Kowalski". */
@@ -156,12 +154,9 @@ export default defineContentScript({
   matches: ['<all_urls>'],
   allFrames: true,
   runAt: 'document_idle',
-  async main(ctx) {
-    const hostname = normalizeHostname(location.hostname);
+  main(ctx) {
     const adapter = adapterFor(location.href);
     let stop: (() => void) | null = null;
-    // An object, so the check after `await` reads what the listener wrote meanwhile.
-    const seen = { change: false };
 
     const apply = (level: SiteLevel): void => {
       if (level === 'off') {
@@ -172,18 +167,13 @@ export default defineContentScript({
       }
     };
 
-    const unsubscribe = onSiteLevelChange((change) => {
-      if (change.hostname !== hostname) return;
-      seen.change = true;
-      apply(change.level);
+    // Called with the level now and again whenever the site levels, scope or allow-list change it.
+    const unsubscribe = watchSiteAccess(location.href, (access) => {
+      apply(access.level);
     });
     ctx.onInvalidated(() => {
       unsubscribe();
       apply('off');
     });
-
-    const level = await getSiteLevel(hostname).catch(() => DEFAULT_SITE_LEVEL);
-    // A change that arrived while the level was being read is newer than what was read.
-    if (!seen.change) apply(level);
   },
 });
