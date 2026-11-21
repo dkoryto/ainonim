@@ -7,7 +7,11 @@
 export const ICON_SIZE = 20;
 
 export type IconState =
-  { kind: 'analysing' } | { kind: 'found'; count: number } | { kind: 'clear' } | { kind: 'failed' };
+  | { kind: 'analysing' }
+  | { kind: 'found'; count: number }
+  | { kind: 'clear' }
+  | { kind: 'failed' }
+  | { kind: 'masked'; count: number };
 
 export const ICON_STYLE = `
 .icon {
@@ -53,6 +57,7 @@ export const ICON_STYLE = `
 .icon.found .bubble { background: #cf222e; }
 .icon.clear .bubble { background: #1a7f37; }
 .icon.failed .bubble { background: #6e7781; }
+.icon.masked .bubble { background: #0969da; }
 @media (prefers-color-scheme: dark) {
   .icon:focus-visible { outline-color: #539bf5; }
   .bubble { border-color: #22272e; }
@@ -95,7 +100,8 @@ function iconSvg(): SVGSVGElement {
 
 export interface FieldIcon {
   readonly button: HTMLButtonElement;
-  set(state: IconState): void;
+  /** Show `state`; a non-empty `note` is added to the button's name and title. */
+  set(state: IconState, note?: string): void;
 }
 
 /** What the bubble says and how a screen reader names the button. */
@@ -112,6 +118,11 @@ function describe(state: IconState): { bubble: string | null; label: string } {
       return { bubble: '✓', label: 'AInonim: nie znaleziono danych osobowych' };
     case 'failed':
       return { bubble: '!', label: 'AInonim: analiza nie powiodła się' };
+    case 'masked':
+      return {
+        bubble: state.count > 9 ? '9+' : String(state.count),
+        label: `AInonim: zamaskowano automatycznie (${String(state.count)})`,
+      };
   }
 }
 
@@ -127,8 +138,9 @@ export function createIcon(): FieldIcon {
 
   return {
     button,
-    set(state) {
-      const { bubble: text, label } = describe(state);
+    set(state, note) {
+      const { bubble: text, label: name } = describe(state);
+      const label = note ? `${name}. ${note}` : name;
       button.className = `icon ${state.kind}`;
       button.setAttribute('aria-label', label);
       button.title = label;

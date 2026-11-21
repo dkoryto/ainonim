@@ -76,7 +76,7 @@ let analyze: ReturnType<typeof vi.fn<MaskingOptions['analyze']>>;
 let warnings: string[];
 
 function start(options: Partial<MaskingOptions> = {}): void {
-  stop = startMasking({ analyze, reusePreview: true, debounceMs: DEBOUNCE_MS, ...options });
+  stop = startMasking({ analyze, reusePreview: true, debounceMs: DEBOUNCE_MS, ...options }).stop;
 }
 
 function textarea(): HTMLTextAreaElement {
@@ -229,6 +229,26 @@ describe('preview while typing', () => {
 });
 
 describe('"Zamaskuj"', () => {
+  it('reports the counts of what it wrote, and nothing for a masking that wrote nothing', async () => {
+    const onMasked = vi.fn();
+    start({ onMasked });
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    await clickMask(onlyBadge(), [
+      { span: JAN, mode: 'general' },
+      { span: PESEL, mode: 'token' },
+    ]);
+    await clickMask(onlyBadge());
+
+    expect(onMasked).toHaveBeenCalledExactlyOnceWith({
+      source: 'manual',
+      masked: 1,
+      generalised: 1,
+      categories: { PERSON: 1, PESEL: 1 },
+    });
+  });
+
   it('writes the preview result when the preview may be reused', async () => {
     start({ reusePreview: true });
     const field = textarea();

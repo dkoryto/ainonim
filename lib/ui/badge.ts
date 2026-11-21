@@ -37,10 +37,19 @@ export type BadgeStatus = 'idle' | 'analysing' | 'done' | 'failed';
  * that masking, so "Cofnij" is shown disabled. `none`: nothing to undo. */
 export type RevertState = 'none' | 'ready' | 'stale';
 
+/**
+ * A message about sending, from automatic masking: `auto-masked` after it masked `count` values
+ * before a send; `send-blocked` when it held a send back because the analysis failed, and a
+ * second send within `retryMs` goes through unmasked.
+ */
+export type BadgeNotice =
+  { kind: 'auto-masked'; count: number } | { kind: 'send-blocked'; retryMs: number };
+
 export interface BadgeState {
   status: BadgeStatus;
   items: readonly BadgeItem[];
   revert: RevertState;
+  notice?: BadgeNotice | undefined;
 }
 
 export interface BadgeOptions {
@@ -58,6 +67,11 @@ export interface Badge {
   /** Open or close the panel (the icon toggles it as well). */
   setOpen(open: boolean): void;
   isOpen(): boolean;
+  /**
+   * What "Zamaskuj zaznaczone" would mask among `items` (which may be of a newer text than the
+   * list shows): values the user unchecked are left out, values set to "ogólnie" keep that.
+   */
+  choicesFor(items: readonly BadgeItem[]): MaskChoice[];
   /** Remove the icon, the panel and every listener and observer they set up. Safe to call twice. */
   destroy(): void;
 }
@@ -103,6 +117,9 @@ const PANEL_STYLE = `
   text-align: center;
 }
 .note { margin: 0; padding: 8px 10px; color: #59636e; }
+.notice { margin: 0; padding: 6px 10px; border-bottom: 1px solid #e3e5e8; background: #eef4ff; }
+.notice.blocked { background: #fff1e5; color: #7a2e0e; }
+.notice[hidden] { display: none; }
 .list {
   list-style: none;
   margin: 0;
@@ -172,6 +189,8 @@ button:focus-visible, .pick input:focus-visible { outline: 2px solid #0969da; ou
   .head, .actions { border-color: #373e47; }
   .count { background: #5d0f12; color: #ffb8b0; }
   .note, .meta { color: #9198a1; }
+  .notice { background: #1c2c45; border-color: #373e47; }
+  .notice.blocked { background: #3d2410; color: #ffc799; }
   .item:hover { background: rgb(255 255 255 / 0.06); }
   .pick input { accent-color: #f47067; }
   .mode button { border-color: #444c56; color: #9198a1; }
@@ -293,9 +312,26 @@ function signature(items: readonly BadgeItem[]): string {
     .join('\u0001');
 }
 
-function iconStateOf(status: BadgeStatus, rows: number): IconState {
-  if (status === 'done') return rows > 0 ? { kind: 'found', count: rows } : { kind: 'clear' };
+function iconStateOf(status: BadgeStatus, rows: number, notice?: BadgeNotice): IconState {
+  if (status === 'done' && rows > 0) return { kind: 'found', count: rows };
+  // The masked text is analysed again after the write; meanwhile the icon tells what happened.
+  if (notice?.kind === 'auto-masked') return { kind: 'masked', count: notice.count };
+  if (notice?.kind === 'send-blocked') return { kind: 'failed' };
+  if (status === 'done') return { kind: 'clear' };
   return { kind: status === 'failed' ? 'failed' : 'analysing' };
+}
+
+/** The line about sending shown at the top of the panel and in the icon's title. */
+export function noticeText(notice: BadgeNotice): string {
+  if (notice.kind === 'auto-masked') {
+    return `Zamaskowano automatycznie (${String(notice.count)}). „Cofnij” przywraca tekst.`;
+  }
+  const seconds = String(Math.round(notice.retryMs / 1000));
+  return (
+    'Nie wysłano: nie udało się zamaskować danych (analiza nie powiodła się albo trwała ' +
+    'za długo). ' +
+    `Wyślij ponownie w ciągu ${seconds} s, aby wysłać tekst bez maskowania.`
+  );
 }
 
 const NOTES: Readonly<Record<BadgeStatus, string>> = {
@@ -325,6 +361,9 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
   head.append(element('span', 'title', 'AInonim'), count);
 
   const note = element('p', 'note');
+  const noticeLine = element('p', 'notice');
+  noticeLine.setAttribute('role', 'status');
+  noticeLine.hidden = true;
   const list = element('ul', 'list');
 
   const actions = element('div', 'actions');
@@ -333,7 +372,7 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
   const closeButton = makeButton('close', '×', 'Zamknij panel AInonim');
   actions.append(maskButton, revertButton, closeButton);
 
-  panel.append(head, note, list, actions);
+  panel.append(head, noticeLine, note, list, actions);
   root.append(panel);
   document.documentElement.append(host, iconHost);
 
@@ -370,16 +409,23 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
     list.hidden = rows.length === 0;
     note.hidden = rows.length > 0;
     note.textContent = NOTES[state.status];
-    icon.set(iconStateOf(state.status, rows.length));
+    const notice = state.notice ? noticeText(state.notice) : '';
+    noticeLine.hidden = notice === '';
+    noticeLine.textContent = notice;
+    noticeLine.classList.toggle('blocked', state.notice?.kind === 'send-blocked');
+    // The masked icon already names the automatic masking; a held-back send needs the whole note.
+    icon.set(
+      iconStateOf(state.status, rows.length, state.notice),
+      state.notice?.kind === 'send-blocked' ? notice : undefined,
+    );
     icon.button.setAttribute('aria-expanded', String(open));
   };
 
+  const modeOf = (key: string): MaskMode => (general.has(key) ? 'general' : 'token');
+
   maskButton.addEventListener('click', () => {
     const choices = checkedRows()
-      .flatMap((row) => {
-        const mode: MaskMode = general.has(row.key) ? 'general' : 'token';
-        return row.spans.map((span) => ({ span, mode }));
-      })
+      .flatMap((row) => row.spans.map((span) => ({ span, mode: modeOf(row.key) })))
       .sort((a, b) => a.span.start - b.span.start);
     if (choices.length > 0) options.onMask(choices);
   });
@@ -550,6 +596,7 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
   const badge: Badge = {
     update(next) {
       if (destroyed) return;
+      const previousNotice = state.notice;
       state = next;
       const items = signature(next.items);
       if (items !== shownItems) {
@@ -557,6 +604,10 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
         render(next.items);
       }
       if (next.status === 'idle') setOpen(false);
+      // A held-back send needs the user's decision, so its explanation opens by itself.
+      if (next.notice?.kind === 'send-blocked' && previousNotice?.kind !== 'send-blocked') {
+        setOpen(true);
+      }
       refresh();
       if (next.status === 'done' && rows.length > 0) options.onSelectionChange?.(selected());
       if (next.status === 'idle') iconHost.style.setProperty('display', 'none', 'important');
@@ -564,6 +615,11 @@ export function createBadge(field: EditableField, options: BadgeOptions): Badge 
     },
     setOpen,
     isOpen: () => open,
+    choicesFor: (items) =>
+      items
+        .filter((item) => !unchecked.has(rowKey(item)))
+        .map((item) => ({ span: item.span, mode: modeOf(rowKey(item)) }))
+        .sort((a, b) => a.span.start - b.span.start),
     destroy() {
       if (destroyed) return;
       destroyed = true;
