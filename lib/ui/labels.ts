@@ -31,7 +31,12 @@ const LABELS: Readonly<Record<string, string>> = {
   OTHER: 'inne',
 };
 
+/** Whether `entityType` is one of polanon's types listed here. */
+export function hasLabel(entityType: string): boolean {
+  return Object.hasOwn(LABELS, entityType);
+}
+
 /** The Polish label of an entity type; a type this list does not know keeps its raw name. */
 export function labelFor(entityType: string): string {
-  return (Object.hasOwn(LABELS, entityType) ? LABELS[entityType] : undefined) ?? entityType;
+  return (hasLabel(entityType) ? LABELS[entityType] : undefined) ?? entityType;
 }

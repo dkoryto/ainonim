@@ -1,14 +1,22 @@
-// Analyses what the user types, lists what was found in a panel and masks the values the user
-// checked there.
+// Analyses what the user types, lists what was found in a panel, masks the values the user
+// checked there (with their token or a generalised text) and undoes the last masking on request.
 //
 // Privacy rule for this file: no text of a field, no span and no mapping value is ever logged.
 // Warnings name the failure code only.
 
+import { generalise } from '~/lib/content/generalise';
 import { type EditableField, readText } from '~/lib/fields/text';
 import { watchFields } from '~/lib/fields/watch';
 import { replaceFieldText } from '~/lib/fields/write';
 import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/messages';
-import { type Badge, type BadgeItem, createBadge } from '~/lib/ui/badge';
+import {
+  type Badge,
+  type BadgeItem,
+  type BadgeStatus,
+  type MaskChoice,
+  type RevertState,
+  createBadge,
+} from '~/lib/ui/badge';
 import { clearSpans, paintSpans } from '~/lib/ui/highlight';
 import { labelFor } from '~/lib/ui/labels';
 
@@ -34,7 +42,22 @@ interface FieldState {
   /** Bumped on every new text, so an answer for an older text is dropped. */
   generation: number;
   preview: { text: string; result: AnalyzeResult } | null;
-  masking: boolean;
+  status: BadgeStatus;
+  items: BadgeItem[];
+  /**
+   * For "Cofnij": the text before the last masking with its analysis, and the text it wrote.
+   * Undoing puts that analysis back, so the panel lists the values again at once.
+   */
+  lastMask: { before: string; result: AnalyzeResult; after: string } | null;
+  /** A masking or an undo is writing into the field. */
+  busy: boolean;
+}
+
+/** One stretch of the text and what is written in its place. */
+interface Replacement {
+  start: number;
+  end: number;
+  text: string;
 }
 
 /** How long after DOM removals the fields are checked for having left the page. */
@@ -45,17 +68,38 @@ function itemsOf(text: string, result: AnalyzeResult): BadgeItem[] {
     span,
     original: text.slice(span.start, span.end),
     label: labelFor(span.entity_type),
+    general: generalise(span, text),
   }));
+}
+
+/** `text` with each replacement's stretch replaced by its text. The stretches must not overlap. */
+function replaceAll(text: string, replacements: readonly Replacement[]): string {
+  let result = text;
+  // From the end backwards, so the offsets of the stretches still to do stay valid.
+  for (const { start, end, text: value } of [...replacements].sort((a, b) => b.start - a.start)) {
+    result = result.slice(0, start) + value + result.slice(end);
+  }
+  return result;
 }
 
 /** `text` with only `spans` replaced by their tokens. With every span of a result: `anonymized`. */
 export function maskSpans(text: string, spans: readonly Span[]): string {
-  let masked = text;
-  // From the end backwards, so the offsets of the spans still to do stay valid.
-  for (const span of [...spans].sort((a, b) => b.start - a.start)) {
-    masked = masked.slice(0, span.start) + span.token + masked.slice(span.end);
-  }
-  return masked;
+  return replaceAll(
+    text,
+    spans.map((span) => ({ start: span.start, end: span.end, text: span.token })),
+  );
+}
+
+/** `text` with each chosen span replaced by its token or by its generalised text. */
+export function applyChoices(text: string, choices: readonly MaskChoice[]): string {
+  return replaceAll(
+    text,
+    choices.map(({ span, mode }) => ({
+      start: span.start,
+      end: span.end,
+      text: mode === 'general' ? generalise(span, text) : span.token,
+    })),
+  );
 }
 
 const sameSpan = (a: Span, b: Span): boolean =>
@@ -75,93 +119,130 @@ export function startMasking(options: MaskingOptions): () => void {
   const stateOf = (field: EditableField): FieldState => {
     let state = fields.get(field);
     if (!state) {
-      state = { badge: null, generation: 0, preview: null, masking: false };
+      state = {
+        badge: null,
+        generation: 0,
+        preview: null,
+        status: 'idle',
+        items: [],
+        lastMask: null,
+        busy: false,
+      };
       fields.set(field, state);
     }
     return state;
   };
 
-  const hide = (state: FieldState): void => {
-    state.badge?.update([]);
+  const revertState = (field: EditableField, state: FieldState): RevertState => {
+    if (!state.lastMask) return 'none';
+    return readText(field) === state.lastMask.after ? 'ready' : 'stale';
   };
 
-  const show = (
-    field: EditableField,
-    state: FieldState,
-    text: string,
-    result: AnalyzeResult,
-  ): void => {
+  /** Show the field's state in its badge, creating the badge for a field that has some text. */
+  const render = (field: EditableField, state: FieldState): void => {
+    if (!state.badge && state.status === 'idle') return;
     state.badge ??= createBadge(field, {
-      onMask: (selected) => {
-        void mask(field, selected);
+      onMask: (choices) => {
+        void mask(field, choices);
       },
-      onIgnore: () => {
-        // Hidden until the text changes: the next onText shows it again.
-        hide(state);
+      onRevert: () => {
+        void revert(field);
       },
       onSelectionChange: (selected) => {
         // Only while the spans still belong to the field's text (see lib/ui/highlight.ts).
         if (state.preview?.text === readText(field)) paintSpans(field, selected);
       },
     });
-    state.badge.update(itemsOf(text, result));
+    state.badge.update({
+      status: state.status,
+      items: state.items,
+      revert: revertState(field, state),
+    });
+  };
+
+  /** Forget the analysis of the field's previous text; the next one is on its way (or not). */
+  const invalidate = (field: EditableField, state: FieldState, status: BadgeStatus): void => {
+    state.generation++;
+    state.preview = null;
+    state.status = status;
+    state.items = [];
+    clearSpans(field);
   };
 
   const onText = async (field: EditableField, text: string): Promise<void> => {
     const state = stateOf(field);
+    // The icon shows only in fields the user wrote something in.
+    if (text.trim() === '') {
+      invalidate(field, state, 'idle');
+      render(field, state);
+      return;
+    }
     const generation = ++state.generation;
     state.preview = null;
+    state.status = 'analysing';
     clearSpans(field);
+    render(field, state);
     const response = await options.analyze(text, false);
     const current = fields.get(field) === state && state.generation === generation;
     if (isStopped() || !current || readText(field) !== text) return;
     if (!response.ok) {
-      hide(state);
+      invalidate(field, state, 'failed');
+      render(field, state);
       warn('analysis failed', response.code);
       return;
     }
     state.preview = { text, result: response.result };
-    if (response.result.spans.length === 0) {
-      hide(state);
-      return;
-    }
+    state.status = 'done';
+    state.items = itemsOf(text, response.result);
     // The panel reports its checked spans through onSelectionChange, which paints them.
-    show(field, state, text, response.result);
+    render(field, state);
   };
 
   const onTooLong = (field: EditableField): void => {
     const state = stateOf(field);
-    state.generation++;
-    state.preview = null;
-    clearSpans(field);
-    hide(state);
+    invalidate(field, state, 'idle');
+    render(field, state);
   };
 
-  /** Mask `selected`, spans of the preview's text that the user checked in the panel. */
-  const mask = async (field: EditableField, selected: readonly Span[]): Promise<void> => {
+  /** Write `text` into the field; afterwards the field waits for the analysis of its new text. */
+  const write = async (field: EditableField, state: FieldState, text: string): Promise<boolean> => {
+    const before = readText(field);
+    const written = await replaceFieldText(field, text);
+    // The write fired `input`, so the new text is analysed after the usual pause.
+    if (readText(field) !== before) invalidate(field, state, 'analysing');
+    return written;
+  };
+
+  /** Mask the values the user checked in the panel, spans of the preview's text. */
+  const mask = async (field: EditableField, choices: readonly MaskChoice[]): Promise<void> => {
     const state = fields.get(field);
-    if (!state || state.masking || stopped) return;
-    state.masking = true;
+    if (!state || state.busy || stopped) return;
+    state.busy = true;
     try {
       const text = readText(field);
+      const { preview } = state;
       // The panel lists the preview's values; once the text moved on, its offsets point elsewhere.
-      if (state.preview?.text !== text) {
+      if (preview?.text !== text) {
         warn('the field changed since the analysis; nothing was written');
         return;
       }
-      let spans: readonly Span[] = selected;
-      if (!options.reusePreview) {
+      let chosen: readonly MaskChoice[] = choices;
+      // Generalised values need no token, so only tokens make a persisted analysis worth it.
+      if (!options.reusePreview && choices.some((choice) => choice.mode === 'token')) {
         // Chat sites store the tokens of what is written, so analyse again with `persist` and use
         // that result's tokens for the checked spans. The conversation then keeps the mapping of
-        // every value found, the unchecked ones too; they are only ever used to restore answers.
+        // every value found, the unchecked and generalised ones too; they are only ever used to
+        // restore answers, and neither is in the text the chat receives.
         const response = await options.analyze(text, true);
         if (!response.ok) {
           warn('masking failed', response.code);
           return;
         }
-        spans = response.result.spans.filter((span) =>
-          selected.some((chosen) => sameSpan(chosen, span)),
-        );
+        chosen = choices.flatMap((choice) => {
+          if (choice.mode === 'general') return [choice];
+          const span = response.result.spans.find((found) => sameSpan(choice.span, found));
+          return span ? [{ span, mode: choice.mode }] : [];
+        });
       }
       if (isStopped() || !field.isConnected) return;
       // The user kept typing meanwhile: writing now would throw their new text away.
@@ -169,16 +250,41 @@ export function startMasking(options: MaskingOptions): () => void {
         warn('the field changed while masking; nothing was written');
         return;
       }
-      const masked = maskSpans(text, spans);
+      const masked = applyChoices(text, chosen);
       if (masked === text) return;
-      state.generation++;
-      state.preview = null;
-      const written = await replaceFieldText(field, masked);
-      clearSpans(field);
-      hide(state);
-      if (!written) warn('the page did not accept the masked text');
+      if (await write(field, state, masked)) {
+        state.lastMask = { before: text, result: preview.result, after: masked };
+      } else warn('the page did not accept the masked text');
+      if (!isStopped()) render(field, state);
     } finally {
-      state.masking = false;
+      state.busy = false;
+    }
+  };
+
+  /** "Cofnij": put back the text from before the last masking, if the field still holds its result. */
+  const revert = async (field: EditableField): Promise<void> => {
+    const state = fields.get(field);
+    if (!state?.lastMask || state.busy || stopped) return;
+    const { before, result, after } = state.lastMask;
+    if (readText(field) !== after) {
+      warn('the field changed since the masking; nothing was restored');
+      render(field, state);
+      return;
+    }
+    state.busy = true;
+    try {
+      if (await write(field, state, before)) {
+        state.lastMask = null;
+        // The text is the one analysed before the masking, so that analysis holds again.
+        state.preview = { text: before, result };
+        state.status = 'done';
+        state.items = itemsOf(before, result);
+      } else {
+        warn('the page did not accept the restored text');
+      }
+      if (!isStopped()) render(field, state);
+    } finally {
+      state.busy = false;
     }
   };
 

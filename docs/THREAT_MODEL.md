@@ -78,8 +78,9 @@ Możliwe zmiany na przyszłość (niezaplanowane w MVP): legenda w zamkniętym s
 ale nie uniemożliwia odczytu, bo tekst nadal jest renderowany w stronie), pokazywanie oryginałów
 w panelu bocznym rozszerzenia (`side_panel`), poza DOM-em strony, zamiast podmiany w odpowiedzi.
 
-Odznaka „Zamaskuj” jest w zamkniętym shadow root (`lib/ui/badge.ts`) i pokazuje tylko liczbę i
-rodzaje danych, nie wartości.
+Ikona przy polu i panel z listą znalezionych wartości są w zamkniętych shadow root
+(`lib/ui/badge.ts`, `lib/ui/icon.ts`); skrypty strony nie sięgają do ich treści (a wartości i tak
+widzą w polu, z którego pochodzą).
 
 ### Pole przed maskowaniem
 

@@ -1,11 +1,12 @@
-// The content script with the real extension: badge, masking, the per-site level, and restoring
-// answers on a stand-in for chatgpt.com. Everything is served locally (127.0.0.1 or
-// `context.route`), so the tests run offline.
+// The content script with the real extension: the icon and panel, masking, generalising, undo,
+// the per-site level, and restoring answers on a stand-in for chatgpt.com. Everything is served
+// locally (127.0.0.1 or `context.route`), so the tests run offline.
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 import { type FixtureServer, startFixtureServer } from './lib-page';
 import { analyzeInPage, expect, sendRawInPage, serviceWorker, test } from './fixtures';
+import { clickGeneral, clickMask, clickRevert, clickRow, icon, openPanel, panel } from './panel';
 
 // The parts of the chrome.* API the tests call inside the service worker.
 declare const chrome: {
@@ -16,6 +17,7 @@ declare const chrome: {
 };
 
 const ORIGINAL = 'Jan Kowalski, PESEL 50810112354';
+const MASKED = '<OSOBA_1>, PESEL <PESEL_1>';
 const CHATGPT_PAGE = resolve(import.meta.dirname, 'pages/chatgpt.html');
 
 let server: FixtureServer;
@@ -37,77 +39,88 @@ async function setLevel(context: BrowserContext, hostname: string, level: string
   );
 }
 
-/** The badge's host element; its shadow root is closed, so tests only see the host. */
-function badge(page: Page): Locator {
-  return page.locator('ainonim-badge');
-}
+type Box = { x: number; y: number; width: number; height: number };
 
-// The panel's shadow root is closed, so its controls are clicked by position. Its layout
-// (lib/ui/badge.ts): a header (~29 px), one row per value, then the actions bar with
-// "Zamaskuj zaznaczone" filling its left part, 8 px padding around a ~27 px high button.
-const HEADER_HEIGHT = 29;
-const ACTIONS_HEIGHT = 44;
-
-async function panelBox(
-  page: Page,
-): Promise<{ x: number; y: number; width: number; height: number }> {
-  const box = await badge(page).boundingBox();
-  if (!box) throw new Error('the panel is not rendered');
+async function boxOf(locator: Locator): Promise<Box> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error('missing box');
   return box;
-}
-
-/** Click "Zamaskuj zaznaczone". */
-async function clickMask(page: Page): Promise<void> {
-  const box = await panelBox(page);
-  await page.mouse.click(box.x + 40, box.y + box.height - ACTIONS_HEIGHT / 2);
-}
-
-/** Click row `index` of `rows` (its label toggles the checkbox). */
-async function clickRow(page: Page, index: number, rows: number): Promise<void> {
-  const box = await panelBox(page);
-  const rowHeight = (box.height - HEADER_HEIGHT - ACTIONS_HEIGHT) / rows;
-  await page.mouse.click(box.x + 60, box.y + HEADER_HEIGHT + rowHeight * (index + 0.5));
 }
 
 /**
  * The panel never covers the field: it sits right above it, or right below when there is no room
  * above, with its right edge on the field's right edge.
  */
-async function expectBadgeAt(page: Page, field: Locator, where: 'above' | 'below'): Promise<void> {
-  const [badgeBox, fieldBox] = await Promise.all([badge(page).boundingBox(), field.boundingBox()]);
-  if (!badgeBox || !fieldBox) throw new Error('missing box');
-  expect(Math.abs(badgeBox.x + badgeBox.width - (fieldBox.x + fieldBox.width))).toBeLessThan(1);
+async function expectPanelAt(page: Page, field: Locator, where: 'above' | 'below'): Promise<void> {
+  const [panelBox, fieldBox] = await Promise.all([boxOf(panel(page)), boxOf(field)]);
+  expect(Math.abs(panelBox.x + panelBox.width - (fieldBox.x + fieldBox.width))).toBeLessThan(1);
   if (where === 'above') {
-    expect(badgeBox.y + badgeBox.height).toBeLessThanOrEqual(fieldBox.y);
-    expect(badgeBox.y + badgeBox.height).toBeGreaterThan(fieldBox.y - 10);
+    expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(fieldBox.y);
+    expect(panelBox.y + panelBox.height).toBeGreaterThan(fieldBox.y - 10);
   } else {
-    expect(badgeBox.y).toBeGreaterThanOrEqual(fieldBox.y + fieldBox.height);
-    expect(badgeBox.y).toBeLessThan(fieldBox.y + fieldBox.height + 10);
+    expect(panelBox.y).toBeGreaterThanOrEqual(fieldBox.y + fieldBox.height);
+    expect(panelBox.y).toBeLessThan(fieldBox.y + fieldBox.height + 10);
   }
 }
 
-/** Load Pyodide first, so waiting for a badge that must not appear is not hidden by a cold start. */
+/** The icon is a 20 px square inside the field's bottom-right corner, 4 px from both edges. */
+async function expectIconInCorner(page: Page, field: Locator): Promise<void> {
+  const [iconBox, fieldBox] = await Promise.all([boxOf(icon(page)), boxOf(field)]);
+  expect(iconBox.width).toBe(20);
+  expect(iconBox.height).toBe(20);
+  expect(Math.abs(fieldBox.x + fieldBox.width - 4 - (iconBox.x + iconBox.width))).toBeLessThan(1);
+  expect(Math.abs(fieldBox.y + fieldBox.height - 4 - (iconBox.y + iconBox.height))).toBeLessThan(1);
+}
+
+/** Load Pyodide first, so waiting for an icon that must not appear is not hidden by a cold start. */
 async function warmUp(page: Page): Promise<void> {
   const response = await analyzeInPage(page, 'Jan');
   expect(response.ok).toBe(true);
 }
 
 test.describe('fields on a plain page', () => {
-  test('masks a textarea from the badge', async ({ context }) => {
+  test('shows the icon only after typing and opens the panel only from it', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('fields.html'));
+    await warmUp(page);
+    const field = page.locator('#plain');
+
+    await field.click();
+    await page.waitForTimeout(1_000);
+    await expect(icon(page)).toHaveCount(0);
+
+    await page.keyboard.type(ORIGINAL);
+    await expect(icon(page)).toBeVisible({ timeout: 15_000 });
+    await expectIconInCorner(page, field);
+    // Long enough for the analysis: the panel still waits for the icon.
+    await page.waitForTimeout(1_500);
+    await expect(panel(page)).toHaveCount(0);
+
+    await icon(page).click();
+    await expect(panel(page)).toBeVisible();
+    await expect(field).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
+  });
+
+  test('masks a textarea from the panel and undoes it', async ({ context }) => {
     const page = await context.newPage();
     await page.goto(server.url('fields.html'));
     const field = page.locator('#plain');
 
     await field.click();
     await page.keyboard.type(ORIGINAL);
-
-    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await openPanel(page, field, 2);
     // The field is at the top of the page: no room above it.
-    await expectBadgeAt(page, field, 'below');
+    await expectPanelAt(page, field, 'below');
     await clickMask(page);
 
-    await expect(field).toHaveValue('<OSOBA_1>, PESEL <PESEL_1>');
-    await expect(badge(page)).toBeHidden();
+    await expect(field).toHaveValue(MASKED);
+    // The panel stays open and offers "Cofnij".
+    await expect(panel(page)).toBeVisible();
+    await clickRevert(page);
+    await expect(field).toHaveValue(ORIGINAL);
+    await expect(field).toBeFocused();
   });
 
   test('masks only the values left checked', async ({ context }) => {
@@ -117,12 +130,44 @@ test.describe('fields on a plain page', () => {
 
     await field.click();
     await page.keyboard.type(ORIGINAL);
-    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await openPanel(page, field, 2);
     await clickRow(page, 0, 2);
     await clickMask(page);
 
     await expect(field).toHaveValue('Jan Kowalski, PESEL <PESEL_1>');
     await expect(field).toBeFocused();
+  });
+
+  test('writes a generalised value for a row set to "ogólnie"', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('fields.html'));
+    const field = page.locator('#plain');
+
+    await field.click();
+    await page.keyboard.type(ORIGINAL);
+    await openPanel(page, field, 2);
+    await clickGeneral(page, 0, 2);
+    await clickMask(page);
+
+    await expect(field).toHaveValue('[osoba], PESEL <PESEL_1>');
+    await expect(field).toBeFocused();
+  });
+
+  test('does not undo once the masked text was edited', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('fields.html'));
+    const field = page.locator('#plain');
+
+    await field.click();
+    await page.keyboard.type(ORIGINAL);
+    await openPanel(page, field, 2);
+    await clickMask(page);
+    await expect(field).toHaveValue(MASKED);
+
+    await page.keyboard.type('!');
+    await clickRevert(page);
+    await page.waitForTimeout(500);
+    await expect(field).toHaveValue(`${MASKED}!`);
   });
 
   test('masks a contenteditable editor and highlights what it found', async ({ context }) => {
@@ -133,14 +178,15 @@ test.describe('fields on a plain page', () => {
     await field.click();
     await page.keyboard.type(ORIGINAL);
 
-    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
-    await expectBadgeAt(page, field, 'above');
+    await openPanel(page, field, 2);
+    await expectPanelAt(page, field, 'above');
     expect(await page.evaluate(() => CSS.highlights.get('ainonim-pii')?.size)).toBe(2);
     await clickMask(page);
 
-    await expect(field).toHaveText('<OSOBA_1>, PESEL <PESEL_1>');
-    await expect(badge(page)).toBeHidden();
+    await expect(field).toHaveText(MASKED);
     expect(await page.evaluate(() => CSS.highlights.get('ainonim-pii')?.size ?? 0)).toBe(0);
+    await clickRevert(page);
+    await expect(field).toHaveText(ORIGINAL);
   });
 
   test('analyses text pasted into a ProseMirror editor, which fires no input', async ({
@@ -165,9 +211,9 @@ test.describe('fields on a plain page', () => {
     }, ORIGINAL);
 
     await expect(editor).toHaveText(ORIGINAL);
-    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await openPanel(page, editor, 2);
     await clickMask(page);
-    await expect(editor).toHaveText('<OSOBA_1>, PESEL <PESEL_1>');
+    await expect(editor).toHaveText(MASKED);
   });
 
   test('shows nothing for a password field', async ({ context }) => {
@@ -179,7 +225,7 @@ test.describe('fields on a plain page', () => {
     await page.keyboard.type(ORIGINAL);
     await page.waitForTimeout(1_500);
 
-    await expect(badge(page)).toHaveCount(0);
+    await expect(page.locator('ainonim-icon, ainonim-badge')).toHaveCount(0);
   });
 
   test('does nothing at level off and follows a level change', async ({ context }) => {
@@ -192,14 +238,14 @@ test.describe('fields on a plain page', () => {
     await field.click();
     await page.keyboard.type(ORIGINAL);
     await page.waitForTimeout(1_500);
-    await expect(badge(page)).toHaveCount(0);
+    await expect(page.locator('ainonim-icon, ainonim-badge')).toHaveCount(0);
 
     await setLevel(context, '127.0.0.1', 'warn');
     await page.keyboard.type('.');
-    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await expect(icon(page)).toBeVisible({ timeout: 15_000 });
 
     await setLevel(context, '127.0.0.1', 'off');
-    await expect(badge(page)).toHaveCount(0);
+    await expect(page.locator('ainonim-icon, ainonim-badge')).toHaveCount(0);
   });
 });
 
@@ -216,9 +262,9 @@ test.describe('chat site (stand-in for chatgpt.com)', () => {
     const composer = page.getByRole('textbox', { name: 'Zapytaj ChatGPT' });
     await composer.click();
     await page.keyboard.type(ORIGINAL);
-    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await openPanel(page, composer, 2);
     await clickMask(page);
-    await expect(composer).toHaveText('<OSOBA_1>, PESEL <PESEL_1>');
+    await expect(composer).toHaveText(MASKED);
   }
 
   /** Append an assistant answer the way a stream does: one text node that grows. */
