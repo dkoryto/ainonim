@@ -11,18 +11,24 @@ import {
   restoreText,
 } from '~/lib/client';
 import { type Conversation, trackConversation } from '~/lib/content/conversation';
+import { interceptSends } from '~/lib/content/auto-mask';
 import { startMasking } from '~/lib/content/masking';
+import { logMasking } from '~/lib/log/client';
 import { type AnalyzeResponse, isMappingsChangedNotice } from '~/lib/messages';
 import { observeMessages } from '~/lib/restore/observer';
 import { createDeclensionCache, findTokens } from '~/lib/restore/tokens';
 import {
   type ChatDisplay,
   DEFAULT_CHAT_DISPLAY,
+  DEFAULT_MASKING_MODE,
   DEFAULT_SITE_LEVEL,
+  type MaskingMode,
   type SiteLevel,
   getChatDisplay,
+  getMaskingMode,
   getSiteLevel,
   onChatDisplayChange,
+  onMaskingModeChange,
   normalizeHostname,
   onSiteLevelChange,
 } from '~/lib/settings';
@@ -51,10 +57,50 @@ async function analyzeInChat(
 }
 
 /** Everything AInonim does on the page while the site is not `off`. Returns the teardown. */
+/** Each masking goes to the log as counts only (lib/log/); the worker may have it turned off. */
+const onMasked = (report: Parameters<typeof logMasking>[0]): void => {
+  void logMasking(report);
+};
+
+/**
+ * Automatic masking on send, while the masking mode is `auto`. Only chat sites have it: there a
+ * send is a known button or Enter in a known composer, while on other pages Enter may mean a
+ * new line and a form may be sent many ways.
+ */
+function startAutoMask(
+  adapter: SiteAdapter,
+  masking: Parameters<typeof interceptSends>[0]['masking'],
+): () => void {
+  let mode: MaskingMode = DEFAULT_MASKING_MODE;
+  const stopMode = onMaskingModeChange((next) => {
+    mode = next;
+  });
+  void getMaskingMode()
+    .then((stored) => {
+      mode = stored;
+    })
+    .catch(() => undefined);
+  const stopSends = interceptSends({
+    doc: document,
+    adapter,
+    masking,
+    isActive: () => mode === 'auto',
+  });
+  return () => {
+    stopMode();
+    stopSends();
+  };
+}
+
 function start(adapter: SiteAdapter | null): () => void {
   if (!adapter) {
     // Outside chat sites every analysis is independent: nothing is stored.
-    return startMasking({ analyze: (text) => analyzeText(text), reusePreview: true });
+    const masking = startMasking({
+      analyze: (text) => analyzeText(text),
+      reusePreview: true,
+      onMasked,
+    });
+    return masking.stop;
   }
 
   let refresh = (): void => undefined;
@@ -84,11 +130,13 @@ function start(adapter: SiteAdapter | null): () => void {
   void getChatDisplay()
     .then(showDisplay)
     .catch(() => undefined);
-  const stopMasking = startMasking({
+  const masking = startMasking({
     analyze: (text, persist) => analyzeInChat(conversation, text, persist),
     reusePreview: false,
     exclude: (field) => adapter.isAnswerElement(field),
+    onMasked,
   });
+  const stopAutoMask = startAutoMask(adapter, masking);
   // The popup deleted stored mappings: drop this tab's copy if its conversation was among them.
   const onNotice = (message: unknown, sender: { id?: string }): undefined => {
     if (sender.id === browser.runtime.id && isMappingsChangedNotice(message)) conversation.reload();
@@ -97,7 +145,8 @@ function start(adapter: SiteAdapter | null): () => void {
   return () => {
     browser.runtime.onMessage.removeListener(onNotice);
     stopDisplay();
-    stopMasking();
+    stopAutoMask();
+    masking.stop();
     stopMessages();
     conversation.stop();
   };

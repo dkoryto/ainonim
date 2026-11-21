@@ -45,6 +45,15 @@ const STOP_BUTTON = [
   'button[aria-label="Zatrzymaj przesyłanie strumieniowe"]',
 ];
 
+// The composer's send button. While an answer streams the same place holds the stop button,
+// which none of these match.
+const SEND_BUTTON = [
+  'button[data-testid="send-button"]',
+  '#composer-submit-button',
+  'button[aria-label="Send prompt"]',
+  'button[aria-label="Wyślij polecenie"]',
+];
+
 function isAnswerElement(el: Element): boolean {
   return closestMatch(el, INSIDE_ANSWER) !== null;
 }
@@ -52,6 +61,14 @@ function isAnswerElement(el: Element): boolean {
 // The writing block holds a ProseMirror editor too, so the generic fallbacks skip answers.
 function composer(doc: Document): HTMLElement | null {
   return firstMatch(doc, COMPOSER, (el) => !isAnswerElement(el));
+}
+
+// Last resort: the submit button of the form that holds the composer, never one elsewhere.
+function sendButton(doc: Document): HTMLElement | null {
+  const found = firstMatch(doc, SEND_BUTTON, (el) => !isAnswerElement(el));
+  if (found) return found;
+  const box = composer(doc)?.closest('form');
+  return box ? (queryAll(box, 'button[type="submit"]').at(-1) ?? null) : null;
 }
 
 export const chatgpt: SiteAdapter = {
@@ -62,6 +79,7 @@ export const chatgpt: SiteAdapter = {
   answerRoots: (doc) => outermostMatches(doc, ANSWER_ROOTS),
   sentMessageRoots: (doc) => sentRoots(doc, SENT_MESSAGE_ROOTS, isAnswerElement, composer(doc)),
   isAnswerElement,
+  sendButton,
   editableAnswerBlock: (editor) => closestMatch(editor, WRITING_BLOCK) as HTMLElement | null,
   isStreaming(answer) {
     if (closestMatch(answer, '.result-streaming, [data-is-streaming="true"]')) return true;

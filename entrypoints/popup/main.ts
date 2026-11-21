@@ -2,12 +2,16 @@ import { browser } from 'wxt/browser';
 import { manageClient } from '~/lib/manage-client';
 import {
   getChatDisplay,
+  getMaskingMode,
   getSiteLevel,
   isChatDisplay,
+  isMaskingMode,
   isSiteLevel,
   onChatDisplayChange,
+  onMaskingModeChange,
   onSiteLevelChange,
   setChatDisplay,
+  setMaskingMode,
   setSiteLevel,
 } from '~/lib/settings';
 import { conversationKeyOfUrl, createStoredMappingsView } from '~/lib/ui/stored-mappings';
@@ -47,11 +51,30 @@ async function initDisplay(fieldset: HTMLFieldSetElement): Promise<void> {
   });
 }
 
+/** Manual or automatic masking: one setting for every site, like the chat display. */
+async function initMaskingMode(fieldset: HTMLFieldSetElement): Promise<void> {
+  check(fieldset, 'mask-mode', await getMaskingMode());
+  fieldset.addEventListener('change', (event) => {
+    const value = (event.target as HTMLInputElement).value;
+    if (!isMaskingMode(value)) return;
+    setMaskingMode(value).catch((error: unknown) => {
+      console.error('AInonim: saving the masking mode failed', error);
+      void getMaskingMode().then((mode) => {
+        check(fieldset, 'mask-mode', mode);
+      });
+    });
+  });
+  onMaskingModeChange((mode) => {
+    check(fieldset, 'mask-mode', mode);
+  });
+}
+
 async function init(): Promise<void> {
   const hostLine = element('host', HTMLParagraphElement);
   const fieldset = element('level', HTMLFieldSetElement);
   const note = element('note', HTMLParagraphElement);
   const stored = element('stored', HTMLElement);
+  void initMaskingMode(element('mask-mode', HTMLFieldSetElement));
   void initDisplay(element('display', HTMLFieldSetElement));
   element('settings', HTMLAnchorElement).addEventListener('click', (event) => {
     event.preventDefault();

@@ -2,9 +2,16 @@
 import {
   type ChatDisplay,
   getChatDisplay,
+  getLogEnabled,
+  getMaskingMode,
   isChatDisplay,
+  isMaskingMode,
   onChatDisplayChange,
+  onLogEnabledChange,
+  onMaskingModeChange,
   setChatDisplay,
+  setLogEnabled,
+  setMaskingMode,
 } from '~/lib/settings';
 import { heading, make } from './dom';
 
@@ -64,8 +71,68 @@ async function mountDisplay(doc: Document): Promise<HTMLFieldSetElement> {
   return group;
 }
 
+export const MASKING_MODE_OPTIONS = [
+  {
+    value: 'manual',
+    label: 'Ręcznie',
+    hint: 'Maskujesz z panelu przy polu.',
+  },
+  {
+    value: 'auto',
+    label: 'Automatycznie przy wysyłce',
+    hint:
+      'Przed wysłaniem wiadomości w czacie wszystkie znalezione dane zostają zamienione na ' +
+      'znaczniki (wybory z panelu są uwzględniane). Działa w ChatGPT i Claude.ai; na innych ' +
+      'stronach maskujesz ręcznie z panelu.',
+  },
+] as const;
+
+async function mountMaskingMode(doc: Document): Promise<HTMLFieldSetElement> {
+  const group = radioGroup(doc, 'mask-mode', 'Maskowanie', MASKING_MODE_OPTIONS);
+  checkRadio(group, await getMaskingMode());
+  group.addEventListener('change', (event) => {
+    const value = (event.target as HTMLInputElement).value;
+    if (!isMaskingMode(value)) return;
+    void setMaskingMode(value).catch(async () => {
+      checkRadio(group, await getMaskingMode());
+    });
+  });
+  onMaskingModeChange((mode) => {
+    checkRadio(group, mode);
+  });
+  return group;
+}
+
+async function mountLogSwitch(doc: Document): Promise<HTMLElement> {
+  const label = make(doc, 'label', 'switch');
+  const input = make(doc, 'input');
+  input.type = 'checkbox';
+  input.name = 'log-enabled';
+  input.checked = await getLogEnabled();
+  label.append(
+    input,
+    make(doc, 'span', 'choice-label', 'Zapisuj dziennik maskowania'),
+    make(
+      doc,
+      'span',
+      'choice-hint',
+      'Tylko liczby: kiedy, na jakiej stronie i ile danych jakiego rodzaju zamaskowano. ' +
+        'Bez treści i bez samych danych. Dziennik jest w zakładce „Dziennik”.',
+    ),
+  );
+  input.addEventListener('change', () => {
+    void setLogEnabled(input.checked).catch(async () => {
+      input.checked = await getLogEnabled();
+    });
+  });
+  onLogEnabledChange((enabled) => {
+    input.checked = enabled;
+  });
+  return label;
+}
+
 export async function mountGeneral(panel: HTMLElement): Promise<void> {
   const doc = panel.ownerDocument;
   panel.replaceChildren(...heading(doc, 'Ogólne'));
-  panel.append(await mountDisplay(doc));
+  panel.append(await mountMaskingMode(doc), await mountDisplay(doc), await mountLogSwitch(doc));
 }

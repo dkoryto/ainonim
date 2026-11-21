@@ -8,10 +8,13 @@ import { generalise } from '~/lib/content/generalise';
 import { type EditableField, readText } from '~/lib/fields/text';
 import { watchFields } from '~/lib/fields/watch';
 import { replaceFieldText } from '~/lib/fields/write';
+import { type LogSource, type MaskingReport, reportOf } from '~/lib/log/entries';
 import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/messages';
+import { TimeoutError, withTimeout } from '~/lib/timeout';
 import {
   type Badge,
   type BadgeItem,
+  type BadgeNotice,
   type BadgeStatus,
   type MaskChoice,
   type RevertState,
@@ -38,6 +41,33 @@ export interface MaskingOptions {
   exclude?: (field: EditableField) => boolean;
   /** Pause after the last keystroke before analysing. */
   debounceMs?: number;
+  /** Called after each masking that was written into a field, with its counts (for the log). */
+  onMasked?: (report: MaskingReport) => void;
+}
+
+/** What automatic masking did before a send (see `MaskingSession.maskForSend`). */
+export type SendOutcome =
+  | { kind: 'clean' }
+  | { kind: 'masked'; count: number }
+  | { kind: 'failed'; reason: 'analysis' | 'timeout' | 'write' };
+
+export interface MaskingSession {
+  /** Remove every trace from the page. Safe to call twice. */
+  stop: () => void;
+  /**
+   * True when the field's text can be sent as it is without waiting: it is empty, or its current
+   * analysis found nothing that the panel's choices would mask.
+   */
+  canSendAsIs(field: EditableField): boolean;
+  /**
+   * Mask what the field's text holds before it is sent: every value the panel has checked (all of
+   * them if the panel was never touched), each as the panel says (token or "ogólnie"). Waits for
+   * an analysis of the current text for at most `timeoutMs`. Writes like "Zamaskuj zaznaczone"
+   * does, so "Cofnij" works afterwards, and shows the count on the field's icon.
+   */
+  maskForSend(field: EditableField, timeoutMs: number): Promise<SendOutcome>;
+  /** Tell at the field that a send was held back; another send within `retryMs` goes as is. */
+  showSendBlocked(field: EditableField, retryMs: number): void;
 }
 
 interface FieldState {
@@ -54,6 +84,8 @@ interface FieldState {
   lastMask: { before: string; result: AnalyzeResult; after: string } | null;
   /** A masking or an undo is writing into the field. */
   busy: boolean;
+  /** Shown at the field while it holds `forText` (a send held back, or masked automatically). */
+  notice: { value: BadgeNotice; forText: string } | null;
 }
 
 /** How long after DOM removals the fields are checked for having left the page. */
@@ -87,8 +119,8 @@ function warn(what: string, code?: string): void {
   console.warn(`AInonim: ${what}${code === undefined ? '' : ` (${code})`}`);
 }
 
-/** Start watching the page's fields. Returns a function that removes every trace again. */
-export function startMasking(options: MaskingOptions): () => void {
+/** Start watching the page's fields. */
+export function startMasking(options: MaskingOptions): MaskingSession {
   const fields = new Map<EditableField, FieldState>();
   let stopped = false;
   // A function, so checks after an `await` read the current value.
@@ -105,6 +137,7 @@ export function startMasking(options: MaskingOptions): () => void {
         items: [],
         lastMask: null,
         busy: false,
+        notice: null,
       };
       fields.set(field, state);
     }
@@ -131,10 +164,12 @@ export function startMasking(options: MaskingOptions): () => void {
         if (state.preview?.text === readText(field)) paintSpans(field, selected);
       },
     });
+    if (state.notice && readText(field) !== state.notice.forText) state.notice = null;
     state.badge.update({
       status: state.status,
       items: state.items,
       revert: revertState(field, state),
+      notice: state.notice?.value,
     });
   };
 
@@ -191,6 +226,69 @@ export function startMasking(options: MaskingOptions): () => void {
     return written;
   };
 
+  /**
+   * The choices made on spans of an analysis that only previewed `text`, moved to the spans of an
+   * analysis that stores its tokens, where the site keeps them (chat sites). Null on failure.
+   */
+  const persistChoices = async (
+    text: string,
+    choices: readonly MaskChoice[],
+  ): Promise<readonly MaskChoice[] | null> => {
+    // Generalised values need no token, so only tokens make a persisted analysis worth it.
+    if (options.reusePreview || !choices.some((choice) => choice.mode === 'token')) return choices;
+    // Chat sites store the tokens of what is written, so analyse again with `persist` and use
+    // that result's tokens for the checked spans. The conversation then keeps the mapping of
+    // every value found, the unchecked and generalised ones too; they are only ever used to
+    // restore answers, and neither is in the text the chat receives.
+    const response = await options.analyze(text, true);
+    if (!response.ok) {
+      warn('masking failed', response.code);
+      return null;
+    }
+    return choices.flatMap((choice) => {
+      if (choice.mode === 'general') return [choice];
+      const span = response.result.spans.find((found) => sameSpan(choice.span, found));
+      return span ? [{ span, mode: choice.mode }] : [];
+    });
+  };
+
+  /**
+   * Write `text` with `chosen` applied into the field, if it still holds `text`. `result` is the
+   * analysis of `text` that "Cofnij" puts back. Returns the number of values written.
+   */
+  const writeMasked = async (
+    field: EditableField,
+    state: FieldState,
+    text: string,
+    result: AnalyzeResult,
+    chosen: readonly MaskChoice[],
+    source: LogSource,
+  ): Promise<number> => {
+    if (isStopped() || !field.isConnected) return 0;
+    // The user kept typing meanwhile: writing now would throw their new text away.
+    if (readText(field) !== text) {
+      warn('the field changed while masking; nothing was written');
+      return 0;
+    }
+    const masked = applyChoices(text, chosen);
+    if (masked === text) return 0;
+    if (!(await write(field, state, masked))) {
+      warn('the page did not accept the masked text');
+      return 0;
+    }
+    state.lastMask = { before: text, result, after: masked };
+    options.onMasked?.(
+      reportOf(
+        source,
+        chosen.map(({ span, mode }) => ({
+          entityType: span.entity_type,
+          general: mode === 'general',
+        })),
+      ),
+    );
+    return chosen.length;
+  };
+
   /** Mask the values the user checked in the panel, spans of the preview's text. */
   const mask = async (field: EditableField, choices: readonly MaskChoice[]): Promise<void> => {
     const state = fields.get(field);
@@ -204,39 +302,113 @@ export function startMasking(options: MaskingOptions): () => void {
         warn('the field changed since the analysis; nothing was written');
         return;
       }
-      let chosen: readonly MaskChoice[] = choices;
-      // Generalised values need no token, so only tokens make a persisted analysis worth it.
-      if (!options.reusePreview && choices.some((choice) => choice.mode === 'token')) {
-        // Chat sites store the tokens of what is written, so analyse again with `persist` and use
-        // that result's tokens for the checked spans. The conversation then keeps the mapping of
-        // every value found, the unchecked and generalised ones too; they are only ever used to
-        // restore answers, and neither is in the text the chat receives.
-        const response = await options.analyze(text, true);
-        if (!response.ok) {
-          warn('masking failed', response.code);
-          return;
-        }
-        chosen = choices.flatMap((choice) => {
-          if (choice.mode === 'general') return [choice];
-          const span = response.result.spans.find((found) => sameSpan(choice.span, found));
-          return span ? [{ span, mode: choice.mode }] : [];
-        });
-      }
-      if (isStopped() || !field.isConnected) return;
-      // The user kept typing meanwhile: writing now would throw their new text away.
-      if (readText(field) !== text) {
-        warn('the field changed while masking; nothing was written');
-        return;
-      }
-      const masked = applyChoices(text, chosen);
-      if (masked === text) return;
-      if (await write(field, state, masked)) {
-        state.lastMask = { before: text, result: preview.result, after: masked };
-      } else warn('the page did not accept the masked text');
+      const chosen = await persistChoices(text, choices);
+      if (!chosen) return;
+      await writeMasked(field, state, text, preview.result, chosen, 'manual');
       if (!isStopped()) render(field, state);
     } finally {
       state.busy = false;
     }
+  };
+
+  /** What the panel would mask in `text`: its choices, or every value as a token without a panel. */
+  const choicesOf = (state: FieldState, text: string, result: AnalyzeResult): MaskChoice[] => {
+    const items = itemsOf(text, result);
+    return state.badge
+      ? state.badge.choicesFor(items)
+      : items.map(({ span }) => ({ span, mode: 'token' as const }));
+  };
+
+  const canSendAsIs = (field: EditableField): boolean => {
+    const text = readText(field);
+    if (text.trim() === '') return true;
+    const state = fields.get(field);
+    if (!state || state.busy || state.preview?.text !== text) return false;
+    return choicesOf(state, text, state.preview.result).length === 0;
+  };
+
+  /** An analysis of the field's current text, shown in the panel as if the watcher had made it. */
+  const analyseNow = async (
+    field: EditableField,
+    state: FieldState,
+    text: string,
+    timeoutMs: number,
+  ): Promise<AnalyzeResult | 'analysis' | 'timeout'> => {
+    const generation = ++state.generation;
+    state.status = 'analysing';
+    render(field, state);
+    // On chat sites the tokens are stored right away, as masking would analyse again for them.
+    let response: AnalyzeResponse;
+    try {
+      response = await withTimeout(
+        options.analyze(text, !options.reusePreview),
+        timeoutMs,
+        'analysis took too long',
+      );
+    } catch (error) {
+      if (!(error instanceof TimeoutError)) throw error;
+      response = { id: '', ok: false, code: 'timeout', error: error.message };
+    }
+    const current = state.generation === generation && readText(field) === text;
+    if (!response.ok) {
+      if (current) invalidate(field, state, 'failed');
+      warn('analysis before sending failed', response.code);
+      return response.code === 'timeout' ? 'timeout' : 'analysis';
+    }
+    if (current) {
+      state.preview = { text, result: response.result };
+      state.status = 'done';
+      state.items = itemsOf(text, response.result);
+    }
+    return response.result;
+  };
+
+  const maskForSend = async (field: EditableField, timeoutMs: number): Promise<SendOutcome> => {
+    if (stopped) return { kind: 'clean' };
+    const text = readText(field);
+    if (text.trim() === '') return { kind: 'clean' };
+    const state = stateOf(field);
+    if (state.busy) return { kind: 'failed', reason: 'write' };
+    state.busy = true;
+    try {
+      const fresh = state.preview?.text !== text;
+      const result = fresh
+        ? await analyseNow(field, state, text, timeoutMs)
+        : (state.preview?.result ?? 'analysis');
+      if (typeof result === 'string') return { kind: 'failed', reason: result };
+      const choices = choicesOf(state, text, result);
+      if (choices.length === 0) {
+        if (!isStopped()) render(field, state);
+        return { kind: 'clean' };
+      }
+      // A fresh analysis on a chat site already stored its tokens.
+      const chosen = fresh
+        ? choices
+        : await withTimeout(
+            persistChoices(text, choices),
+            timeoutMs,
+            'masking took too long',
+          ).catch(() => null);
+      if (!chosen) return { kind: 'failed', reason: 'analysis' };
+      const count = await writeMasked(field, state, text, result, chosen, 'auto');
+      if (count === 0) return { kind: 'failed', reason: 'write' };
+      state.notice = {
+        value: { kind: 'auto-masked', count },
+        forText: state.lastMask?.after ?? '',
+      };
+      if (!isStopped()) render(field, state);
+      return { kind: 'masked', count };
+    } finally {
+      state.busy = false;
+    }
+  };
+
+  const showSendBlocked = (field: EditableField, retryMs: number): void => {
+    if (stopped) return;
+    const state = stateOf(field);
+    state.notice = { value: { kind: 'send-blocked', retryMs }, forText: readText(field) };
+    if (state.status === 'idle') state.status = 'failed';
+    render(field, state);
   };
 
   /** "Cofnij": put back the text from before the last masking, if the field still holds its result. */
@@ -296,12 +468,17 @@ export function startMasking(options: MaskingOptions): () => void {
     debounceMs: options.debounceMs,
   });
 
-  return () => {
-    if (stopped) return;
-    stopped = true;
-    stopWatching();
-    removals.disconnect();
-    clearTimeout(sweepTimer);
-    for (const [field, state] of fields) forget(field, state);
+  return {
+    stop() {
+      if (stopped) return;
+      stopped = true;
+      stopWatching();
+      removals.disconnect();
+      clearTimeout(sweepTimer);
+      for (const [field, state] of fields) forget(field, state);
+    },
+    canSendAsIs,
+    maskForSend,
+    showSendBlocked,
   };
 }
