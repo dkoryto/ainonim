@@ -5,6 +5,19 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-22
+
+Bez zmian w działaniu wtyczki.
+
+### Zmienione
+
+- Testy jednostkowe dla całego kodu w `lib/`: 945 testów (było 754), pokrycie 99% instrukcji i
+  97% gałęzi. Progi pokrycia w `vitest.config.ts` (95% instrukcji, funkcji i linii, 90% gałęzi,
+  co najmniej 85%/75% w każdym pliku) zatrzymują CI przy spadku.
+- Logika z `entrypoints/` przeniesiona do `lib/` (routing wiadomości service workera, start
+  skryptu na stronie, odbiór wiadomości w dokumencie offscreen, okienko wtyczki, raport), żeby
+  dało się ją testować; pliki w `entrypoints/` tylko łączą części.
+
 ## [0.4.1] - 2026-11-22
 
 Bez zmian w działaniu wtyczki.
@@ -174,7 +187,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/dkoryto/ainonim/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/dkoryto/ainonim/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/dkoryto/ainonim/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/dkoryto/ainonim/compare/v0.3.3...v0.3.4

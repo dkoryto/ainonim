@@ -8,7 +8,7 @@ Wykrywaniem zajmuje się biblioteka [polanon](https://github.com/dkoryto/polanon
 przeglądarce przez [Pyodide](https://pyodide.org). Wszystko działa lokalnie: Pyodide i polanon są
 w paczce rozszerzenia, wtyczka niczego nie pobiera i nie wysyła.
 
-Wersja: 0.4.1 (zob. [CHANGELOG.md](CHANGELOG.md)). Przetestowana automatycznie na stronach
+Wersja: 0.4.2 (zob. [CHANGELOG.md](CHANGELOG.md)). Przetestowana automatycznie na stronach
 testowych; adaptery czatów sprawdzone na żywo tylko częściowo (zob. [Ograniczenia](#ograniczenia)).
 Rozszerzenie nie jest jeszcze opublikowane w Chrome Web Store.
 
