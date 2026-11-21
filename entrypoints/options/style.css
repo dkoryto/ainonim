@@ -179,3 +179,132 @@ button:disabled {
 a {
   color: var(--accent);
 }
+
+label.switch {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  margin-bottom: 20px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.log-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.stat {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.stat dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stat dd {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.stat .stat-detail {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.log-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 0 0 16px;
+}
+
+.log-breakdown h3,
+.log-recent h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.rank {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rank li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.rank .rank-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.log-actions .confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-table-wrap {
+  overflow-x: auto;
+}
+
+table.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.log-table th,
+.log-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.log-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.log-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-more {
+  margin-top: 10px;
+}
+
+.log-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
