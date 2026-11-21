@@ -44,11 +44,11 @@ async function waitForBadge(page) {
   await page.waitForTimeout(500);
 }
 
-/** "Zamaskuj" sits 45 px from the badge's right end (as in tests/e2e/content.spec.ts). */
+/** "Zamaskuj zaznaczone" fills the left of the panel's bottom bar (see tests/e2e/content.spec.ts). */
 async function clickMask(page) {
   const box = await page.locator('ainonim-badge').boundingBox();
-  if (!box) throw new Error('the badge is not rendered');
-  await page.mouse.click(box.x + box.width - 45, box.y + box.height / 2);
+  if (!box) throw new Error('the panel is not rendered');
+  await page.mouse.click(box.x + 40, box.y + box.height - 22);
 }
 
 async function shoot(page, name) {

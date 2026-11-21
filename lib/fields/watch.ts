@@ -1,7 +1,7 @@
 // Watches the page for edits and reports the settled text of each edited field.
 
-import { findField, isExcluded } from './editable';
-import { readText, type EditableField } from './text';
+import { fieldOf, findField, isExcluded } from './editable';
+import { isTextControl, readText, type EditableField } from './text';
 
 export interface WatchOptions {
   /** Called with a field's text once the user paused typing in it. */
@@ -26,6 +26,12 @@ export const DEFAULT_MAX_LENGTH = 50_000;
 // `input` covers typing, paste, cut, drop and undo; `change` catches scripts that set a value
 // and dispatch only `change`. Assigning `.value` without any event cannot be observed here.
 const EVENTS = ['input', 'change'] as const;
+
+// Rich editors (ProseMirror, Lexical) handle paste and drop themselves: they cancel the event and
+// change their DOM in a transaction, so no `input` follows. Such an editor's root is therefore
+// also watched for DOM changes, from the moment it gets focus or a paste or drop lands in it.
+const OBSERVE_EVENTS = ['focusin', 'paste', 'drop'] as const;
+const MUTATIONS: MutationObserverInit = { characterData: true, childList: true, subtree: true };
 
 /**
  * Start watching edits under `root`. Each field gets its own debounce timer; a field's text is
@@ -60,10 +66,8 @@ export function watchFields(options: WatchOptions): () => void {
     else onText(field, text);
   };
 
-  const onEdit = (event: Event): void => {
-    if (!isEnabled()) return;
-    const field = findField(event);
-    if (!field || ignored(field)) return;
+  const schedule = (field: EditableField): void => {
+    if (!isEnabled() || ignored(field)) return;
     const previous = timers.get(field);
     if (previous !== undefined) {
       clearTimeout(previous);
@@ -78,9 +82,49 @@ export function watchFields(options: WatchOptions): () => void {
     pending.add(timer);
   };
 
+  const onEdit = (event: Event): void => {
+    if (!isEnabled()) return;
+    const field = findField(event);
+    if (field) schedule(field);
+  };
+
+  // A Map, not a WeakMap, so every observer can be disconnected when watching stops.
+  const observers = new Map<EditableField, MutationObserver>();
+  const observe = (field: EditableField | null): void => {
+    if (!field || isTextControl(field) || observers.has(field) || ignored(field)) return;
+    // Editors a single-page app replaced are dropped here, so the map does not grow without end.
+    for (const [old, observer] of observers) {
+      if (!old.isConnected) {
+        observer.disconnect();
+        observers.delete(old);
+      }
+    }
+    const observer = new MutationObserver(() => {
+      // `report` skips a text that did not change, so mutations that leave it alone cost nothing.
+      if (field.isConnected) schedule(field);
+    });
+    observer.observe(field, MUTATIONS);
+    observers.set(field, observer);
+  };
+
+  const onObserveEvent = (event: Event): void => {
+    // Observed even while disabled: the observer only schedules, and `schedule` checks again.
+    const field = findField(event);
+    observe(field);
+    // A paste or drop the editor handled itself changes the DOM after this event; the mutation
+    // observer reports that. Scheduling here covers editors that were changed before observing.
+    if (field && event.type !== 'focusin') schedule(field);
+  };
+
   for (const type of EVENTS) root.addEventListener(type, onEdit, true);
+  for (const type of OBSERVE_EVENTS) root.addEventListener(type, onObserveEvent, true);
+  // The content script may start after the user already focused an editor (or the page did).
+  if (!(root instanceof HTMLElement)) observe(fieldOf(root.activeElement));
   return () => {
     for (const type of EVENTS) root.removeEventListener(type, onEdit, true);
+    for (const type of OBSERVE_EVENTS) root.removeEventListener(type, onObserveEvent, true);
+    for (const observer of observers.values()) observer.disconnect();
+    observers.clear();
     for (const timer of pending) clearTimeout(timer);
     pending.clear();
   };

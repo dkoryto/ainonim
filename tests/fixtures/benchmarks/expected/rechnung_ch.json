@@ -5,85 +5,99 @@
       "start": 23,
       "end": 47,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     },
     {
       "start": 48,
       "end": 65,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_1>"
     },
     {
       "start": 66,
       "end": 73,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_1>"
     },
     {
       "start": 86,
       "end": 106,
       "entity_type": "TAX_ID",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NR_PODATKOWY_1>"
     },
     {
       "start": 115,
       "end": 131,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     },
     {
       "start": 132,
       "end": 155,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     },
     {
       "start": 161,
       "end": 187,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_2>"
     },
     {
       "start": 200,
       "end": 210,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 211,
       "end": 224,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_2>"
     },
     {
       "start": 225,
       "end": 231,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_2>"
     },
     {
       "start": 285,
       "end": 295,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 590,
       "end": 598,
       "entity_type": "BANK_ACCOUNT",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KONTO_1>"
     },
     {
       "start": 605,
       "end": 631,
       "entity_type": "IBAN",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<IBAN_1>"
     },
     {
       "start": 657,
       "end": 668,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     }
   ],
   "mapping": {

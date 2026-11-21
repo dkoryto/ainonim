@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { type PyodideAPI, loadPyodide } from 'pyodide';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { maskSpans } from '~/lib/content/masking';
 import { type AnalyzeResult, type Span, parseAnalyzeResult } from '~/lib/messages';
 import { POLANON_WHEEL } from '~/lib/runtime-files';
 
@@ -64,6 +65,28 @@ describe('UTF-16 offsets', () => {
       'Abc😀def123!',
       '50810112354',
     ]);
+  });
+});
+
+describe('tokens per span', () => {
+  it('gives each span the token that replaced it, with its case', () => {
+    const text = 'Umowę podpisał Jana Kowalskiego, PESEL 50810112354. Jan Kowalski potwierdza.';
+    const { anonymized, spans } = analyze(text);
+
+    expect(spans.map((span) => [text.slice(span.start, span.end), span.token])).toEqual([
+      ['Jana Kowalskiego', '<OSOBA_1>'],
+      ['50810112354', '<PESEL_1>'],
+      ['Jan Kowalski', '<OSOBA_1:mianownik>'],
+    ]);
+    expect(maskSpans(text, spans)).toBe(anonymized);
+  });
+
+  it('finds the tokens after an emoji', () => {
+    const text = '😀 Jan Kowalski, PESEL 50810112354';
+    const { anonymized, spans } = analyze(text);
+
+    expect(spans.map((span) => span.token)).toEqual(['<OSOBA_1>', '<PESEL_1>']);
+    expect(maskSpans(text, spans)).toBe(anonymized);
   });
 });
 
@@ -149,6 +172,7 @@ describe('benchmark documents', () => {
 
     expect(result).toEqual(JSON.parse(readFixture('expected', `${name}.json`)));
     expect(restore(result.anonymized, JSON.stringify(result.mapping))).toBe(text);
+    expect(maskSpans(text, result.spans)).toBe(result.anonymized);
   });
 
   it('masks at least 86% of the annotated values', () => {

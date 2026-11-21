@@ -1,4 +1,5 @@
-// Analyses what the user types, shows a badge with what was found and masks the field on request.
+// Analyses what the user types, lists what was found in a panel and masks the values the user
+// checked there.
 //
 // Privacy rule for this file: no text of a field, no span and no mapping value is ever logged.
 // Warnings name the failure code only.
@@ -6,9 +7,10 @@
 import { type EditableField, readText } from '~/lib/fields/text';
 import { watchFields } from '~/lib/fields/watch';
 import { replaceFieldText } from '~/lib/fields/write';
-import type { AnalyzeResponse, AnalyzeResult } from '~/lib/messages';
-import { type Badge, type BadgeSummary, createBadge } from '~/lib/ui/badge';
+import type { AnalyzeResponse, AnalyzeResult, Span } from '~/lib/messages';
+import { type Badge, type BadgeItem, createBadge } from '~/lib/ui/badge';
 import { clearSpans, paintSpans } from '~/lib/ui/highlight';
+import { labelFor } from '~/lib/ui/labels';
 
 export interface MaskingOptions {
   /**
@@ -38,13 +40,26 @@ interface FieldState {
 /** How long after DOM removals the fields are checked for having left the page. */
 const SWEEP_DELAY_MS = 200;
 
-const EMPTY: BadgeSummary = { count: 0, byType: {} };
-
-function summarize(result: AnalyzeResult): BadgeSummary {
-  const byType: Record<string, number> = {};
-  for (const span of result.spans) byType[span.entity_type] = (byType[span.entity_type] ?? 0) + 1;
-  return { count: result.spans.length, byType };
+function itemsOf(text: string, result: AnalyzeResult): BadgeItem[] {
+  return result.spans.map((span) => ({
+    span,
+    original: text.slice(span.start, span.end),
+    label: labelFor(span.entity_type),
+  }));
 }
+
+/** `text` with only `spans` replaced by their tokens. With every span of a result: `anonymized`. */
+export function maskSpans(text: string, spans: readonly Span[]): string {
+  let masked = text;
+  // From the end backwards, so the offsets of the spans still to do stay valid.
+  for (const span of [...spans].sort((a, b) => b.start - a.start)) {
+    masked = masked.slice(0, span.start) + span.token + masked.slice(span.end);
+  }
+  return masked;
+}
+
+const sameSpan = (a: Span, b: Span): boolean =>
+  a.start === b.start && a.end === b.end && a.entity_type === b.entity_type;
 
 function warn(what: string, code?: string): void {
   console.warn(`AInonim: ${what}${code === undefined ? '' : ` (${code})`}`);
@@ -67,21 +82,29 @@ export function startMasking(options: MaskingOptions): () => void {
   };
 
   const hide = (state: FieldState): void => {
-    state.badge?.update(EMPTY);
+    state.badge?.update([]);
   };
 
-  const show = (field: EditableField, state: FieldState, result: AnalyzeResult): void => {
+  const show = (
+    field: EditableField,
+    state: FieldState,
+    text: string,
+    result: AnalyzeResult,
+  ): void => {
     state.badge ??= createBadge(field, {
-      onMask: () => {
-        void mask(field);
+      onMask: (selected) => {
+        void mask(field, selected);
       },
       onIgnore: () => {
         // Hidden until the text changes: the next onText shows it again.
         hide(state);
       },
+      onSelectionChange: (selected) => {
+        // Only while the spans still belong to the field's text (see lib/ui/highlight.ts).
+        if (state.preview?.text === readText(field)) paintSpans(field, selected);
+      },
     });
-    state.badge.update(summarize(result));
-    paintSpans(field, result.spans);
+    state.badge.update(itemsOf(text, result));
   };
 
   const onText = async (field: EditableField, text: string): Promise<void> => {
@@ -98,8 +121,12 @@ export function startMasking(options: MaskingOptions): () => void {
       return;
     }
     state.preview = { text, result: response.result };
-    if (response.result.spans.length === 0) hide(state);
-    else show(field, state, response.result);
+    if (response.result.spans.length === 0) {
+      hide(state);
+      return;
+    }
+    // The panel reports its checked spans through onSelectionChange, which paints them.
+    show(field, state, text, response.result);
   };
 
   const onTooLong = (field: EditableField): void => {
@@ -110,22 +137,31 @@ export function startMasking(options: MaskingOptions): () => void {
     hide(state);
   };
 
-  const mask = async (field: EditableField): Promise<void> => {
+  /** Mask `selected`, spans of the preview's text that the user checked in the panel. */
+  const mask = async (field: EditableField, selected: readonly Span[]): Promise<void> => {
     const state = fields.get(field);
     if (!state || state.masking || stopped) return;
     state.masking = true;
     try {
       const text = readText(field);
-      let anonymized: string;
-      if (options.reusePreview && state.preview?.text === text) {
-        anonymized = state.preview.result.anonymized;
-      } else {
+      // The panel lists the preview's values; once the text moved on, its offsets point elsewhere.
+      if (state.preview?.text !== text) {
+        warn('the field changed since the analysis; nothing was written');
+        return;
+      }
+      let spans: readonly Span[] = selected;
+      if (!options.reusePreview) {
+        // Chat sites store the tokens of what is written, so analyse again with `persist` and use
+        // that result's tokens for the checked spans. The conversation then keeps the mapping of
+        // every value found, the unchecked ones too; they are only ever used to restore answers.
         const response = await options.analyze(text, true);
         if (!response.ok) {
           warn('masking failed', response.code);
           return;
         }
-        anonymized = response.result.anonymized;
+        spans = response.result.spans.filter((span) =>
+          selected.some((chosen) => sameSpan(chosen, span)),
+        );
       }
       if (isStopped() || !field.isConnected) return;
       // The user kept typing meanwhile: writing now would throw their new text away.
@@ -133,10 +169,11 @@ export function startMasking(options: MaskingOptions): () => void {
         warn('the field changed while masking; nothing was written');
         return;
       }
-      if (anonymized === text) return;
+      const masked = maskSpans(text, spans);
+      if (masked === text) return;
       state.generation++;
       state.preview = null;
-      const written = await replaceFieldText(field, anonymized);
+      const written = await replaceFieldText(field, masked);
       clearSpans(field);
       hide(state);
       if (!written) warn('the page did not accept the masked text');

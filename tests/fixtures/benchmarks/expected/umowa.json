@@ -5,85 +5,99 @@
       "start": 68,
       "end": 94,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     },
     {
       "start": 118,
       "end": 131,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_1>"
     },
     {
       "start": 133,
       "end": 139,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_1>"
     },
     {
       "start": 152,
       "end": 162,
       "entity_type": "NIP",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NIP_1>"
     },
     {
       "start": 170,
       "end": 179,
       "entity_type": "REGON",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<REGON_1>"
     },
     {
       "start": 202,
       "end": 220,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 256,
       "end": 277,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 291,
       "end": 305,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_2>"
     },
     {
       "start": 307,
       "end": 313,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_2>"
     },
     {
       "start": 357,
       "end": 366,
       "entity_type": "PL_ID",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<DOWOD_1>"
     },
     {
       "start": 374,
       "end": 385,
       "entity_type": "PESEL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<PESEL_1>"
     },
     {
       "start": 542,
       "end": 570,
       "entity_type": "IBAN",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<IBAN_1>"
     },
     {
       "start": 605,
       "end": 634,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     },
     {
       "start": 641,
       "end": 653,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     }
   ],
   "mapping": {

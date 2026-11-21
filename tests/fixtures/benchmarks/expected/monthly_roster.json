@@ -5,31 +5,36 @@
       "start": 22,
       "end": 36,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 45,
       "end": 59,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 76,
       "end": 90,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 124,
       "end": 128,
       "entity_type": "PERSON",
-      "score": 0.8
+      "score": 0.8,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 140,
       "end": 144,
       "entity_type": "PERSON",
-      "score": 0.8
+      "score": 0.8,
+      "token": "<OSOBA_2>"
     }
   ],
   "mapping": {

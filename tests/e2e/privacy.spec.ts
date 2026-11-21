@@ -160,9 +160,9 @@ function badge(page: Page): Locator {
 }
 
 /**
- * Type into `field`, wait for the analysis to show the badge and click "Zamaskuj". The badge's
- * shadow root is closed, so the button is clicked by position: it sits left of the "×" at the
- * pill's right end.
+ * Type into `field`, wait for the analysis to show the panel and click "Zamaskuj zaznaczone". The
+ * panel's shadow root is closed, so the button is clicked by position: it fills the left part of
+ * the panel's bottom bar (see clickMask in content.spec.ts).
  */
 async function typeAndMask(page: Page, field: Locator): Promise<void> {
   await field.click();
@@ -170,7 +170,7 @@ async function typeAndMask(page: Page, field: Locator): Promise<void> {
   await expect(badge(page)).toBeVisible({ timeout: 30_000 });
   const box = await badge(page).boundingBox();
   if (!box) throw new Error('the badge is not rendered');
-  await page.mouse.click(box.x + box.width - 45, box.y + box.height / 2);
+  await page.mouse.click(box.x + 40, box.y + box.height - 22);
   await expect(badge(page)).toHaveCount(0);
 }
 

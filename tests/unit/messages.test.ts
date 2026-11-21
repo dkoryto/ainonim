@@ -13,8 +13,8 @@ import {
 const analyzeResult = {
   anonymized: '<OSOBA_1>, PESEL <PESEL_1>',
   spans: [
-    { start: 0, end: 12, entity_type: 'PERSON', score: 0.9 },
-    { start: 20, end: 31, entity_type: 'PESEL', score: 1.0 },
+    { start: 0, end: 12, entity_type: 'PERSON', score: 0.9, token: '<OSOBA_1>' },
+    { start: 20, end: 31, entity_type: 'PESEL', score: 1.0, token: '<PESEL_1>' },
   ],
   mapping: { '<OSOBA_1>': 'Jan Kowalski', '<PESEL_1>': '50810112354' },
 };
@@ -34,7 +34,15 @@ describe('parseAnalyzeResult', () => {
       'a span with a fractional offset',
       {
         anonymized: '',
-        spans: [{ start: 0.5, end: 1, entity_type: 'PESEL', score: 1 }],
+        spans: [{ start: 0.5, end: 1, entity_type: 'PESEL', score: 1, token: '<PESEL_1>' }],
+        mapping: {},
+      },
+    ],
+    [
+      'a span without a token',
+      {
+        anonymized: '',
+        spans: [{ start: 0, end: 1, entity_type: 'PESEL', score: 1 }],
         mapping: {},
       },
     ],

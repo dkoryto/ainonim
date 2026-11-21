@@ -4,7 +4,7 @@ import { MAX_TEXT_LENGTH } from '~/lib/messages';
 
 const analyzeJson = JSON.stringify({
   anonymized: '<OSOBA_1>',
-  spans: [{ start: 0, end: 3, entity_type: 'PERSON', score: 0.9 }],
+  spans: [{ start: 0, end: 3, entity_type: 'PERSON', score: 0.9, token: '<OSOBA_1>' }],
   mapping: { '<OSOBA_1>': 'Jan' },
 });
 

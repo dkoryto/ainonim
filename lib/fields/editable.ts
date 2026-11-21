@@ -27,10 +27,17 @@ function editorRoot(element: HTMLElement): HTMLElement {
  */
 export function findField(event: Event): EditableField | null {
   for (const target of event.composedPath()) {
-    if (!(target instanceof HTMLElement)) continue;
-    if (target instanceof HTMLTextAreaElement || isTextInput(target)) return target;
-    if (target.isContentEditable) return editorRoot(target);
+    const field = fieldOf(target);
+    if (field) return field;
   }
+  return null;
+}
+
+/** The field `target` itself is: a text-like control, or the editor root it belongs to. */
+export function fieldOf(target: EventTarget | null): EditableField | null {
+  if (!(target instanceof HTMLElement)) return null;
+  if (target instanceof HTMLTextAreaElement || isTextInput(target)) return target;
+  if (target.isContentEditable) return editorRoot(target);
   return null;
 }
 

@@ -5,103 +5,120 @@
       "start": 52,
       "end": 67,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 87,
       "end": 118,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     },
     {
       "start": 125,
       "end": 137,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     },
     {
       "start": 180,
       "end": 190,
       "entity_type": "IP_ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<IP_1>"
     },
     {
       "start": 264,
       "end": 281,
       "entity_type": "MAC_ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<MAC_1>"
     },
     {
       "start": 337,
       "end": 353,
       "entity_type": "SECRET",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<SEKRET_1>"
     },
     {
       "start": 371,
       "end": 412,
       "entity_type": "SECRET",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<SEKRET_2>"
     },
     {
       "start": 427,
       "end": 453,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_2>"
     },
     {
       "start": 465,
       "end": 483,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     },
     {
       "start": 489,
       "end": 499,
       "entity_type": "NIP",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NIP_1>"
     },
     {
       "start": 507,
       "end": 516,
       "entity_type": "REGON",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<REGON_1>"
     },
     {
       "start": 545,
       "end": 553,
       "entity_type": "PLATE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<REJESTRACJA_1>"
     },
     {
       "start": 559,
       "end": 576,
       "entity_type": "VIN",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<VIN_1>"
     },
     {
       "start": 604,
       "end": 619,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 627,
       "end": 638,
       "entity_type": "PESEL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<PESEL_1>"
     },
     {
       "start": 640,
       "end": 657,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_1>"
     },
     {
       "start": 659,
       "end": 665,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_1>"
     }
   ],
   "mapping": {

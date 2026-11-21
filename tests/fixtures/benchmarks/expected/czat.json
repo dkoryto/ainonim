@@ -5,55 +5,64 @@
       "start": 123,
       "end": 141,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 205,
       "end": 219,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 265,
       "end": 281,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_3>"
     },
     {
       "start": 327,
       "end": 338,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     },
     {
       "start": 378,
       "end": 384,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_4>"
     },
     {
       "start": 441,
       "end": 449,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_5>"
     },
     {
       "start": 484,
       "end": 488,
       "entity_type": "PERSON",
-      "score": 0.8
+      "score": 0.8,
+      "token": "<OSOBA_6>"
     },
     {
       "start": 498,
       "end": 513,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_7>"
     },
     {
       "start": 515,
       "end": 541,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     }
   ],
   "mapping": {

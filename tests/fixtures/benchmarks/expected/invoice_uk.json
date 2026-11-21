@@ -5,121 +5,141 @@
       "start": 33,
       "end": 58,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     },
     {
       "start": 59,
       "end": 77,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_1>"
     },
     {
       "start": 86,
       "end": 93,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_1>"
     },
     {
       "start": 114,
       "end": 130,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_1>"
     },
     {
       "start": 138,
       "end": 166,
       "entity_type": "EMAIL",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<EMAIL_1>"
     },
     {
       "start": 179,
       "end": 193,
       "entity_type": "TAX_ID",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NR_PODATKOWY_1>"
     },
     {
       "start": 238,
       "end": 246,
       "entity_type": "COMPANY_ID",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NR_REJESTROWY_1>"
     },
     {
       "start": 257,
       "end": 283,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_2>"
     },
     {
       "start": 284,
       "end": 297,
       "entity_type": "ADDRESS",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<ADRES_2>"
     },
     {
       "start": 299,
       "end": 305,
       "entity_type": "POSTAL_CODE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KOD_POCZTOWY_2>"
     },
     {
       "start": 325,
       "end": 337,
       "entity_type": "NIP",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<NIP_1>"
     },
     {
       "start": 345,
       "end": 357,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_1>"
     },
     {
       "start": 763,
       "end": 780,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_3>"
     },
     {
       "start": 792,
       "end": 800,
       "entity_type": "BANK_ACCOUNT",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KONTO_1>"
     },
     {
       "start": 814,
       "end": 822,
       "entity_type": "BANK_ACCOUNT",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<KONTO_2>"
     },
     {
       "start": 829,
       "end": 851,
       "entity_type": "IBAN",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<IBAN_1>"
     },
     {
       "start": 917,
       "end": 931,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 935,
       "end": 948,
       "entity_type": "PHONE",
-      "score": 1.0
+      "score": 1.0,
+      "token": "<TELEFON_2>"
     },
     {
       "start": 965,
       "end": 979,
       "entity_type": "PERSON",
-      "score": 0.9
+      "score": 0.9,
+      "token": "<OSOBA_2>"
     },
     {
       "start": 980,
       "end": 1005,
       "entity_type": "ORG",
-      "score": 0.95
+      "score": 0.95,
+      "token": "<FIRMA_1>"
     }
   ],
   "mapping": {

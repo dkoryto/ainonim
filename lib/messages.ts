@@ -6,6 +6,8 @@ export interface Span {
   end: number;
   entity_type: string;
   score: number;
+  /** What stands in the span's place in `anonymized`, e.g. `<OSOBA_1>` or `<OSOBA_1:dopełniacz>`. */
+  token: string;
 }
 
 export interface AnalyzeResult {
@@ -252,7 +254,8 @@ function isSpan(value: unknown): value is Span {
     Number.isInteger(value.start) &&
     Number.isInteger(value.end) &&
     typeof value.entity_type === 'string' &&
-    typeof value.score === 'number'
+    typeof value.score === 'number' &&
+    typeof value.token === 'string'
   );
 }
 

@@ -42,24 +42,48 @@ function badge(page: Page): Locator {
   return page.locator('ainonim-badge');
 }
 
-/**
- * Click "Zamaskuj" by position. The badge is a pill: summary, "Zamaskuj", then "×" at the right
- * end (about 20 px wide), so 45 px from the right edge lands on "Zamaskuj".
- */
-async function clickMask(page: Page): Promise<void> {
+// The panel's shadow root is closed, so its controls are clicked by position. Its layout
+// (lib/ui/badge.ts): a header (~29 px), one row per value, then the actions bar with
+// "Zamaskuj zaznaczone" filling its left part, 8 px padding around a ~27 px high button.
+const HEADER_HEIGHT = 29;
+const ACTIONS_HEIGHT = 44;
+
+async function panelBox(
+  page: Page,
+): Promise<{ x: number; y: number; width: number; height: number }> {
   const box = await badge(page).boundingBox();
-  if (!box) throw new Error('the badge is not rendered');
-  await page.mouse.click(box.x + box.width - 45, box.y + box.height / 2);
+  if (!box) throw new Error('the panel is not rendered');
+  return box;
 }
 
-/** The badge sits inside the field's bottom-right corner. */
-async function expectBadgeAt(page: Page, field: Locator): Promise<void> {
+/** Click "Zamaskuj zaznaczone". */
+async function clickMask(page: Page): Promise<void> {
+  const box = await panelBox(page);
+  await page.mouse.click(box.x + 40, box.y + box.height - ACTIONS_HEIGHT / 2);
+}
+
+/** Click row `index` of `rows` (its label toggles the checkbox). */
+async function clickRow(page: Page, index: number, rows: number): Promise<void> {
+  const box = await panelBox(page);
+  const rowHeight = (box.height - HEADER_HEIGHT - ACTIONS_HEIGHT) / rows;
+  await page.mouse.click(box.x + 60, box.y + HEADER_HEIGHT + rowHeight * (index + 0.5));
+}
+
+/**
+ * The panel never covers the field: it sits right above it, or right below when there is no room
+ * above, with its right edge on the field's right edge.
+ */
+async function expectBadgeAt(page: Page, field: Locator, where: 'above' | 'below'): Promise<void> {
   const [badgeBox, fieldBox] = await Promise.all([badge(page).boundingBox(), field.boundingBox()]);
   if (!badgeBox || !fieldBox) throw new Error('missing box');
-  expect(badgeBox.x + badgeBox.width).toBeLessThanOrEqual(fieldBox.x + fieldBox.width);
-  expect(badgeBox.x + badgeBox.width).toBeGreaterThan(fieldBox.x + fieldBox.width - 20);
-  expect(badgeBox.y + badgeBox.height).toBeLessThanOrEqual(fieldBox.y + fieldBox.height);
-  expect(badgeBox.y).toBeGreaterThan(fieldBox.y);
+  expect(Math.abs(badgeBox.x + badgeBox.width - (fieldBox.x + fieldBox.width))).toBeLessThan(1);
+  if (where === 'above') {
+    expect(badgeBox.y + badgeBox.height).toBeLessThanOrEqual(fieldBox.y);
+    expect(badgeBox.y + badgeBox.height).toBeGreaterThan(fieldBox.y - 10);
+  } else {
+    expect(badgeBox.y).toBeGreaterThanOrEqual(fieldBox.y + fieldBox.height);
+    expect(badgeBox.y).toBeLessThan(fieldBox.y + fieldBox.height + 10);
+  }
 }
 
 /** Load Pyodide first, so waiting for a badge that must not appear is not hidden by a cold start. */
@@ -78,11 +102,27 @@ test.describe('fields on a plain page', () => {
     await page.keyboard.type(ORIGINAL);
 
     await expect(badge(page)).toBeVisible({ timeout: 15_000 });
-    await expectBadgeAt(page, field);
+    // The field is at the top of the page: no room above it.
+    await expectBadgeAt(page, field, 'below');
     await clickMask(page);
 
     await expect(field).toHaveValue('<OSOBA_1>, PESEL <PESEL_1>');
     await expect(badge(page)).toBeHidden();
+  });
+
+  test('masks only the values left checked', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('fields.html'));
+    const field = page.locator('#plain');
+
+    await field.click();
+    await page.keyboard.type(ORIGINAL);
+    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await clickRow(page, 0, 2);
+    await clickMask(page);
+
+    await expect(field).toHaveValue('Jan Kowalski, PESEL <PESEL_1>');
+    await expect(field).toBeFocused();
   });
 
   test('masks a contenteditable editor and highlights what it found', async ({ context }) => {
@@ -94,12 +134,40 @@ test.describe('fields on a plain page', () => {
     await page.keyboard.type(ORIGINAL);
 
     await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await expectBadgeAt(page, field, 'above');
     expect(await page.evaluate(() => CSS.highlights.get('ainonim-pii')?.size)).toBe(2);
     await clickMask(page);
 
     await expect(field).toHaveText('<OSOBA_1>, PESEL <PESEL_1>');
     await expect(badge(page)).toBeHidden();
     expect(await page.evaluate(() => CSS.highlights.get('ainonim-pii')?.size ?? 0)).toBe(0);
+  });
+
+  test('analyses text pasted into a ProseMirror editor, which fires no input', async ({
+    context,
+  }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('prosemirror.html'));
+    const editor = page.locator('.ProseMirror');
+
+    await editor.click();
+    // ProseMirror cancels the paste event and inserts the clipboard text in its own transaction.
+    await editor.evaluate((element, text) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', text);
+      const paste = new ClipboardEvent('paste', {
+        clipboardData: data,
+        bubbles: true,
+        cancelable: true,
+      });
+      element.dispatchEvent(paste);
+      if (!paste.defaultPrevented) throw new Error('the editor did not handle the paste');
+    }, ORIGINAL);
+
+    await expect(editor).toHaveText(ORIGINAL);
+    await expect(badge(page)).toBeVisible({ timeout: 15_000 });
+    await clickMask(page);
+    await expect(editor).toHaveText('<OSOBA_1>, PESEL <PESEL_1>');
   });
 
   test('shows nothing for a password field', async ({ context }) => {

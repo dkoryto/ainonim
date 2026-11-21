@@ -230,3 +230,79 @@ describe('watchFields', () => {
     expect(onText).not.toHaveBeenCalled();
   });
 });
+
+// Rich editors handle paste and drop themselves and change their DOM without an `input` event.
+describe('watchFields with editors that skip input events', () => {
+  function editor(): HTMLElement {
+    return mount('<div contenteditable="true"><p>Dzień dobry</p></div>', '[contenteditable]');
+  }
+
+  /** Change the editor's DOM the way a ProseMirror transaction does: no `input` event. */
+  function transaction(root: HTMLElement, text: string): void {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = text;
+    root.replaceChildren(paragraph);
+  }
+
+  it('reports a DOM change in a focused editor', async () => {
+    watch({ debounceMs: 100 });
+    const root = editor();
+    root.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    transaction(root, 'Jan Kowalski');
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(onText).toHaveBeenCalledExactlyOnceWith(root, 'Jan Kowalski');
+  });
+
+  it('reports a paste the editor handled itself', async () => {
+    watch({ debounceMs: 100 });
+    const root = editor();
+    const paste = new Event('paste', { bubbles: true, cancelable: true });
+    root.querySelector('p')?.dispatchEvent(paste);
+    paste.preventDefault();
+
+    transaction(root, 'PESEL 50810112354');
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(onText).toHaveBeenCalledExactlyOnceWith(root, 'PESEL 50810112354');
+  });
+
+  it('watches an editor that had focus before watching started', async () => {
+    const root = editor();
+    root.focus();
+    watch({ debounceMs: 100 });
+
+    transaction(root, 'Anna Nowak');
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(onText).toHaveBeenCalledExactlyOnceWith(root, 'Anna Nowak');
+  });
+
+  it('does not observe text controls, whose edits always fire input', async () => {
+    const observe = vi.spyOn(MutationObserver.prototype, 'observe');
+    watch();
+    const area = control('<textarea></textarea>', 'textarea');
+    area.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(observe).not.toHaveBeenCalled();
+  });
+
+  it('forgets editors that left the page and stops observing on unsubscribe', async () => {
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect');
+    watch({ debounceMs: 100 });
+    const first = editor();
+    first.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    first.remove();
+    const second = editor();
+    second.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    expect(disconnect).toHaveBeenCalledOnce();
+
+    stop?.();
+    transaction(second, 'Jan Kowalski');
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(disconnect).toHaveBeenCalledTimes(2);
+    expect(onText).not.toHaveBeenCalled();
+  });
+});
