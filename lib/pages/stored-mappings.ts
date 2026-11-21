@@ -5,7 +5,7 @@
 // (never as HTML) and never logged.
 
 import type { DoneResponse, MappingsListResponse, StoredConversation } from '~/lib/shared/messages';
-import { conversationKey } from '~/lib/background/mapping/store';
+import { conversationKey } from '~/lib/shared/conversation-key';
 import { adapterFor } from '~/lib/sites';
 
 const SITE_NAMES: Readonly<Record<string, string>> = {

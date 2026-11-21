@@ -12,13 +12,13 @@
 // Never log mapping values or include them in errors.
 
 import { browser } from 'wxt/browser';
+import { MAX_KEY_LENGTH, assertKey } from '~/lib/shared/conversation-key';
 import type { StoredConversation } from '~/lib/shared/messages';
 
 export type Mapping = Record<string, string>;
 
 export const STORAGE_KEY = 'ainonim/mappings';
 export const MAX_CONVERSATIONS = 50;
-const MAX_KEY_LENGTH = 512;
 
 interface Entry {
   usedAt: number;
@@ -36,20 +36,6 @@ export class MappingConflictError extends Error {
     this.name = 'MappingConflictError';
     this.tokens = tokens;
   }
-}
-
-/** Builds the opaque key used by the store, e.g. `chatgpt:<conversation id>`. */
-export function conversationKey(siteId: string, conversationId: string): string {
-  if (siteId === '' || siteId.includes(':')) throw new TypeError('Invalid site id');
-  if (conversationId === '') throw new TypeError('Invalid conversation id');
-  return assertKey(`${siteId}:${conversationId}`);
-}
-
-function assertKey(key: string): string {
-  if (typeof key !== 'string' || key === '' || key.length > MAX_KEY_LENGTH) {
-    throw new TypeError('Invalid conversation key');
-  }
-  return key;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

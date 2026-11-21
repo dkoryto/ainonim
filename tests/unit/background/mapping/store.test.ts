@@ -6,7 +6,6 @@ import {
   STORAGE_KEY,
   clearAll,
   clearMapping,
-  conversationKey,
   getMapping,
   listMappings,
   mergeMapping,
@@ -18,20 +17,6 @@ const OTHER = 'claude:xyz';
 
 beforeEach(() => {
   fakeBrowser.reset();
-});
-
-describe('conversationKey', () => {
-  it('joins the site and the conversation id', () => {
-    expect(conversationKey('chatgpt', 'abc')).toBe('chatgpt:abc');
-  });
-
-  it.each([
-    ['', 'abc'],
-    ['chat:gpt', 'abc'],
-    ['chatgpt', ''],
-  ])('rejects site %j with conversation %j', (site, id) => {
-    expect(() => conversationKey(site, id)).toThrow(TypeError);
-  });
 });
 
 describe('mergeMapping / getMapping', () => {

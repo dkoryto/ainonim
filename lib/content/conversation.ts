@@ -7,7 +7,7 @@
 // real key.
 
 import type { Mapping, MappingResponse } from '~/lib/shared/messages';
-import { conversationKey } from '~/lib/background/mapping/store';
+import { conversationKey } from '~/lib/shared/conversation-key';
 import type { SiteAdapter } from '~/lib/sites';
 
 /** How often the URL is compared when the Navigation API does not report a change. */
