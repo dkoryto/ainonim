@@ -4,11 +4,13 @@ import { mountAbout } from '~/lib/ui/options/about';
 import { mountCategories } from '~/lib/ui/options/categories';
 import { mountGeneral } from '~/lib/ui/options/general';
 import { mountLog } from '~/lib/ui/options/log';
+import { mountSites } from '~/lib/ui/options/sites';
 import { mountWords } from '~/lib/ui/options/words';
 import { setupTabs } from './tabs';
 
 const MOUNTS: Record<string, (panel: HTMLElement) => void | Promise<void>> = {
   general: mountGeneral,
+  sites: mountSites,
   categories: mountCategories,
   words: mountWords,
   log: mountLog,

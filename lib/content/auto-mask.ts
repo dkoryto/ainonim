@@ -1,8 +1,9 @@
-// Automatic masking on send (setting `maskMode: 'auto'`, chat sites only). A send from the
-// composer, Enter or a click on the site's send button, is caught in the capture phase on the
-// window, before any handler of the page sees it. If the text holds values to mask, the event is
-// stopped, the values are masked (lib/content/masking.ts) and the message is sent again with a
-// click on the send button, or a new Enter when there is none. That second send is let through.
+// Automatic masking on send (setting `maskMode: 'auto'`, or `'typing'` as a safety net; chat
+// sites only). A send from the composer, Enter or a click on the site's send button, is caught in
+// the capture phase on the window, before any handler of the page sees it. If the text holds
+// values to mask, the event is stopped, the values are masked (lib/content/masking.ts) and the
+// message is sent again with a click on the send button, or a new Enter when there is none. That
+// second send is let through.
 //
 // When the analysis fails or takes too long nothing is sent: the icon says so, and a second send
 // within RETRY_WINDOW_MS goes through unmasked, so the user decides.

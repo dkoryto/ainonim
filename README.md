@@ -23,8 +23,14 @@ bezczynności i interpreter trzeba by ładować od nowa.
 
 Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkich ramkach:
 
-- Czyta poziom strony z popupu (`lib/settings.ts`); przy `off` nic nie robi i usuwa wszystko,
-  co dodał.
+- Sprawdza, czy ma działać na tej stronie (`lib/site-access.ts`), i reaguje na każdą zmianę.
+  Zakładka „Strony” w ustawieniach wybiera, gdzie AInonim działa (`siteScope` w `storage.sync`):
+  na wszystkich stronach (domyślnie), tylko w obsługiwanych czatach AI albo tylko na stronach z
+  listy (`allowedSites`, najwyżej 200 wpisów; `*.example.com` obejmuje domenę i jej subdomeny).
+  Strony ustawione na „Wyłączone” (w okienku wtyczki albo na liście wyłączonych stron,
+  `siteLevels`) są wyłączone zawsze. Okienko wtyczki pokazuje, czy AInonim działa na bieżącej
+  stronie i dlaczego nie; poza listą oferuje „Dodaj do listy”. Przy `off` content script nic nie
+  robi i usuwa wszystko, co dodał.
 - Po przerwie w pisaniu (`lib/fields/watch.ts`) wysyła tekst pola do analizy. W prawym dolnym
   rogu pola, w którym coś wpisano, pokazuje ikonę AInonim ze stanem analizy (pulsuje w trakcie,
   czerwona liczba znalezionych danych albo zielony znaczek, gdy nic nie znalazła), a w edytorach
@@ -34,7 +40,7 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   adresu, `[osoba]`; `lib/content/generalise.ts`, bez zapisu w mapowaniu). „Zamaskuj
   zaznaczone” wpisuje wynik w pole, „Cofnij” przywraca tekst sprzed ostatniego maskowania, dopóki
   pole go nie zmieniło. Esc albo „×” zamyka panel.
-- Na ChatGPT, Claude.ai, Gemini, Grok i Perplexity (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
+- Na ChatGPT, Claude.ai, Gemini, Grok, Perplexity, Kimi, DeepSeek, Mistral Le Chat, Microsoft Copilot i Qwen (`lib/sites/`) tokeny w jednej rozmowie są wspólne: mapowanie
   „zastępnik → oryginał” trzyma service worker w `storage.session` (tylko w pamięci), a strona
   dostaje je tylko dla własnej witryny. Nowa rozmowa ma klucz tymczasowy, który po nadaniu
   identyfikatora w adresie przechodzi na właściwy. W odpowiedziach modelu i we własnych
@@ -62,6 +68,18 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   wysyła, ikona i panel mówią, że drugie wysłanie w ciągu 5 s pójdzie bez maskowania. Ikona
   pokazuje „zamaskowano automatycznie (N)”, „Cofnij” działa, dopóki tekst nie zniknie z pola. Na
   innych stronach tryb automatyczny nic nie zmienia: maskuje się z panelu.
+- Maskowanie podczas pisania (ustawienie „Automatycznie podczas pisania”, `maskMode: 'typing'`;
+  w okienku wtyczki „Przy pisaniu”): na każdej stronie, na której AInonim działa, pole jest
+  maskowane samo 1,5 s po ostatniej zmianie, gdy analiza tekstu się skończyła
+  (`lib/content/typing-mask.ts`). Nigdy w trakcie kompozycji IME, nigdy w tekst, który zmienił
+  się od analizy, a w edytor contenteditable dopiero, gdy ma fokus; kursor zostaje na końcu.
+  Ikona pokazuje „zamaskowano automatycznie (N)”, „Cofnij” przywraca tekst i AInonim nie maskuje
+  go znowu, dopóki się nie zmieni. W czatach mapowanie zapisuje się jak przy „Zamaskuj
+  zaznaczone”, a maskowanie przy wysyłce działa dodatkowo jako zabezpieczenie. W dzienniku
+  wpis ma sposób „automatycznie”.
+- Domyślna zamiana dla każdej kategorii (zakładka „Kategorie”, przełącznik „znacznik | ogólnie”
+  obok kategorii i dla własnych słów; `categoryModes` w `storage.sync`, zapisywane tylko
+  „ogólnie”): od niej zaczyna przełącznik w panelu i według niej maskuje tryb automatyczny.
 - Dziennik maskowania (zakładka „Dziennik” w ustawieniach, `lib/log/`): każde maskowanie,
   ręczne i automatyczne, dopisuje wpis z czasem, nazwą hosta, sposobem i liczbą danych według
   kategorii, bez wartości, znaczników i treści. Wpisy dopisuje tylko service worker (wiadomość
@@ -134,7 +152,8 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 - W trybie ręcznym (domyślnym) nic nie jest maskowane automatycznie: tekst wysłany bez kliknięcia
   „Zamaskuj” idzie z danymi. Tryb automatyczny działa tylko na tych pięciu czatach i tylko dla
   wysłania Enterem lub przyciskiem wysyłania; strona, która wysyła inaczej (np. własnym skrótem),
-  nie zostanie zatrzymana.
+  nie zostanie zatrzymana. W trybie „podczas pisania” tekst wysłany szybciej niż po 1,5 s przerwy
+  poza tymi czatami nie zostanie zamaskowany.
 - Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi i wysłanych wiadomości,
   atrybuty `title`, legenda przy bloku edytora ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
   nie to, co strona wyświetla.

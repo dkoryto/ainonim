@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
-import { ENGINE_ENTITY_TYPES } from './ui/labels';
+import { parseSitePattern } from './site-patterns';
+import { CUSTOM_ENTITY_TYPE, ENGINE_ENTITY_TYPES } from './ui/labels';
 
 /**
  * How AInonim behaves on one site. Levels are ordered from the most to the least active; a
@@ -302,11 +303,13 @@ export async function getDetectionSettings(): Promise<DetectionSettings> {
   };
 }
 /**
- * When AInonim masks: `manual` only from the panel at the field, `auto` also on its own when a
- * message is sent from a chat site's composer (lib/content/auto-mask.ts). Other pages always
- * work manually. One setting for every site, synced like the others.
+ * When AInonim masks: `manual` only from the panel at the field; `auto` also on its own when a
+ * message is sent from a chat site's composer (lib/content/auto-mask.ts), other pages working
+ * manually; `typing` on every page as soon as the user pauses typing (lib/content/typing-mask.ts),
+ * and on chat sites again on send, should anything be left. One setting for every site, synced
+ * like the others. A version that does not know a stored mode reads it as the default.
  */
-export const MASKING_MODES = ['manual', 'auto'] as const;
+export const MASKING_MODES = ['manual', 'auto', 'typing'] as const;
 export type MaskingMode = (typeof MASKING_MODES)[number];
 
 export const DEFAULT_MASKING_MODE: MaskingMode = 'manual';
@@ -368,3 +371,196 @@ export const onMaskingModeChange = maskingMode.onChange;
 export const getLogEnabled = logEnabled.get;
 export const setLogEnabled = logEnabled.set;
 export const onLogEnabledChange = logEnabled.onChange;
+
+/**
+ * Where AInonim works: `all` on every site, `chats` only on the AI chat sites it has an adapter
+ * for (lib/sites), `list` only on the user's allow-list. Sites set to `off` (SITE_LEVELS_KEY) stay
+ * off in every scope. lib/site-access.ts combines the three into a site's effective level.
+ */
+export const SITE_SCOPES = ['all', 'chats', 'list'] as const;
+export type SiteScope = (typeof SITE_SCOPES)[number];
+
+export const DEFAULT_SITE_SCOPE: SiteScope = 'all';
+
+/** storage.sync key holding the SiteScope; absent means the default. */
+export const SITE_SCOPE_KEY = 'siteScope';
+
+export function isSiteScope(value: unknown): value is SiteScope {
+  return typeof value === 'string' && (SITE_SCOPES as readonly string[]).includes(value);
+}
+
+const siteScope = syncedSetting(SITE_SCOPE_KEY, isSiteScope, DEFAULT_SITE_SCOPE);
+
+export const getSiteScope = siteScope.get;
+export const setSiteScope = siteScope.set;
+export const onSiteScopeChange = siteScope.onChange;
+
+/** storage.sync key holding the allow-list: canonical patterns from lib/site-patterns.ts. */
+export const ALLOWED_SITES_KEY = 'allowedSites';
+export const MAX_ALLOWED_SITES = 200;
+
+/** Thrown when the allow-list does not fit into one storage.sync item. */
+export class SiteListTooLargeError extends Error {
+  constructor(bytes: number) {
+    super(
+      `The list takes ${String(bytes)} bytes; storage.sync holds ${String(SYNC_ITEM_QUOTA_BYTES)}.`,
+    );
+    this.name = 'SiteListTooLargeError';
+  }
+}
+
+/** Usable patterns from a stored value, canonical, without duplicates, at most MAX_ALLOWED_SITES. */
+export function parseAllowedSites(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const sites: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const parsed = parseSitePattern(item);
+    if (!parsed.ok || sites.includes(parsed.pattern)) continue;
+    sites.push(parsed.pattern);
+    if (sites.length === MAX_ALLOWED_SITES) break;
+  }
+  return sites;
+}
+
+export async function getAllowedSites(): Promise<string[]> {
+  const stored = await browser.storage.sync.get(ALLOWED_SITES_KEY);
+  return parseAllowedSites(stored[ALLOWED_SITES_KEY]);
+}
+
+/** Store the usable patterns of `sites`; rejects with SiteListTooLargeError before writing. */
+export async function setAllowedSites(sites: readonly string[]): Promise<void> {
+  const parsed = parseAllowedSites(sites);
+  if (parsed.length === 0) {
+    await browser.storage.sync.remove(ALLOWED_SITES_KEY);
+    return;
+  }
+  const bytes = new TextEncoder().encode(ALLOWED_SITES_KEY + JSON.stringify(parsed)).length;
+  if (bytes > SYNC_ITEM_QUOTA_BYTES) throw new SiteListTooLargeError(bytes);
+  await browser.storage.sync.set({ [ALLOWED_SITES_KEY]: parsed });
+}
+
+// Read-modify-write of the allow-list, serialised like setSiteLevel.
+let pendingAllowedWrite: Promise<void> = Promise.resolve();
+
+function updateAllowedSites(change: (sites: string[]) => string[]): Promise<void> {
+  const write = pendingAllowedWrite.then(async () => {
+    await setAllowedSites(change(await getAllowedSites()));
+  });
+  pendingAllowedWrite = write.catch(() => undefined);
+  return write;
+}
+
+/** Add a canonical pattern (see parseSitePattern) to the allow-list. */
+export function addAllowedSite(pattern: string): Promise<void> {
+  const parsed = parseSitePattern(pattern);
+  if (!parsed.ok) return Promise.reject(new TypeError(`invalid site pattern: ${pattern}`));
+  return updateAllowedSites((sites) => {
+    if (sites.includes(parsed.pattern)) return sites;
+    if (sites.length >= MAX_ALLOWED_SITES) {
+      throw new RangeError(`at most ${String(MAX_ALLOWED_SITES)} sites`);
+    }
+    return [...sites, parsed.pattern];
+  });
+}
+
+export function removeAllowedSite(pattern: string): Promise<void> {
+  return updateAllowedSites((sites) => sites.filter((site) => site !== pattern));
+}
+
+/** Calls `callback` with the allow-list whenever it changes. Returns an unsubscribe. */
+export function onAllowedSitesChange(callback: (sites: string[]) => void): () => void {
+  return onSyncChange(ALLOWED_SITES_KEY, (_oldValue, newValue) => {
+    callback(parseAllowedSites(newValue));
+  });
+}
+
+/** The hostnames set to `off`, sorted: the block-list shown in the "Strony" tab. */
+export async function getBlockedSites(): Promise<string[]> {
+  const levels = parseSiteLevels(await readRaw());
+  return [...levels]
+    .filter(([, level]) => level === 'off')
+    .map(([host]) => host)
+    .sort();
+}
+
+/**
+ * What a value of each category is replaced with by default ("Kategorie" tab): its token or a
+ * generalised text. The panel's "znacznik | ogólnie" switch starts from it, and automatic masking
+ * uses it. The user's own words count as the category CUSTOM_ENTITY_TYPE.
+ */
+export const CATEGORY_MODES = ['token', 'general'] as const;
+export type CategoryMode = (typeof CATEGORY_MODES)[number];
+
+export const DEFAULT_CATEGORY_MODE: CategoryMode = 'token';
+
+/** storage.sync key holding `{ [entityType]: mode }`. Only non-default modes are stored. */
+export const CATEGORY_MODES_KEY = 'categoryModes';
+
+export function isCategoryMode(value: unknown): value is CategoryMode {
+  return typeof value === 'string' && (CATEGORY_MODES as readonly string[]).includes(value);
+}
+
+/** The types a mode can be set for: polanon's and the user's own words. */
+export const MODE_ENTITY_TYPES: readonly string[] = [...ENGINE_ENTITY_TYPES, CUSTOM_ENTITY_TYPE];
+
+/** Non-default modes of known types from a stored value; anything else is dropped. */
+export function parseCategoryModes(raw: unknown): Map<string, CategoryMode> {
+  const modes = new Map<string, CategoryMode>();
+  if (!isRecord(raw)) return modes;
+  for (const entityType of MODE_ENTITY_TYPES) {
+    const mode = raw[entityType];
+    if (isCategoryMode(mode) && mode !== DEFAULT_CATEGORY_MODE) modes.set(entityType, mode);
+  }
+  return modes;
+}
+
+/** The mode of `entityType` in `modes`; a type without one gets the default. */
+export function categoryModeOf(
+  modes: ReadonlyMap<string, CategoryMode>,
+  entityType: string,
+): CategoryMode {
+  return modes.get(entityType) ?? DEFAULT_CATEGORY_MODE;
+}
+
+async function readCategoryModesRaw(): Promise<Record<string, unknown>> {
+  const raw = (await browser.storage.sync.get(CATEGORY_MODES_KEY))[CATEGORY_MODES_KEY];
+  return isRecord(raw) ? raw : {};
+}
+
+export async function getCategoryModes(): Promise<Map<string, CategoryMode>> {
+  return parseCategoryModes(await readCategoryModesRaw());
+}
+
+let pendingCategoryModeWrite: Promise<void> = Promise.resolve();
+
+/** Store the mode of one type; writes are serialised like the site levels'. */
+export function setCategoryMode(entityType: string, mode: CategoryMode): Promise<void> {
+  if (!MODE_ENTITY_TYPES.includes(entityType))
+    return Promise.reject(new TypeError(`unknown entity type: ${entityType}`));
+  if (!isCategoryMode(mode))
+    return Promise.reject(new TypeError(`unknown category mode: ${String(mode)}`));
+
+  const write = pendingCategoryModeWrite.then(async () => {
+    // Entries this version does not understand (a newer type or mode) are kept as they are.
+    const next = Object.create(null) as Record<string, unknown>;
+    for (const [name, value] of Object.entries(await readCategoryModesRaw())) {
+      if (name !== entityType) next[name] = value;
+    }
+    if (mode !== DEFAULT_CATEGORY_MODE) next[entityType] = mode;
+
+    if (Object.keys(next).length === 0) await browser.storage.sync.remove(CATEGORY_MODES_KEY);
+    else await browser.storage.sync.set({ [CATEGORY_MODES_KEY]: next });
+  });
+  pendingCategoryModeWrite = write.catch(() => undefined);
+  return write;
+}
+
+/** Calls `callback` with the modes whenever they change. Returns an unsubscribe. */
+export function onCategoryModesChange(
+  callback: (modes: Map<string, CategoryMode>) => void,
+): () => void {
+  return onSyncChange(CATEGORY_MODES_KEY, (_oldValue, newValue) => {
+    callback(parseCategoryModes(newValue));
+  });
+}

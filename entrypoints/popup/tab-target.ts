@@ -1,3 +1,4 @@
+import type { SiteAccess } from '~/lib/site-access';
 import { normalizeHostname } from '~/lib/settings';
 
 /** What the popup can offer for the active tab. */
@@ -44,4 +45,18 @@ const UNSUPPORTED_NOTES: Record<Extract<TabTarget, { kind: 'unsupported' }>['rea
 
 export function unsupportedNote(target: Extract<TabTarget, { kind: 'unsupported' }>): string {
   return UNSUPPORTED_NOTES[target.reason];
+}
+
+const ACCESS_TEXTS: Record<SiteAccess['reason'], string> = {
+  all: 'Działa na tej stronie.',
+  chat: 'Działa na tej stronie.',
+  listed: 'Działa na tej stronie (jest na liście stron).',
+  blocked: 'Wyłączone na tej stronie.',
+  'not-chat': 'Wyłączone: w ustawieniach wybrano „Tylko czaty AI”.',
+  'not-listed': 'Wyłączone: tej strony nie ma na liście wybranych stron.',
+};
+
+/** One line on whether AInonim runs on the tab's site, and why not. */
+export function accessText(access: SiteAccess): string {
+  return ACCESS_TEXTS[access.reason];
 }

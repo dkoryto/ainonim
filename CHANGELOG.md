@@ -5,6 +5,24 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-22
+
+### Dodane
+
+- Tryb „Automatycznie podczas pisania”: po chwili przerwy w pisaniu (ok. 1,5 s) pole maskuje się
+  samo, bez klikania „Zamaskuj zaznaczone”, na każdej stronie, na której działa AInonim. „Cofnij”
+  działa jak zwykle; w czatach dodatkowo zostaje maskowanie przy wysyłce. Trzy tryby w ustawieniach
+  i w okienku: Ręcznie, Przy wysyłce, Przy pisaniu.
+- Domyślne zastąpienie dla każdej kategorii („znacznik” albo „ogólnie”) w zakładce „Kategorie”,
+  także dla własnych słów; panel i maskowanie automatyczne zaczynają od tego ustawienia.
+- Zakładka „Strony”: AInonim działa na wszystkich stronach, tylko w czatach AI albo tylko na
+  stronach z Twojej listy (także `*.domena`); lista wyłączonych stron. Okienko mówi, czy wtyczka
+  działa na bieżącej stronie, i pozwala dodać ją do listy.
+- Kimi, DeepSeek, Mistral Le Chat, Microsoft Copilot i Qwen (pola wiadomości sprawdzone na żywo
+  tam, gdzie strona je pokazuje bez konta; odpowiedzi według znanej budowy stron).
+- „Podoba Ci się AInonim? Oceń · Poleć znajomym” w okienku i w zakładce „O autorze”; link „Postaw
+  kawę autorowi” pojawi się po ustawieniu adresu.
+
 ## [0.3.4] - 2026-11-22
 
 ### Zmienione
@@ -140,7 +158,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/dkoryto/ainonim/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/dkoryto/ainonim/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/dkoryto/ainonim/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/dkoryto/ainonim/compare/v0.3.1...v0.3.2

@@ -194,4 +194,23 @@ describe('the "Ogólne" tab', () => {
     });
     expect(panel.textContent).toContain('na innych stronach maskujesz ręcznie');
   });
+
+  it("offers the three masking modes and stores 'typing'", async () => {
+    const panel = document.createElement('section');
+    document.body.replaceChildren(panel);
+    await mountGeneral(panel);
+    const radios = [...panel.querySelectorAll<HTMLInputElement>('input[name="mask-mode"]')];
+    expect(radios.map((radio) => radio.value)).toEqual(['manual', 'auto', 'typing']);
+
+    const typing = radios[2];
+    if (!typing) throw new Error('no typing');
+    typing.checked = true;
+    typing.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await vi.waitFor(async () => {
+      expect(await fakeBrowser.storage.sync.get('maskMode')).toEqual({ maskMode: 'typing' });
+    });
+    expect(panel.textContent).toContain('Automatycznie podczas pisania');
+    expect(panel.textContent).toContain('dopóki czegoś nie dopiszesz');
+  });
 });
