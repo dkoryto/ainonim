@@ -68,6 +68,18 @@ Content script (`entrypoints/content/`) działa na każdej stronie, we wszystkic
   wysyła, ikona i panel mówią, że drugie wysłanie w ciągu 5 s pójdzie bez maskowania. Ikona
   pokazuje „zamaskowano automatycznie (N)”, „Cofnij” działa, dopóki tekst nie zniknie z pola. Na
   innych stronach tryb automatyczny nic nie zmienia: maskuje się z panelu.
+- Maskowanie podczas pisania (ustawienie „Automatycznie podczas pisania”, `maskMode: 'typing'`;
+  w okienku wtyczki „Przy pisaniu”): na każdej stronie, na której AInonim działa, pole jest
+  maskowane samo 1,5 s po ostatniej zmianie, gdy analiza tekstu się skończyła
+  (`lib/content/typing-mask.ts`). Nigdy w trakcie kompozycji IME, nigdy w tekst, który zmienił
+  się od analizy, a w edytor contenteditable dopiero, gdy ma fokus; kursor zostaje na końcu.
+  Ikona pokazuje „zamaskowano automatycznie (N)”, „Cofnij” przywraca tekst i AInonim nie maskuje
+  go znowu, dopóki się nie zmieni. W czatach mapowanie zapisuje się jak przy „Zamaskuj
+  zaznaczone”, a maskowanie przy wysyłce działa dodatkowo jako zabezpieczenie. W dzienniku
+  wpis ma sposób „automatycznie”.
+- Domyślna zamiana dla każdej kategorii (zakładka „Kategorie”, przełącznik „znacznik | ogólnie”
+  obok kategorii i dla własnych słów; `categoryModes` w `storage.sync`, zapisywane tylko
+  „ogólnie”): od niej zaczyna przełącznik w panelu i według niej maskuje tryb automatyczny.
 - Dziennik maskowania (zakładka „Dziennik” w ustawieniach, `lib/log/`): każde maskowanie,
   ręczne i automatyczne, dopisuje wpis z czasem, nazwą hosta, sposobem i liczbą danych według
   kategorii, bez wartości, znaczników i treści. Wpisy dopisuje tylko service worker (wiadomość
@@ -140,7 +152,8 @@ Pełny opis: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 - W trybie ręcznym (domyślnym) nic nie jest maskowane automatycznie: tekst wysłany bez kliknięcia
   „Zamaskuj” idzie z danymi. Tryb automatyczny działa tylko na tych pięciu czatach i tylko dla
   wysłania Enterem lub przyciskiem wysyłania; strona, która wysyła inaczej (np. własnym skrótem),
-  nie zostanie zatrzymana.
+  nie zostanie zatrzymana. W trybie „podczas pisania” tekst wysłany szybciej niż po 1,5 s przerwy
+  poza tymi czatami nie zostanie zamaskowany.
 - Przywrócone oryginały są w DOM-ie strony czatu (tekst odpowiedzi i wysłanych wiadomości,
   atrybuty `title`, legenda przy bloku edytora ChatGPT w otwartym shadow root), więc skrypty strony mogą je odczytać. AInonim chroni prompt,
   nie to, co strona wyświetla.

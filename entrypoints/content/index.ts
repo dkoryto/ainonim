@@ -13,19 +13,23 @@ import {
 } from '~/lib/client';
 import { type Conversation, trackConversation } from '~/lib/content/conversation';
 import { interceptSends } from '~/lib/content/auto-mask';
-import { startMasking } from '~/lib/content/masking';
+import { type MaskingSession, startMasking } from '~/lib/content/masking';
 import { logMasking } from '~/lib/log/client';
 import { type AnalyzeResponse, isMappingsChangedNotice } from '~/lib/messages';
 import { observeMessages } from '~/lib/restore/observer';
 import { createDeclensionCache, findTokens } from '~/lib/restore/tokens';
 import {
+  type CategoryMode,
   type ChatDisplay,
   DEFAULT_CHAT_DISPLAY,
   DEFAULT_MASKING_MODE,
   type MaskingMode,
   type SiteLevel,
+  categoryModeOf,
+  getCategoryModes,
   getChatDisplay,
   getMaskingMode,
+  onCategoryModesChange,
   onChatDisplayChange,
   onMaskingModeChange,
 } from '~/lib/settings';
@@ -54,51 +58,85 @@ async function analyzeInChat(
   }
 }
 
-/** Everything AInonim does on the page while the site is not `off`. Returns the teardown. */
 /** Each masking goes to the log as counts only (lib/log/); the worker may have it turned off. */
 const onMasked = (report: Parameters<typeof logMasking>[0]): void => {
   void logMasking(report);
 };
 
-/**
- * Automatic masking on send, while the masking mode is `auto`. Only chat sites have it: there a
- * send is a known button or Enter in a known composer, while on other pages Enter may mean a
- * new line and a form may be sent many ways.
- */
-function startAutoMask(
-  adapter: SiteAdapter,
-  masking: Parameters<typeof interceptSends>[0]['masking'],
-): () => void {
+/** The settings every masking session follows, kept current from storage.sync. */
+interface MaskingSettings {
+  mode: () => MaskingMode;
+  defaultMode: (entityType: string) => CategoryMode;
+  /** Called after the category defaults changed. */
+  onDefaultsChange: (callback: () => void) => void;
+  stop: () => void;
+}
+
+function trackMaskingSettings(): MaskingSettings {
   let mode: MaskingMode = DEFAULT_MASKING_MODE;
+  let modes = new Map<string, CategoryMode>();
+  let notify = (): void => undefined;
+  const showModes = (next: Map<string, CategoryMode>): void => {
+    modes = next;
+    notify();
+  };
   const stopMode = onMaskingModeChange((next) => {
     mode = next;
   });
+  const stopModes = onCategoryModesChange(showModes);
   void getMaskingMode()
     .then((stored) => {
       mode = stored;
     })
     .catch(() => undefined);
-  const stopSends = interceptSends({
-    doc: document,
-    adapter,
-    masking,
-    isActive: () => mode === 'auto',
-  });
-  return () => {
-    stopMode();
-    stopSends();
+  void getCategoryModes()
+    .then(showModes)
+    .catch(() => undefined);
+  return {
+    mode: () => mode,
+    defaultMode: (entityType) => categoryModeOf(modes, entityType),
+    onDefaultsChange: (callback) => {
+      notify = callback;
+    },
+    stop: () => {
+      stopMode();
+      stopModes();
+    },
   };
 }
 
+/** The masking session with the settings applied; `stop` ends both. */
+function startMaskingWithSettings(
+  options: Omit<Parameters<typeof startMasking>[0], 'defaultMode' | 'typing'>,
+): { masking: MaskingSession; settings: MaskingSettings; stop: () => void } {
+  const settings = trackMaskingSettings();
+  const masking = startMasking({
+    ...options,
+    defaultMode: settings.defaultMode,
+    typing: { isActive: () => settings.mode() === 'typing' },
+  });
+  settings.onDefaultsChange(() => {
+    masking.refreshDefaults();
+  });
+  return {
+    masking,
+    settings,
+    stop: () => {
+      settings.stop();
+      masking.stop();
+    },
+  };
+}
+
+/** Everything AInonim does on the page while the site is not `off`. Returns the teardown. */
 function start(adapter: SiteAdapter | null): () => void {
   if (!adapter) {
     // Outside chat sites every analysis is independent: nothing is stored.
-    const masking = startMasking({
+    return startMaskingWithSettings({
       analyze: (text) => analyzeText(text),
       reusePreview: true,
       onMasked,
-    });
-    return masking.stop;
+    }).stop;
   }
 
   let refresh = (): void => undefined;
@@ -128,13 +166,25 @@ function start(adapter: SiteAdapter | null): () => void {
   void getChatDisplay()
     .then(showDisplay)
     .catch(() => undefined);
-  const masking = startMasking({
+  const {
+    masking,
+    settings,
+    stop: stopMasking,
+  } = startMaskingWithSettings({
     analyze: (text, persist) => analyzeInChat(conversation, text, persist),
     reusePreview: false,
     exclude: (field) => adapter.isAnswerElement(field),
     onMasked,
   });
-  const stopAutoMask = startAutoMask(adapter, masking);
+  // Masking on send: only chat sites have it, as there a send is a known button or Enter in a
+  // known composer, while on other pages Enter may mean a new line and a form may be sent many
+  // ways. In mode `typing` it catches what a send came too quickly for.
+  const stopAutoMask = interceptSends({
+    doc: document,
+    adapter,
+    masking,
+    isActive: () => settings.mode() !== 'manual',
+  });
   // The popup deleted stored mappings: drop this tab's copy if its conversation was among them.
   const onNotice = (message: unknown, sender: { id?: string }): undefined => {
     if (sender.id === browser.runtime.id && isMappingsChangedNotice(message)) conversation.reload();
@@ -144,7 +194,7 @@ function start(adapter: SiteAdapter | null): () => void {
     browser.runtime.onMessage.removeListener(onNotice);
     stopDisplay();
     stopAutoMask();
-    masking.stop();
+    stopMasking();
     stopMessages();
     conversation.stop();
   };

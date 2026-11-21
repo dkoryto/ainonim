@@ -76,6 +76,27 @@ test('switches the masking mode and keeps the choice', async ({ context }) => {
   await auto.check();
   await page.reload();
   await expect(auto).toBeChecked();
+
+  const typing = page.getByRole('radio', { name: 'Przy pisaniu' });
+  await typing.check();
+  await page.reload();
+  await expect(typing).toBeChecked();
+});
+
+test('fits the three masking modes into one row of the popup', async ({ context }) => {
+  const page = await openPopup(context);
+  const labels = page.locator('#mask-mode label');
+
+  await expect(labels).toHaveCount(3);
+  const boxes = await labels.evaluateAll((elements) =>
+    elements.map((element) => {
+      const { top, height } = element.getBoundingClientRect();
+      return { top, height, overflow: element.scrollWidth > element.clientWidth };
+    }),
+  );
+  expect(new Set(boxes.map((box) => box.top)).size).toBe(1);
+  expect(boxes.every((box) => !box.overflow)).toBe(true);
+  expect(await page.evaluate(() => document.body.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test('says when no data is stored', async ({ context }) => {

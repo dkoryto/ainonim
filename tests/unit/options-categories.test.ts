@@ -2,12 +2,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
+  CATEGORY_MODES_KEY,
   DISABLED_CATEGORIES_KEY,
+  getCategoryModes,
+  setCategoryMode,
   getDisabledCategories,
   setDisabledCategories,
 } from '~/lib/settings';
 import { categoryGroups, mountCategories } from '~/lib/ui/options/categories';
-import { ENGINE_ENTITY_TYPES } from '~/lib/ui/labels';
+import { CUSTOM_ENTITY_TYPE, ENGINE_ENTITY_TYPES } from '~/lib/ui/labels';
 
 function boxes(panel: HTMLElement): HTMLInputElement[] {
   return [...panel.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
@@ -83,5 +86,63 @@ describe('mountCategories', () => {
     await setDisabledCategories(['PHONE']);
 
     expect(boxes(panel).find((box) => box.value === 'PHONE')?.checked).toBe(false);
+  });
+
+  describe('default modes', () => {
+    /** The "znacznik" (0) or "ogólnie" (1) button of a type. */
+    function modeButton(entityType: string, mode: 0 | 1): HTMLButtonElement {
+      const found = panel.querySelectorAll<HTMLButtonElement>(
+        `.mode-switch[data-type="${entityType}"] button`,
+      )[mode];
+      if (!found) throw new Error(`no mode button for ${entityType}`);
+      return found;
+    }
+    const pressed = (button: HTMLButtonElement): string | null =>
+      button.getAttribute('aria-pressed');
+
+    it('offers "znacznik | ogólnie" for every type and the own words, "znacznik" by default', async () => {
+      await mountCategories(panel);
+
+      const switches = panel.querySelectorAll('.mode-switch');
+      expect(switches).toHaveLength(ENGINE_ENTITY_TYPES.length + 1);
+      expect(modeButton(CUSTOM_ENTITY_TYPE, 0).textContent).toBe('znacznik');
+      expect(pressed(modeButton('PESEL', 0))).toBe('true');
+      expect(pressed(modeButton('PESEL', 1))).toBe('false');
+      // The own words have no checkbox here: the "Własne słowa" tab manages them.
+      expect(boxes(panel)).toHaveLength(ENGINE_ENTITY_TYPES.length);
+    });
+
+    it('shows the stored mode and stores a picked one', async () => {
+      await setCategoryMode('PESEL', 'general');
+      await mountCategories(panel);
+      expect(pressed(modeButton('PESEL', 1))).toBe('true');
+
+      modeButton('CUSTOM', 1).click();
+      modeButton('PESEL', 0).click();
+      await flush();
+
+      expect(pressed(modeButton('PESEL', 0))).toBe('true');
+      expect(await getCategoryModes()).toEqual(new Map([['CUSTOM', 'general']]));
+    });
+
+    it('disables the switch of a type that is switched off', async () => {
+      await mountCategories(panel);
+      const email = boxes(panel).find((box) => box.value === 'EMAIL');
+      if (!email) throw new Error('no EMAIL');
+
+      email.click();
+      await flush();
+
+      expect(modeButton('EMAIL', 0).disabled).toBe(true);
+      expect(modeButton('PHONE', 0).disabled).toBe(false);
+    });
+
+    it('follows modes changed elsewhere', async () => {
+      await mountCategories(panel);
+
+      await fakeBrowser.storage.sync.set({ [CATEGORY_MODES_KEY]: { NIP: 'general' } });
+
+      expect(pressed(modeButton('NIP', 1))).toBe('true');
+    });
   });
 });

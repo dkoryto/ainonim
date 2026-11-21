@@ -619,6 +619,30 @@ describe('automatic masking', () => {
     ]);
   });
 
+  it('starts each row from its category default, and a click still overrides it', () => {
+    const generalPesel: BadgeItem = { ...PESEL, defaultMode: 'general' };
+    const badge = openBadge(found([JAN, generalPesel]));
+
+    expect(modeButton(badge, 1, 1).getAttribute('aria-pressed')).toBe('true');
+    expect(part(badge, 'li:nth-child(2) .out').textContent).toBe('→ [PESEL]');
+    expect(badge.choicesFor([JAN, generalPesel])).toEqual([
+      { span: JAN.span, mode: 'token' },
+      { span: PESEL.span, mode: 'general' },
+    ]);
+
+    modeButton(badge, 1, 0).click();
+    expect(modeButton(badge, 1, 0).getAttribute('aria-pressed')).toBe('true');
+    expect(badge.choicesFor([JAN, generalPesel])[1]).toEqual({ span: PESEL.span, mode: 'token' });
+  });
+
+  it('follows a changed default for rows the user did not switch', () => {
+    const badge = openBadge(found([JAN, PESEL]));
+
+    badge.update(found([JAN, { ...PESEL, defaultMode: 'general' }]));
+
+    expect(modeButton(badge, 1, 1).getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('masks every value with its token while the panel was never touched', () => {
     const badge = createBadge(textarea(), options());
 
