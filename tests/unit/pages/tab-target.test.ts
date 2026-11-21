@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { describeTabUrl, unsupportedNote } from '~/lib/pages/tab-target';
+import { accessText, describeTabUrl, unsupportedNote } from '~/lib/pages/tab-target';
 
 beforeEach(() => {
   fakeBrowser.reset();
@@ -31,5 +31,17 @@ describe('describeTabUrl (popup)', () => {
 
     expect(target).toEqual({ kind: 'unsupported', reason });
     if (target.kind === 'unsupported') expect(unsupportedNote(target)).not.toBe('');
+  });
+});
+
+describe('accessText', () => {
+  it('says whether AInonim runs on the site and which setting keeps it off', () => {
+    expect(accessText({ level: 'warn', reason: 'all' })).toBe('Działa na tej stronie.');
+    expect(accessText({ level: 'warn', reason: 'listed' })).toBe(
+      'Działa na tej stronie (jest na liście stron).',
+    );
+    expect(accessText({ level: 'off', reason: 'blocked' })).toBe('Wyłączone na tej stronie.');
+    expect(accessText({ level: 'off', reason: 'not-chat' })).toContain('Tylko czaty AI');
+    expect(accessText({ level: 'off', reason: 'not-listed' })).toContain('nie ma na liście');
   });
 });

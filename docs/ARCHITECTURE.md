@@ -24,15 +24,19 @@ lib/
   sites/            adaptery czatów (jeden plik na czat), rejestr (index.ts) i access.ts:
                     efektywny poziom działania na stronie
   log/              zapis i eksport dziennika (store.ts, csv.ts): service worker i strony
-  content/          content script: klient wiadomości, maskowanie, fields/ (pola), restore/
-                    (przywracanie w odpowiedziach), ui/ (ikona, panel, podświetlenie)
-  background/       service worker: obsługa wiadomości (worker.ts), dokument offscreen,
-                    reguły wykrywania (refine.ts), mapping/ (mapowania rozmów)
-  offscreen/        silnik w dokumencie offscreen (engine.ts) i ścieżki plików Pyodide
-  pages/            logika stron rozszerzenia: okienko, options/ (zakładki ustawień), raport
+  content/          content script: start i zatrzymanie na stronie (session.ts), klient
+                    wiadomości, maskowanie, fields/ (pola), restore/ (przywracanie
+                    w odpowiedziach), ui/ (ikona, panel, podświetlenie)
+  background/       service worker: kierowanie wiadomości (router.ts), ich obsługa (worker.ts),
+                    dokument offscreen, reguły wykrywania (refine.ts), mapping/ (mapowania rozmów)
+  offscreen/        silnik w dokumencie offscreen (engine.ts), jego nasłuch wiadomości
+                    (listener.ts) i ścieżki plików Pyodide
+  pages/            logika stron rozszerzenia: okienko (popup.ts), options/ (zakładki ustawień),
+                    raport (report.ts)
 tests/
   unit/             testy jednostkowe; odwzorowują lib/: lib/<obszar>/<moduł>.ts ma test
-                    tests/unit/<obszar>/<moduł>.test.ts (entrypoints/ ma tests/unit/entrypoints/)
+                    tests/unit/<obszar>/<moduł>.test.ts; entrypoints/ nie ma testów jednostkowych
+                    ani pomiaru pokrycia (sama logika jest w lib/, reszta w testach e2e)
   e2e/              testy Playwright z prawdziwym rozszerzeniem
   fixtures/         strony czatów i dokumenty testowe
 ```

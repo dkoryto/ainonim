@@ -78,6 +78,17 @@ describe('chatgpt', () => {
     expect(chatgpt.isStreaming(answer)).toBe(true);
   });
 
+  it('takes an answer marked as streaming for streaming, wherever it is', () => {
+    document.body.innerHTML =
+      '<div data-message-author-role="assistant" class="result-streaming"><p>a</p></div>' +
+      '<div data-message-author-role="assistant"><p>b</p></div>';
+    const [first, last] = chatgpt.answerRoots(document);
+    if (!first || !last) throw new Error('two answers expected');
+
+    expect(chatgpt.isStreaming(first)).toBe(true);
+    expect(chatgpt.isStreaming(last)).toBe(false);
+  });
+
   it('falls back to older selectors', () => {
     document.body.innerHTML =
       '<div data-message-author-role="assistant"><p>a</p></div>' +
@@ -112,5 +123,18 @@ describe('sendButton', () => {
       '<form><div contenteditable="true" id="prompt-textarea"></div>' +
       '<button type="button">+</button><button type="submit" id="send">x</button></form>';
     expect(chatgpt.sendButton?.(document)?.id).toBe('send');
+  });
+
+  it('has no send button when the composer is missing or outside a form', () => {
+    document.body.innerHTML = '<form><button type="submit">x</button></form>';
+    expect(chatgpt.sendButton?.(document)).toBeNull();
+
+    document.body.innerHTML =
+      '<div contenteditable="true" id="prompt-textarea"></div><button type="submit">x</button>';
+    expect(chatgpt.sendButton?.(document)).toBeNull();
+
+    document.body.innerHTML =
+      '<form><div contenteditable="true" id="prompt-textarea"></div></form>';
+    expect(chatgpt.sendButton?.(document)).toBeNull();
   });
 });

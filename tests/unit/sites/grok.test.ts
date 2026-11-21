@@ -28,6 +28,8 @@ describe('grok', () => {
       'user-message',
     ]);
     expect(grok.sendButton?.(document)?.getAttribute('aria-label')).toBe('Wyślij');
+    expect(grok.isAnswerElement(element('.response-content-markdown p'))).toBe(true);
+    expect(grok.isAnswerElement(element('textarea'))).toBe(false);
   });
 
   it('falls back to the bubble that is not the user message', () => {
@@ -36,5 +38,21 @@ describe('grok', () => {
     expect(grok.answerRoots(document)).toHaveLength(1);
     expect(grok.isAnswerElement(element('.response-content-markdown p'))).toBe(true);
     expect(grok.isAnswerElement(element('[data-testid="user-message"] p'))).toBe(false);
+  });
+
+  it('streams only the last answer, and only while the stop button is shown', () => {
+    load('grok-conversation.html');
+    const [answer] = grok.answerRoots(document);
+    if (!answer) throw new Error('no answer');
+    expect(grok.isStreaming(answer)).toBe(false);
+
+    element('form').insertAdjacentHTML('beforeend', '<button aria-label="Stop">■</button>');
+    expect(grok.isStreaming(answer)).toBe(true);
+
+    element('form').insertAdjacentHTML(
+      'beforebegin',
+      '<div class="message-bubble" data-testid="assistant-message"><p>Nowa</p></div>',
+    );
+    expect(grok.isStreaming(answer)).toBe(false);
   });
 });

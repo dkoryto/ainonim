@@ -74,6 +74,12 @@ describe('restoreTokens', () => {
     expect(restoreTokens('<OSOBA_1:wołacz>', mapping, () => undefined)).toBe('<OSOBA_1:wołacz>');
   });
 
+  it('does not ask for a declension of a token whose base form is unknown', () => {
+    const decline = vi.fn(() => 'Janie Kowalski');
+    expect(restoreTokens('<OSOBA_7:wołacz>', mapping, decline)).toBe('<OSOBA_7:wołacz>');
+    expect(decline).not.toHaveBeenCalled();
+  });
+
   it('uses an exact mapping entry for a cased token', () => {
     expect(restoreTokens('<OSOBA_1:wołacz>', { '<OSOBA_1:wołacz>': 'Janie' })).toBe('Janie');
   });
@@ -103,6 +109,13 @@ describe('createDeclensionCache', () => {
 
   it('falls back to the base form when the request fails', async () => {
     const cache = createDeclensionCache(() => Promise.reject(new Error('bridge down')));
+    cache.decline('<OSOBA_1:wołacz>', 'Jan Kowalski');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(cache.decline('<OSOBA_1:wołacz>', 'Jan Kowalski')).toBe('Jan Kowalski');
+  });
+
+  it('falls back to the base form when no declension comes back', async () => {
+    const cache = createDeclensionCache(() => Promise.resolve(undefined));
     cache.decline('<OSOBA_1:wołacz>', 'Jan Kowalski');
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(cache.decline('<OSOBA_1:wołacz>', 'Jan Kowalski')).toBe('Jan Kowalski');

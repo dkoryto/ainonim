@@ -127,4 +127,23 @@ describe('createEngineHandler', () => {
       error: 'offscreen: Error: Malformed analyze result from Python',
     });
   });
+
+  it('rejects a restore result that is not text', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const handle = createEngineHandler(
+      Promise.resolve(fakeEngine({ restore: (() => undefined) as unknown as Engine['restore'] })),
+    );
+
+    const response = await handle({
+      type: 'ainonim/offscreen-restore',
+      id: '1',
+      text: '<OSOBA_1>',
+      mapping: {},
+    });
+
+    expect(response).toMatchObject({
+      ok: false,
+      error: 'offscreen: Error: Malformed restore result from Python',
+    });
+  });
 });

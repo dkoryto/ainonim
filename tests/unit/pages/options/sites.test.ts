@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
+  ALLOWED_SITES_KEY,
+  MAX_ALLOWED_SITES,
   getAllowedSites,
   getBlockedSites,
   getSiteScope,
@@ -18,6 +20,7 @@ let panel: HTMLElement;
 
 beforeEach(() => {
   fakeBrowser.reset();
+  vi.restoreAllMocks();
   document.body.innerHTML = '<section id="panel"></section>';
   panel = document.getElementById('panel') as HTMLElement;
 });
@@ -134,5 +137,93 @@ describe('mountSites', () => {
 
     expect(scopeRadio('chats').checked).toBe(true);
     expect(section('allowed').hidden).toBe(true);
+  });
+});
+
+describe('mountSites when the setting cannot be saved', () => {
+  const status = (list: HTMLElement): string | null | undefined =>
+    list.querySelector('.status')?.textContent;
+
+  it('refuses a site beyond the list limit without saving', async () => {
+    const full = Array.from({ length: MAX_ALLOWED_SITES }, (_, i) => `s${String(i)}.pl`);
+    await setAllowedSites(full);
+    await setSiteScope('list');
+    await mountSites(panel);
+    const allowed = section('allowed');
+
+    await submit(allowed, 'example.com');
+
+    expect(status(allowed)).toBe(`Lista może mieć najwyżej ${String(MAX_ALLOWED_SITES)} stron.`);
+    expect(await getAllowedSites()).toEqual(full);
+  });
+
+  it('explains that a list too large for sync storage was not saved', async () => {
+    const long = Array.from(
+      { length: 150 },
+      (_, i) => `${'a'.repeat(50)}-${String(i)}.example.com`,
+    );
+    // Written directly: the setting itself refuses a list this large.
+    await fakeBrowser.storage.sync.set({ [ALLOWED_SITES_KEY]: long });
+    await setSiteScope('list');
+    await mountSites(panel);
+    const allowed = section('allowed');
+
+    await submit(allowed, 'example.com');
+
+    expect(status(allowed)).toBe(
+      'Lista jest za duża, by ją zapisać (limit synchronizacji to 8 KB).',
+    );
+    expect(allowed.querySelector<HTMLInputElement>('.site-input')?.value).toBe('example.com');
+  });
+
+  it('says a change was not saved when storage refuses an add or a removal', async () => {
+    await setSiteLevel('off.pl', 'off');
+    await mountSites(panel);
+    const blocked = section('blocked');
+    const refused = new Error('MAX_WRITE_OPERATIONS');
+    vi.spyOn(fakeBrowser.storage.sync, 'set').mockRejectedValue(refused);
+    vi.spyOn(fakeBrowser.storage.sync, 'remove').mockRejectedValue(refused);
+
+    await submit(blocked, 'example.com');
+    expect(status(blocked)).toBe('Nie udało się zapisać zmiany.');
+    blocked.querySelector('.site-input')?.dispatchEvent(new Event('input'));
+
+    blocked.querySelector<HTMLButtonElement>('button[aria-label="Usuń off.pl"]')?.click();
+    await flush();
+    expect(status(blocked)).toBe('Nie udało się zapisać zmiany.');
+    expect(names(blocked)).toEqual(['off.pl']);
+  });
+
+  it('clears the problem as soon as the address is edited', async () => {
+    await mountSites(panel);
+    const blocked = section('blocked');
+    await submit(blocked, 'not a site');
+    const input = blocked.querySelector<HTMLInputElement>('.site-input');
+
+    input?.dispatchEvent(new Event('input'));
+
+    expect(input?.hasAttribute('aria-invalid')).toBe(false);
+    expect(status(blocked)).toBe('');
+  });
+
+  it('puts the scope back when saving it fails', async () => {
+    await mountSites(panel);
+    vi.spyOn(fakeBrowser.storage.sync, 'set').mockRejectedValue(new Error('MAX_WRITE_OPERATIONS'));
+
+    scopeRadio('list').click();
+    await flush();
+
+    expect(scopeRadio('all').checked).toBe(true);
+    expect(section('allowed').hidden).toBe(true);
+  });
+
+  it('shows the defaults when the settings cannot be read', async () => {
+    vi.spyOn(fakeBrowser.storage.sync, 'get').mockRejectedValue(new Error('storage unavailable'));
+
+    await mountSites(panel);
+
+    expect(scopeRadio('all').checked).toBe(true);
+    expect(names(section('allowed'))).toEqual([]);
+    expect(names(section('blocked'))).toEqual([]);
   });
 });

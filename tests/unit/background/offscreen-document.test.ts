@@ -69,4 +69,12 @@ describe('createOffscreenKeeper', () => {
     await expect(keeper.ensure()).rejects.toThrow('no permission');
     await expect(keeper.ensure()).resolves.toBeUndefined();
   });
+
+  it('has nothing to close when no document is open', async () => {
+    const chrome = fakeChrome();
+
+    await createOffscreenKeeper(chrome).close();
+
+    expect(chrome.closeDocument).not.toHaveBeenCalled();
+  });
 });

@@ -1,7 +1,12 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { interceptSends } from '~/lib/content/auto-mask';
-import { type MaskingOptions, startMasking } from '~/lib/content/masking';
+import { RETRY_WINDOW_MS, SEND_TIMEOUT_MS, interceptSends } from '~/lib/content/auto-mask';
+import {
+  type MaskingOptions,
+  type MaskingSession,
+  type SendOutcome,
+  startMasking,
+} from '~/lib/content/masking';
 import type { MaskingReport } from '~/lib/shared/log-entries';
 import type { AnalyzeResponse, AnalyzeResult } from '~/lib/shared/messages';
 import type { BadgeItem, BadgeOptions, BadgeState, MaskChoice } from '~/lib/content/ui/badge';
@@ -345,5 +350,172 @@ describe('automatic masking on send', () => {
     pressEnter();
 
     expect(sent).toEqual([ORIGINAL]);
+  });
+});
+
+describe('which events are sends', () => {
+  /** A masking session that holds every send and masks when the test says so. */
+  function stubMasking() {
+    let finish: (outcome: SendOutcome) => void = () => undefined;
+    const masking = {
+      canSendAsIs: vi.fn<MaskingSession['canSendAsIs']>(() => false),
+      maskForSend: vi.fn<MaskingSession['maskForSend']>(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      ),
+      showSendBlocked: vi.fn<MaskingSession['showSendBlocked']>(),
+    };
+    return {
+      masking,
+      finish: (outcome: SendOutcome) => {
+        finish(outcome);
+      },
+    };
+  }
+
+  function page(): { field: HTMLTextAreaElement; send: HTMLButtonElement } {
+    const field = document.createElement('textarea');
+    const send = document.createElement('button');
+    document.body.append(field, send);
+    field.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') sent.push(field.value);
+    });
+    send.addEventListener('click', () => sent.push(field.value));
+    return { field, send };
+  }
+
+  it('lets Enter outside the composer and clicks outside the send button through', () => {
+    const { field } = page();
+    const other = document.createElement('input');
+    document.body.append(other);
+    const { masking } = stubMasking();
+    stops.push(
+      interceptSends({
+        doc: document,
+        adapter: { composer: () => field, sendButton: () => null },
+        masking,
+        isActive: () => true,
+      }),
+    );
+
+    other.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    other.click();
+    window.dispatchEvent(new MouseEvent('click'));
+
+    expect(masking.maskForSend).not.toHaveBeenCalled();
+  });
+
+  it('lets every send through on a page where the composer is missing', () => {
+    const { field } = page();
+    const { masking } = stubMasking();
+    stops.push(
+      interceptSends({
+        doc: document,
+        adapter: { composer: () => null },
+        masking,
+        isActive: () => true,
+      }),
+    );
+
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(sent).toEqual(['']);
+    expect(masking.maskForSend).not.toHaveBeenCalled();
+  });
+
+  it('ignores clicks when the site has no send button', () => {
+    const { field, send } = page();
+    const { masking } = stubMasking();
+    stops.push(
+      interceptSends({
+        doc: document,
+        adapter: { composer: () => field },
+        masking,
+        isActive: () => true,
+      }),
+    );
+
+    send.click();
+
+    expect(sent).toEqual(['']);
+  });
+
+  it('does nothing for a document without a window', () => {
+    const detached = document.implementation.createHTMLDocument('');
+    const { masking } = stubMasking();
+
+    const stopSends = interceptSends({
+      doc: detached,
+      adapter: { composer: () => null },
+      masking,
+      isActive: () => true,
+    });
+
+    expect(stopSends).not.toThrow();
+  });
+
+  it('sends nothing once stopped while the send was being masked', async () => {
+    const { field } = page();
+    const { masking, finish } = stubMasking();
+    const stopSends = interceptSends({
+      doc: document,
+      adapter: { composer: () => field },
+      masking,
+      isActive: () => true,
+    });
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    stopSends();
+    finish({ kind: 'masked', count: 1 });
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(sent).toEqual([]);
+  });
+
+  it('sends nothing once stopped between the masking and the send', async () => {
+    const { field } = page();
+    const { masking, finish } = stubMasking();
+    const stopSends = interceptSends({
+      doc: document,
+      adapter: { composer: () => field },
+      masking,
+      isActive: () => true,
+    });
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    finish({ kind: 'masked', count: 1 });
+    await vi.advanceTimersByTimeAsync(0);
+    stopSends();
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(sent).toEqual([]);
+  });
+
+  it('waits SEND_TIMEOUT_MS and opens a RETRY_WINDOW_MS window by default', async () => {
+    const { field } = page();
+    const { masking, finish } = stubMasking();
+    stops.push(
+      interceptSends({
+        doc: document,
+        adapter: { composer: () => field },
+        masking,
+        isActive: () => true,
+      }),
+    );
+    const enter = (): void => {
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    };
+
+    enter();
+    expect(masking.maskForSend).toHaveBeenCalledWith(field, SEND_TIMEOUT_MS);
+    finish({ kind: 'failed', reason: 'timeout' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(masking.showSendBlocked).toHaveBeenCalledWith(field, RETRY_WINDOW_MS);
+
+    await vi.advanceTimersByTimeAsync(RETRY_WINDOW_MS - 1);
+    enter();
+    expect(sent).toEqual(['']);
   });
 });

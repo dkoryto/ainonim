@@ -279,6 +279,35 @@ describe('watchFields with editors that skip input events', () => {
     expect(onText).toHaveBeenCalledExactlyOnceWith(root, 'Anna Nowak');
   });
 
+  it('keeps watching every editor on the page, each with its own text', async () => {
+    watch({ debounceMs: 100 });
+    const first = editor();
+    const second = editor();
+    first.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    second.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    transaction(first, 'Jan Kowalski');
+    transaction(second, 'PESEL 50810112354');
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(onText.mock.calls).toEqual([
+      [first, 'Jan Kowalski'],
+      [second, 'PESEL 50810112354'],
+    ]);
+  });
+
+  it('reports nothing for an editor removed in the change itself', async () => {
+    watch({ debounceMs: 100 });
+    const root = editor();
+    root.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    transaction(root, 'Jan Kowalski');
+    root.remove();
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(onText).not.toHaveBeenCalled();
+  });
+
   it('does not observe text controls, whose edits always fire input', async () => {
     const observe = vi.spyOn(MutationObserver.prototype, 'observe');
     watch();

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type MaskingOptions, startMasking } from '~/lib/content/masking';
-import { type TypingMasker, startTypingMask } from '~/lib/content/typing-mask';
+import { TYPING_PAUSE_MS, type TypingMasker, startTypingMask } from '~/lib/content/typing-mask';
 import type { EditableField } from '~/lib/content/fields/text';
 import type { MaskingReport } from '~/lib/shared/log-entries';
 import type { AnalyzeResponse, AnalyzeResult } from '~/lib/shared/messages';
@@ -14,6 +14,8 @@ interface FakeBadge {
 }
 
 const badges = vi.hoisted(() => [] as FakeBadge[]);
+/** Set to false to stand for a panel where the user unchecked every value. */
+const panel = vi.hoisted(() => ({ checksAll: true }));
 
 vi.mock('~/lib/content/ui/badge', () => ({
   createBadge: (_field: unknown, options: BadgeOptions) => {
@@ -24,7 +26,9 @@ vi.mock('~/lib/content/ui/badge', () => ({
       setOpen: () => undefined,
       isOpen: () => false,
       choicesFor: (items: readonly BadgeItem[]) =>
-        items.map((item) => ({ span: item.span, mode: item.defaultMode ?? 'token' })),
+        panel.checksAll
+          ? items.map((item) => ({ span: item.span, mode: item.defaultMode ?? 'token' }))
+          : [],
       destroy: () => undefined,
     };
   },
@@ -62,6 +66,7 @@ let stops: (() => void)[];
 beforeEach(() => {
   vi.useFakeTimers();
   badges.length = 0;
+  panel.checksAll = true;
   stops = [];
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 });
@@ -215,13 +220,54 @@ describe('startTypingMask', () => {
     expect(mask).toHaveBeenCalledExactlyOnceWith(editor, ORIGINAL);
   });
 
-  it('cancels everything when stopped', async () => {
+  it('cancels everything when stopped, and ignores analyses reported afterwards', async () => {
     const typing = scheduler();
     const field = textarea(ORIGINAL);
     typing.analysed(field, ORIGINAL);
 
     typing.stop();
+    typing.analysed(field, ORIGINAL);
     await vi.advanceTimersByTimeAsync(PAUSE_MS);
+
+    expect(mask).not.toHaveBeenCalled();
+  });
+
+  it('waits the default pause when none is given', async () => {
+    const typing = startTypingMask({ doc: document, isActive: () => true, mask });
+    stops.push(() => {
+      typing.stop();
+    });
+    const field = textarea(ORIGINAL);
+    typing.analysed(field, ORIGINAL);
+
+    await vi.advanceTimersByTimeAsync(TYPING_PAUSE_MS - 1);
+    expect(mask).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(mask).toHaveBeenCalledOnce();
+  });
+
+  it('ignores edits and compositions outside editable fields', async () => {
+    const typing = scheduler();
+    const field = textarea(ORIGINAL);
+    typing.analysed(field, ORIGINAL);
+    const other = document.createElement('div');
+    document.body.append(other);
+
+    other.dispatchEvent(new Event('input', { bubbles: true }));
+    other.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    other.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(PAUSE_MS);
+
+    expect(mask).toHaveBeenCalledExactlyOnceWith(field, ORIGINAL);
+  });
+
+  it('does nothing after a composition in a field with no masking pending', async () => {
+    scheduler();
+    const field = textarea(ORIGINAL);
+
+    field.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    field.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(PAUSE_MS * 2);
 
     expect(mask).not.toHaveBeenCalled();
   });
@@ -304,6 +350,32 @@ describe('masking while typing', () => {
 
     expect(field.value).toBe(ORIGINAL);
     expect(lastState()?.status).toBe('done');
+  });
+
+  it('leaves the text alone when the user unchecked every value in the panel', async () => {
+    panel.checksAll = false;
+    start();
+    const field = textarea();
+
+    edit(field, ORIGINAL);
+    await vi.advanceTimersByTimeAsync(PAUSE_MS * 2);
+
+    expect(field.value).toBe(ORIGINAL);
+    expect(reports).toEqual([]);
+  });
+
+  it('writes nothing when storing the tokens fails', async () => {
+    start({ reusePreview: false });
+    const field = textarea();
+    analyze.mockImplementationOnce(analyzeLike);
+    analyze.mockResolvedValueOnce({ id: 'x', ok: false, code: 'engine', error: 'boom' });
+
+    edit(field, ORIGINAL);
+    await vi.advanceTimersByTimeAsync(PAUSE_MS);
+
+    expect(analyze).toHaveBeenLastCalledWith(ORIGINAL, true);
+    expect(field.value).toBe(ORIGINAL);
+    expect(reports).toEqual([]);
   });
 
   it('stores the tokens on a chat site before writing', async () => {

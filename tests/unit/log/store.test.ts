@@ -40,4 +40,17 @@ describe('log store', () => {
     await appendLogEntry(entry(1));
     expect(await readLog()).toEqual([entry(1)]);
   });
+
+  it('reports only changes of the log itself, until unsubscribed', async () => {
+    const seen: number[] = [];
+    const stop = onLogChange((log) => seen.push(log.length));
+
+    await fakeBrowser.storage.local.set({ otherKey: 1 });
+    await fakeBrowser.storage.sync.set({ [LOG_STORAGE_KEY]: [entry(1)] });
+    await appendLogEntry(entry(2));
+    stop();
+    await appendLogEntry(entry(3));
+
+    expect(seen).toEqual([1]);
+  });
 });

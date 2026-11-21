@@ -8,8 +8,15 @@ import {
   safeDetail,
   startMasking,
   type MaskingOptions,
+  type MaskingSession,
 } from '~/lib/content/masking';
-import type { BadgeOptions, BadgeState, MaskChoice, MaskMode } from '~/lib/content/ui/badge';
+import type {
+  BadgeItem,
+  BadgeOptions,
+  BadgeState,
+  MaskChoice,
+  MaskMode,
+} from '~/lib/content/ui/badge';
 
 // The badge is replaced by a recorder: its own rendering is covered in badge.test.ts, and here
 // only matters what the controller tells it and which buttons it wires up.
@@ -30,6 +37,9 @@ vi.mock('~/lib/content/ui/badge', () => ({
       update: (state: BadgeState) => badge.updates.push(state),
       setOpen: () => undefined,
       isOpen: () => false,
+      // An untouched panel: every value, in its default mode.
+      choicesFor: (items: readonly BadgeItem[]) =>
+        items.map((item) => ({ span: item.span, mode: item.defaultMode ?? 'token' })),
       destroy: () => {
         badge.destroyed = true;
       },
@@ -84,11 +94,13 @@ const nothingFound = (text: string): AnalyzeResult => ({
 });
 
 let stop: (() => void) | undefined;
+let session: MaskingSession;
 let analyze: ReturnType<typeof vi.fn<MaskingOptions['analyze']>>;
 let warnings: string[];
 
 function start(options: Partial<MaskingOptions> = {}): void {
-  stop = startMasking({ analyze, reusePreview: true, debounceMs: DEBOUNCE_MS, ...options }).stop;
+  session = startMasking({ analyze, reusePreview: true, debounceMs: DEBOUNCE_MS, ...options });
+  stop = session.stop;
 }
 
 function textarea(): HTMLTextAreaElement {
@@ -147,6 +159,7 @@ beforeEach(() => {
 afterEach(() => {
   stop?.();
   stop = undefined;
+  Reflect.deleteProperty(document, 'execCommand');
   vi.useRealTimers();
   vi.restoreAllMocks();
   document.body.replaceChildren();
@@ -349,6 +362,76 @@ describe('"Zamaskuj"', () => {
 
     expect(analyze).toHaveBeenCalledTimes(2);
     expect(field.value).toBe(MASKED);
+  });
+});
+
+describe('"Zamaskuj" with nothing to change', () => {
+  it('writes and reports nothing when every value was unchecked', async () => {
+    const onMasked = vi.fn();
+    start({ onMasked });
+    const field = textarea();
+    await type(field, ORIGINAL);
+
+    await clickMask(onlyBadge(), []);
+
+    expect(field.value).toBe(ORIGINAL);
+    expect(onMasked).not.toHaveBeenCalled();
+    expect(lastState()?.revert).toBe('none');
+  });
+});
+
+describe('a rich editor that refuses the write', () => {
+  /** A contenteditable field whose edits go through `execCommand`, which happy-dom lacks. */
+  function editor(accepts: { value: boolean }): HTMLElement {
+    const root = document.createElement('div');
+    root.contentEditable = 'true';
+    document.body.append(root);
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: (command: string, _ui: boolean, value?: string) => {
+        if (accepts.value && command === 'insertText') root.textContent = value ?? '';
+        return accepts.value;
+      },
+    });
+    return root;
+  }
+
+  async function typeInto(root: HTMLElement, text: string): Promise<void> {
+    root.textContent = text;
+    root.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+  }
+
+  it('warns, keeps the text and reports no masking', async () => {
+    const onMasked = vi.fn();
+    start({ onMasked });
+    const root = editor({ value: false });
+    await typeInto(root, ORIGINAL);
+
+    await clickMask(onlyBadge());
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(root.textContent).toBe(ORIGINAL);
+    expect(onMasked).not.toHaveBeenCalled();
+    expect(warnings).toEqual(['AInonim: the page did not accept the masked text']);
+  });
+
+  it('keeps "Cofnij" offered when the editor refuses the restored text', async () => {
+    start();
+    const accepts = { value: true };
+    const root = editor(accepts);
+    await typeInto(root, ORIGINAL);
+    await clickMask(onlyBadge());
+    await vi.advanceTimersByTimeAsync(50);
+    expect(root.textContent).toBe(MASKED);
+
+    accepts.value = false;
+    onlyBadge().options.onRevert();
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(root.textContent).toBe(MASKED);
+    expect(warnings).toEqual(['AInonim: the page did not accept the restored text']);
+    expect(lastState()?.revert).toBe('ready');
   });
 });
 
@@ -590,5 +673,188 @@ describe('safeDetail', () => {
       '[szczegóły ukryte]',
     );
     expect(safeDetail('PESEL 50810112354 invalid', 'PESEL 50810112354')).toBe('[szczegóły ukryte]');
+  });
+});
+
+describe('category defaults', () => {
+  it('lists the values found so far with the new defaults', async () => {
+    let personMode: MaskMode = 'token';
+    start({ defaultMode: (type) => (type === 'PERSON' ? personMode : 'token') });
+    await type(textarea(), ORIGINAL);
+    // A field emptied again has no analysis to list.
+    await type(textarea(), '');
+
+    personMode = 'general';
+    session.refreshDefaults();
+
+    expect(lastState()?.items.map((item) => item.defaultMode)).toEqual(['general', 'token']);
+  });
+});
+
+describe('before a send', () => {
+  const TIMEOUT_MS = 1_000;
+
+  describe('canSendAsIs', () => {
+    it('lets an empty field go', () => {
+      start();
+      const field = textarea();
+      field.value = '  ';
+
+      expect(session.canSendAsIs(field)).toBe(true);
+    });
+
+    it('lets a text go once its analysis found nothing to mask', async () => {
+      start();
+      const field = textarea();
+      await type(field, 'Dzień dobry');
+
+      expect(session.canSendAsIs(field)).toBe(true);
+    });
+
+    it('holds a text with values to mask, one not analysed yet and one changed since', async () => {
+      start();
+      const field = textarea();
+      field.value = 'Dzień dobry';
+      expect(session.canSendAsIs(field)).toBe(false);
+
+      await type(field, ORIGINAL);
+      expect(session.canSendAsIs(field)).toBe(false);
+
+      await type(field, 'Dzień dobry');
+      field.value = 'Dzień dobry!';
+      expect(session.canSendAsIs(field)).toBe(false);
+    });
+  });
+
+  describe('maskForSend', () => {
+    it('has nothing to do for an empty field or once stopped', async () => {
+      start();
+      const field = textarea();
+      expect(await session.maskForSend(field, TIMEOUT_MS)).toEqual({ kind: 'clean' });
+
+      field.value = ORIGINAL;
+      stop?.();
+      expect(await session.maskForSend(field, TIMEOUT_MS)).toEqual({ kind: 'clean' });
+      expect(field.value).toBe(ORIGINAL);
+    });
+
+    it('masks with the analysis made while typing', async () => {
+      start();
+      const field = textarea();
+      await type(field, ORIGINAL);
+
+      expect(await session.maskForSend(field, TIMEOUT_MS)).toEqual({ kind: 'masked', count: 2 });
+      expect(field.value).toBe(MASKED);
+      expect(analyze).toHaveBeenCalledOnce();
+    });
+
+    it('refuses a second send while the first is still being masked', async () => {
+      const slow = deferred();
+      analyze.mockImplementationOnce(() => slow.promise);
+      start();
+      const field = textarea();
+      field.value = ORIGINAL;
+
+      const first = session.maskForSend(field, TIMEOUT_MS);
+      expect(await session.maskForSend(field, TIMEOUT_MS)).toEqual({
+        kind: 'failed',
+        reason: 'write',
+      });
+      slow.resolve(ok(RESULT));
+      expect(await first).toEqual({ kind: 'masked', count: 2 });
+    });
+
+    it('gives up when storing the tokens takes longer than the timeout', async () => {
+      start({ reusePreview: false });
+      const field = textarea();
+      await type(field, ORIGINAL);
+      analyze.mockReturnValueOnce(new Promise(() => undefined));
+
+      const outcome = session.maskForSend(field, TIMEOUT_MS);
+      await vi.advanceTimersByTimeAsync(TIMEOUT_MS);
+
+      expect(await outcome).toEqual({ kind: 'failed', reason: 'analysis' });
+      expect(field.value).toBe(ORIGINAL);
+    });
+
+    it('fails without writing when storing the tokens fails', async () => {
+      start({ reusePreview: false });
+      const field = textarea();
+      await type(field, ORIGINAL);
+      analyze.mockResolvedValueOnce({ id: 'x', ok: false, code: 'engine', error: ORIGINAL });
+
+      expect(await session.maskForSend(field, TIMEOUT_MS)).toEqual({
+        kind: 'failed',
+        reason: 'analysis',
+      });
+      expect(field.value).toBe(ORIGINAL);
+      expect(warnings).toEqual(['AInonim: masking failed (engine)']);
+    });
+
+    it('fails when the field left the page before the write', async () => {
+      const slow = deferred();
+      start({ reusePreview: false });
+      const field = textarea();
+      await type(field, ORIGINAL);
+      analyze.mockImplementationOnce(() => slow.promise);
+
+      const outcome = session.maskForSend(field, TIMEOUT_MS);
+      field.remove();
+      slow.resolve(ok(RESULT));
+
+      expect(await outcome).toEqual({ kind: 'failed', reason: 'write' });
+    });
+
+    it('does not write over text typed during the analysis, nor show that analysis', async () => {
+      const slow = deferred();
+      analyze.mockImplementationOnce(() => slow.promise);
+      start();
+      const field = textarea();
+      field.value = ORIGINAL;
+
+      const outcome = session.maskForSend(field, TIMEOUT_MS);
+      field.value = `${ORIGINAL}, tel.`;
+      slow.resolve(ok(RESULT));
+
+      expect(await outcome).toEqual({ kind: 'failed', reason: 'write' });
+      expect(field.value).toBe(`${ORIGINAL}, tel.`);
+      expect(lastState()?.items).toEqual([]);
+    });
+
+    it('passes on an error of the analysis and leaves the field usable', async () => {
+      analyze.mockRejectedValueOnce(new Error('Extension context invalidated.'));
+      start();
+      const field = textarea();
+      field.value = ORIGINAL;
+
+      await expect(session.maskForSend(field, TIMEOUT_MS)).rejects.toThrow(
+        'Extension context invalidated.',
+      );
+      expect(await session.maskForSend(field, TIMEOUT_MS)).toEqual({ kind: 'masked', count: 2 });
+    });
+  });
+
+  describe('showSendBlocked', () => {
+    it('shows the held send at a field that was never analysed', () => {
+      start();
+      const field = textarea();
+      field.value = ORIGINAL;
+
+      session.showSendBlocked(field, 500);
+
+      expect(lastState()).toMatchObject({
+        status: 'failed',
+        notice: { kind: 'send-blocked', retryMs: 500 },
+      });
+    });
+
+    it('shows nothing once stopped', () => {
+      start();
+      stop?.();
+
+      session.showSendBlocked(textarea(), 500);
+
+      expect(badges).toEqual([]);
+    });
   });
 });

@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { accessText } from '~/lib/pages/tab-target';
 import {
   type SiteAccess,
   type SiteAccessSettings,
@@ -114,12 +113,39 @@ describe('watchSiteAccess', () => {
     await flush();
     expect(seen).toHaveLength(4);
   });
-});
 
-describe('accessText (popup)', () => {
-  it('explains why the site is off', () => {
-    expect(accessText({ level: 'warn', reason: 'all' })).toBe('Działa na tej stronie.');
-    expect(accessText({ level: 'off', reason: 'not-listed' })).toContain('nie ma na liście');
-    expect(accessText({ level: 'off', reason: 'not-chat' })).toContain('Tylko czaty AI');
+  it('assumes the default access when the settings cannot be read', async () => {
+    vi.spyOn(fakeBrowser.storage.sync, 'get').mockRejectedValueOnce(
+      new Error('storage unavailable'),
+    );
+    const seen: SiteAccess[] = [];
+
+    watchSiteAccess('https://example.com/', (access) => seen.push(access));
+    await flush();
+
+    expect(seen).toEqual([{ level: 'warn', reason: 'all' }]);
+    vi.restoreAllMocks();
+  });
+
+  it('reports nothing once stopped, even a read already under way', async () => {
+    const seen: SiteAccess[] = [];
+    const stop = watchSiteAccess('https://example.com/', (access) => seen.push(access));
+    stop();
+    await flush();
+
+    expect(seen).toEqual([]);
+  });
+
+  it('reports only the latest of several quick changes', async () => {
+    const seen: SiteAccess[] = [];
+    watchSiteAccess('https://example.com/', (access) => seen.push(access));
+    await flush();
+
+    void setSiteScope('list');
+    void setSiteScope('chats');
+    await flush();
+    await flush();
+
+    expect(seen.map((access) => access.reason)).toEqual(['all', 'not-chat']);
   });
 });

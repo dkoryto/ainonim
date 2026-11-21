@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLIENT_TIMEOUT_MS, type SendMessage, createClient } from '~/lib/content/client';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
+import {
+  CLIENT_TIMEOUT_MS,
+  type SendMessage,
+  analyzeText as analyzeThroughRuntime,
+  createClient,
+} from '~/lib/content/client';
 import { type ContentRequest, MAX_TEXT_LENGTH } from '~/lib/shared/messages';
 
 const analyzeResult = { anonymized: '<OSOBA_1>', spans: [], mapping: { '<OSOBA_1>': 'Jan' } };
@@ -93,5 +99,88 @@ describe('createClient', () => {
     await vi.advanceTimersByTimeAsync(CLIENT_TIMEOUT_MS);
 
     await expect(response).resolves.toMatchObject({ ok: false, code: 'timeout' });
+  });
+});
+
+describe('createClient for chat conversations', () => {
+  const JAN = { '<OSOBA_1>': 'Jan Kowalski' };
+  /** A service worker that keeps one conversation's mapping. */
+  const chatWorker = vi.fn<SendMessage>((message) =>
+    Promise.resolve(
+      message.type === 'ainonim/analyze'
+        ? { id: message.id, ok: true, result: analyzeResult, analyzeMs: 1, loadMs: 2 }
+        : { id: message.id, ok: true, mapping: JAN },
+    ),
+  );
+
+  afterEach(() => {
+    chatWorker.mockClear();
+  });
+
+  it('analyses within a conversation, asking the worker to store the tokens', async () => {
+    const { analyzeInConversation } = createClient(chatWorker);
+
+    const response = await analyzeInConversation('Jan Kowalski', 'chatgpt:abc', true);
+
+    expect(response).toMatchObject({ ok: true, result: analyzeResult });
+    expect(chatWorker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'ainonim/analyze',
+        text: 'Jan Kowalski',
+        conversationKey: 'chatgpt:abc',
+        persist: true,
+      }),
+    );
+  });
+
+  it('reads a conversation mapping', async () => {
+    const { getConversationMapping } = createClient(chatWorker);
+
+    const response = await getConversationMapping('chatgpt:abc');
+
+    expect(response).toMatchObject({ ok: true, mapping: JAN });
+    expect(chatWorker).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ainonim/mapping-get', conversationKey: 'chatgpt:abc' }),
+    );
+  });
+
+  it('renames a conversation from its temporary key', async () => {
+    const { renameConversation } = createClient(chatWorker);
+
+    const response = await renameConversation('chatgpt:tmp~1', 'chatgpt:abc');
+
+    expect(response).toMatchObject({ ok: true, mapping: JAN });
+    expect(chatWorker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'ainonim/mapping-rename',
+        fromKey: 'chatgpt:tmp~1',
+        toKey: 'chatgpt:abc',
+      }),
+    );
+  });
+
+  it('reports a mapping answer that holds no mapping', async () => {
+    const { getConversationMapping } = createClient((message) =>
+      Promise.resolve({ id: message.id, ok: true }),
+    );
+
+    expect(await getConversationMapping('chatgpt:abc')).toMatchObject({
+      ok: false,
+      code: 'engine',
+    });
+  });
+});
+
+describe('the default client', () => {
+  it('sends its requests to the service worker through runtime messaging', async () => {
+    fakeBrowser.reset();
+    fakeBrowser.runtime.onMessage.addListener(
+      (message: ContentRequest, _sender, sendResponse: (response: unknown) => void) => {
+        sendResponse({ id: message.id, ok: true, result: analyzeResult, analyzeMs: 1, loadMs: 2 });
+        return true;
+      },
+    );
+
+    expect(await analyzeThroughRuntime('Jan')).toMatchObject({ ok: true, result: analyzeResult });
   });
 });
