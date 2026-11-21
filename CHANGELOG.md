@@ -5,6 +5,15 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-22
+
+### Zmienione
+
+- Przygotowanie do Chrome Web Store: nowa polityka prywatności (PL i EN) zgodna z obecnym
+  przetwarzaniem danych, z oświadczeniem Limited Use; zaktualizowany opis do sklepu z
+  uzasadnieniami uprawnień; sześć nowych zrzutów ekranu 1280×800.
+- Paczka nie zawiera już nieużywanego adresu CDN z Pyodide; kontrola paczki wykrywa adresy CDN.
+
 ## [0.3.3] - 2026-11-21
 
 ### Zmienione
@@ -131,7 +140,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/dkoryto/ainonim/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/dkoryto/ainonim/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/dkoryto/ainonim/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/dkoryto/ainonim/compare/v0.3.0...v0.3.1
