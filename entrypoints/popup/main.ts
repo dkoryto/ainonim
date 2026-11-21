@@ -1,6 +1,15 @@
 import { browser } from 'wxt/browser';
 import { manageClient } from '~/lib/manage-client';
-import { getSiteLevel, isSiteLevel, onSiteLevelChange, setSiteLevel } from '~/lib/settings';
+import {
+  getChatDisplay,
+  getSiteLevel,
+  isChatDisplay,
+  isSiteLevel,
+  onChatDisplayChange,
+  onSiteLevelChange,
+  setChatDisplay,
+  setSiteLevel,
+} from '~/lib/settings';
 import { conversationKeyOfUrl, createStoredMappingsView } from '~/lib/ui/stored-mappings';
 import { describeTabUrl, unsupportedNote } from './tab-target';
 
@@ -10,10 +19,32 @@ function element<T extends HTMLElement>(id: string, type: new () => T): T {
   return found;
 }
 
-function showLevel(fieldset: HTMLFieldSetElement, level: string): void {
-  for (const input of fieldset.querySelectorAll<HTMLInputElement>('input[name="level"]')) {
-    input.checked = input.value === level;
+function check(fieldset: HTMLFieldSetElement, name: string, value: string): void {
+  for (const input of fieldset.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)) {
+    input.checked = input.value === value;
   }
+}
+
+function showLevel(fieldset: HTMLFieldSetElement, level: string): void {
+  check(fieldset, 'level', level);
+}
+
+/** The chat display switch: one setting for every chat site, so it is shown on any tab. */
+async function initDisplay(fieldset: HTMLFieldSetElement): Promise<void> {
+  check(fieldset, 'display', await getChatDisplay());
+  fieldset.addEventListener('change', (event) => {
+    const value = (event.target as HTMLInputElement).value;
+    if (!isChatDisplay(value)) return;
+    setChatDisplay(value).catch((error: unknown) => {
+      console.error('AInonim: saving the chat display failed', error);
+      void getChatDisplay().then((display) => {
+        check(fieldset, 'display', display);
+      });
+    });
+  });
+  onChatDisplayChange((display) => {
+    check(fieldset, 'display', display);
+  });
 }
 
 async function init(): Promise<void> {
@@ -21,6 +52,7 @@ async function init(): Promise<void> {
   const fieldset = element('level', HTMLFieldSetElement);
   const note = element('note', HTMLParagraphElement);
   const stored = element('stored', HTMLElement);
+  void initDisplay(element('display', HTMLFieldSetElement));
 
   // The popup is opened by the user's click, so activeTab exposes this tab's URL without `tabs`.
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });

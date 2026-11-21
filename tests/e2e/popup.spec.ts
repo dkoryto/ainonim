@@ -56,6 +56,17 @@ test('shows a note instead of the switch on an extension page', async ({ context
   await expect(page.locator('#level')).toBeHidden();
 });
 
+test('switches the chat display and keeps the choice', async ({ context }) => {
+  const page = await openPopup(context);
+  const originals = page.getByRole('radio', { name: 'Oryginały' });
+  const tokens = page.getByRole('radio', { name: 'Znaczniki' });
+
+  await expect(originals).toBeChecked();
+  await tokens.check();
+  await page.reload();
+  await expect(tokens).toBeChecked();
+});
+
 test('says when no data is stored', async ({ context }) => {
   const page = await openPopup(context);
 

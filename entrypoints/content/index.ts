@@ -16,9 +16,13 @@ import { type AnalyzeResponse, isMappingsChangedNotice } from '~/lib/messages';
 import { observeMessages } from '~/lib/restore/observer';
 import { createDeclensionCache, findTokens } from '~/lib/restore/tokens';
 import {
+  type ChatDisplay,
+  DEFAULT_CHAT_DISPLAY,
   DEFAULT_SITE_LEVEL,
   type SiteLevel,
+  getChatDisplay,
   getSiteLevel,
+  onChatDisplayChange,
   normalizeHostname,
   onSiteLevelChange,
 } from '~/lib/settings';
@@ -63,12 +67,23 @@ function start(adapter: SiteAdapter | null): () => void {
       refresh();
     },
   });
+  let display: ChatDisplay = DEFAULT_CHAT_DISPLAY;
   const stopMessages = observeMessages(adapter, document, () => conversation.mapping(), {
     declensions: createDeclensionCache(declineToken),
+    peek: () => display === 'peek',
   });
   refresh = () => {
     stopMessages.refresh();
   };
+  const showDisplay = (next: ChatDisplay): void => {
+    if (next === display) return;
+    display = next;
+    refresh();
+  };
+  const stopDisplay = onChatDisplayChange(showDisplay);
+  void getChatDisplay()
+    .then(showDisplay)
+    .catch(() => undefined);
   const stopMasking = startMasking({
     analyze: (text, persist) => analyzeInChat(conversation, text, persist),
     reusePreview: false,
@@ -81,6 +96,7 @@ function start(adapter: SiteAdapter | null): () => void {
   browser.runtime.onMessage.addListener(onNotice);
   return () => {
     browser.runtime.onMessage.removeListener(onNotice);
+    stopDisplay();
     stopMasking();
     stopMessages();
     conversation.stop();

@@ -18,6 +18,16 @@
       <label><input type="radio" name="level" value="off" /> Wyłączone</label>
     </fieldset>
     <p id="note" class="note" hidden></p>
+    <fieldset id="display">
+      <legend>W odpowiedziach czatu pokazuj</legend>
+      <label
+        title="Znaczniki są zamieniane na prawdziwe dane; po najechaniu widać, co wysłano do modelu"
+        ><input type="radio" name="display" value="restore" /> Oryginały</label
+      >
+      <label title="Tekst zostaje ze znacznikami; prawdziwe dane widać po najechaniu"
+        ><input type="radio" name="display" value="peek" /> Znaczniki</label
+      >
+    </fieldset>
     <section id="stored" class="stored" aria-labelledby="stored-title"></section>
     <p class="info">Wykrywanie działa lokalnie w przeglądarce, tekst nigdzie nie jest wysyłany.</p>
     <script type="module" src="./main.ts"></script>

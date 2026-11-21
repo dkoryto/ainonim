@@ -40,6 +40,12 @@ describe('restoredTitle', () => {
       'AInonim\nJanie Kowalski – model napisał <OSOBA_1:wołacz>',
     );
   });
+
+  it('names the original behind each token when the tokens stay on screen', () => {
+    expect(restoredTitle('answer', [{ token: '<OSOBA_1>', value: 'Jan Kowalski' }], true)).toBe(
+      'AInonim\n<OSOBA_1> = Jan Kowalski',
+    );
+  });
 });
 
 describe('createRestoredMarks', () => {

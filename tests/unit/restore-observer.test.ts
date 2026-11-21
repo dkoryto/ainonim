@@ -126,6 +126,54 @@ describe('a static answer', () => {
   });
 });
 
+describe('peek display', () => {
+  it('keeps the tokens, highlights them and names the originals on hover', () => {
+    load('chatgpt-conversation.html');
+    const html = element('[data-response-body]').innerHTML;
+    stop = observeMessages(chatgpt, document, () => mapping, { peek: () => true });
+    const answer = element('[data-response-body]');
+    expect(answer.innerHTML.replace(/ (title|data-ainonim-restored)="[^"]*"/g, '')).toBe(html);
+    expect(highlighted(answer)).toEqual(['<OSOBA_1>', '<PESEL_1>']);
+    expect(element('[data-response-body] p').title).toBe('AInonim\n<OSOBA_1> = Jan Kowalski');
+  });
+
+  it('switches between originals and tokens on refresh', () => {
+    load('chatgpt-conversation.html');
+    let peek = false;
+    stop = observeMessages(chatgpt, document, () => mapping, { peek: () => peek });
+    const paragraph = element('[data-response-body] p');
+    expect(paragraph.textContent).toBe('Dzień dobry, Jan Kowalski!');
+
+    peek = true;
+    stop.refresh();
+    expect(paragraph.textContent).toBe('Dzień dobry, <OSOBA_1>!');
+    expect(paragraph.title).toBe('AInonim\n<OSOBA_1> = Jan Kowalski');
+
+    peek = false;
+    stop.refresh();
+    expect(paragraph.textContent).toBe('Dzień dobry, Jan Kowalski!');
+    expect(paragraph.title).toBe('AInonim\nJan Kowalski – model napisał <OSOBA_1>');
+  });
+
+  it('marks a token split across two text nodes in both of them', () => {
+    document.body.innerHTML =
+      '<div data-message-author-role="assistant"><div data-response-body><p></p></div></div>';
+    const paragraph = element('[data-response-body] p');
+    paragraph.append('Pan <OSO', 'BA_1> pisze');
+    stop = observeMessages(chatgpt, document, () => mapping, { peek: () => true });
+    expect(paragraph.textContent).toBe('Pan <OSOBA_1> pisze');
+    expect(highlighted(paragraph)).toEqual(['<OSO', 'BA_1>']);
+  });
+
+  it('removes highlights and titles when stopped', () => {
+    load('chatgpt-conversation.html');
+    const html = document.body.innerHTML;
+    observeMessages(chatgpt, document, () => mapping, { peek: () => true })();
+    expect(document.body.innerHTML).toBe(html);
+    expect(registry.has(RESTORED_HIGHLIGHT)).toBe(false);
+  });
+});
+
 describe('a sent message', () => {
   it('restores the ChatGPT user bubble and labels it with the tokens sent', () => {
     load('chatgpt-conversation.html');
