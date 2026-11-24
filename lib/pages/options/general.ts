@@ -85,7 +85,8 @@ export const MASKING_MODE_OPTIONS = [
     hint:
       'Gdy wysyłasz wiadomość w czacie AI, znalezione dane zostają najpierw zamaskowane, a ' +
       'dopiero potem wiadomość idzie dalej (wybory z panelu są uwzględniane). Działa w ChatGPT, ' +
-      'Claude, Gemini, Groku i Perplexity; na innych stronach maskujesz ręcznie z panelu.',
+      'Claude, Gemini, Groku, Perplexity, Kimi, DeepSeeku, Le Chat, Copilocie i Qwenie; na ' +
+      'innych stronach maskujesz ręcznie z panelu.',
   },
   {
     value: 'typing',

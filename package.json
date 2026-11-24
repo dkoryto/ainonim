@@ -1,7 +1,7 @@
 {
   "name": "ainonim",
   "description": "Maskowanie polskich danych osobowych w czatach AI i formularzach (polanon + Pyodide).",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -21,7 +21,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "measure": "npm run build:e2e && AINONIM_MEASURE=1 playwright test measure",
-    "screenshots": "npm run build:e2e && node scripts/screenshots.js"
+    "screenshots": "npm run build:e2e && node scripts/screenshots.js",
+    "video": "npm run build:e2e && node scripts/demo-video.js"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

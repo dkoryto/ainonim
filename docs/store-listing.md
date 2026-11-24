@@ -44,7 +44,7 @@ Jak działa:
 • Dla każdej strony wybierasz: ostrzegaj albo wyłączone. W ustawieniach wyłączysz kategorie, których nie chcesz wykrywać.
 • Dziennik maskowania zapisuje tylko liczby (kiedy, na jakiej stronie, ile danych jakiego rodzaju), nigdy samych danych. Można go wyeksportować do CSV, wydrukować jako raport albo wyłączyć.
 
-Obsługiwane czaty: przywracanie oryginałów i maskowanie przy wysyłce działają w ChatGPT, Claude, Gemini, Grok i Perplexity. Wykrywanie i ręczne maskowanie działają w polach tekstowych na każdej stronie. AInonim nie jest powiązany z OpenAI, Anthropic, Google, xAI ani Perplexity.
+Obsługiwane czaty: przywracanie oryginałów i maskowanie przy wysyłce działają w ChatGPT, Claude, Gemini, Grok, Perplexity, Kimi, DeepSeek, Mistral Le Chat, Microsoft Copilot i Qwen. Wykrywanie i ręczne maskowanie działają w polach tekstowych na każdej stronie. AInonim nie jest powiązany z OpenAI, Anthropic, Google, xAI, Perplexity, Moonshot AI, DeepSeek, Mistral AI, Microsoft ani Alibaba.
 
 Prywatność:
 • Wykrywanie działa w całości w przeglądarce: otwarta biblioteka polanon uruchomiona przez Pyodide (WebAssembly), dołączona do paczki rozszerzenia.
@@ -117,18 +117,21 @@ Trzy oświadczenia (zaznaczyć wszystkie):
 Adres polityki prywatności: publiczna wersja `docs/privacy-policy.md`:
 [[DO UZUPEŁNIENIA: publiczny adres URL polityki prywatności]].
 
-### Zrzuty ekranu (1280×800)
+### Zrzuty ekranu (1280×800) i wideo
 
-Pliki w `assets/store/`, generowane z prawdziwym rozszerzeniem (build e2e) przez
-`npm run screenshots` (`scripts/screenshots.js`, strona czatu w `scripts/screenshot-pages/`).
-Strona czatu jest lokalna i neutralna: jest podstawiona pod adres `chatgpt.com` tylko po to, żeby
-zadziałał adapter czatu, ale nie naśladuje wyglądu żadnego serwisu. „Wysłanie” wiadomości i
-odpowiedź „modelu” wstawia skrypt; ikona, panel, maskowanie, przywracanie, ustawienia i popup są
-prawdziwe. Podpowiedź przy odpowiedzi na zrzucie 2 to treść atrybutu `title`, który ustawia
-rozszerzenie; skrypt ją rysuje, bo przeglądarka bez okna nie pokazuje natywnych podpowiedzi. Popup
-na zrzucie 6 to prawdziwa strona popupu; skrypt podaje jej tylko adres karty, bo popup otwarty ze
-skryptu nie dostaje `activeTab`. Wpisy dziennika z wcześniejszych dni skrypt dopisuje przez service
-worker. Wszystkie dane są fikcyjne (Jan Kowalski, PESEL 50810112354, adresy w `example.pl`).
+Sklep przyjmuje najwyżej 5 zrzutów 1280×800. Pliki w `assets/store/`; te same ujęcia w 2560×1600
+(do README i na stronę) są w `assets/store/hires/`. Oba rozmiary są renderowane natywnie, bez
+skalowania obrazu. Generuje je z prawdziwym rozszerzeniem (build e2e) `npm run screenshots`
+(`scripts/screenshots.js`, wspólna konfiguracja w `scripts/store-kit.js`, strona czatu w
+`scripts/screenshot-pages/`). Strona czatu jest lokalna i neutralna: jest podstawiona pod adres
+`chatgpt.com` tylko po to, żeby zadziałał adapter czatu, ale nie naśladuje wyglądu żadnego serwisu;
+wszystkie inne żądania są blokowane. Odpowiedź „modelu” wstawia skrypt; ikona, panel, maskowanie,
+przywracanie, ustawienia i popup są prawdziwe. Podpowiedź przy odpowiedzi to treść atrybutu
+`title`, który ustawia rozszerzenie; skrypt ją rysuje, bo przeglądarka bez okna nie pokazuje
+natywnych podpowiedzi. Popup to prawdziwa strona popupu; skrypt podaje jej tylko adres karty, bo
+popup otwarty ze skryptu nie dostaje `activeTab`. Na zrzutach nie ma paska przeglądarki, innych
+rozszerzeń, kont ani kursora tekstowego. Wszystkie dane są fikcyjne (Jan Kowalski, PESEL
+50810112354, adresy w `example.pl`).
 
 1. `screenshot-1-panel.png`: wiadomość w czacie z „Jan Kowalski”, PESEL i IBAN-em, zaznaczone
    wartości, ikona z liczbą 3 i otwarty panel z trzema wartościami, przełącznikami „znacznik |
@@ -137,16 +140,23 @@ worker. Wszystkie dane są fikcyjne (Jan Kowalski, PESEL 50810112354, adresy w `
 2. `screenshot-2-restored.png`: wysłana wiadomość i odpowiedź z przywróconymi, podświetlonymi
    oryginałami, podpowiedź „model napisał <IBAN_1>”, a w polu kolejna wiadomość z `<EMAIL_1>`.
    Podpis: „Model widzi znaczniki, Ty widzisz oryginały”.
-3. `screenshot-3-options.png`: ustawienia, zakładka „Ogólne”: maskowanie ręczne albo przy
-   wysyłce, wyświetlanie odpowiedzi, dziennik.
-   Podpis: „Maskowanie ręczne albo automatyczne przy wysyłce”.
-4. `screenshot-4-words.png`: zakładka „Własne słowa” z dwoma wpisami: słowem i wzorcem.
-   Podpis: „Twoje własne słowa i wzorce też są maskowane”.
-5. `screenshot-5-log.png`: zakładka „Dziennik” z podsumowaniem i ostatnimi maskowaniami.
-   Podpis: „Dziennik: same liczby, bez danych”.
-6. `screenshot-6-popup.png`: popup nad czatem: poziom dla strony, tryb maskowania, wyświetlanie
-   i „Zapamiętane dane” tej rozmowy z przyciskami „Usuń” i „Usuń wszystko”.
-   Podpis: „Zapamiętane dane usuniesz jednym kliknięciem”.
+3. `screenshot-3-popup.png`: popup nad czatem: tryb dla strony, tryb maskowania (ręcznie, przy
+   wysyłce, przy pisaniu), wyświetlanie i „Zapamiętane dane” tej rozmowy z „Usuń” i „Usuń wszystko”.
+   Podpis: „Wszystko pod ręką, zapamiętane dane usuniesz jednym kliknięciem”.
+4. `screenshot-4-options.png`: ustawienia, zakładka „Ogólne”: trzy tryby maskowania i wyświetlanie
+   odpowiedzi.
+   Podpis: „Maskowanie ręczne albo automatyczne: przy wysyłce lub podczas pisania”.
+5. `screenshot-5-categories.png`: zakładka „Kategorie”: które rodzaje danych wykrywać i na co je
+   zamieniać (znacznik albo opis ogólny).
+   Podpis: „Sam decydujesz, co i jak maskować”.
+
+Wideo (1920×1080, H.264, ok. 56 s, bez dźwięku): `assets/store/demo.mp4`, generowane przez
+`npm run video` (`scripts/demo-video.js`, potrzebny `ffmpeg`). Pokazuje wykrywanie podczas pisania,
+panel, maskowanie jednym kliknięciem, odpowiedź modelu ze znacznikami i przywrócenie oryginałów (z
+odmianą), a potem włączenie maskowania przy wysyłce i wysłanie wiadomości Enterem. Kursor, podpisy i
+plansze są rysowane na stronie; klatki są nagrywane bezstratnie przy zoomie karty 200%, więc obraz
+ma pełną ostrość 1080p. Sklep przyjmuje wideo jako link do YouTube: plik trzeba tam wgrać (może
+być „niepubliczny”) i wkleić adres w panelu.
 
 Mały kafelek promocyjny (440×280): `assets/store/promo-440x280.png`, generowany razem z ikonami
 przez `node scripts/render-icons.js` z `assets/icon.svg`. Jego tekst („Maskuje polskie dane
@@ -205,7 +215,7 @@ How it works:
 • Per site you choose: warn or off. In the settings you can switch off categories you do not want detected.
 • The masking log records only counts (when, on which site, how many values of which kind), never the data itself. It can be exported as CSV, printed as a report or switched off.
 
-Supported chats: restoring originals and masking on send work in ChatGPT, Claude, Gemini, Grok and Perplexity. Detection and manual masking work in text fields on any site. AInonim is not affiliated with OpenAI, Anthropic, Google, xAI or Perplexity.
+Supported chats: restoring originals and masking on send work in ChatGPT, Claude, Gemini, Grok, Perplexity, Kimi, DeepSeek, Mistral Le Chat, Microsoft Copilot and Qwen. Detection and manual masking work in text fields on any site. AInonim is not affiliated with OpenAI, Anthropic, Google, xAI, Perplexity, Moonshot AI, DeepSeek, Mistral AI, Microsoft or Alibaba.
 
 Privacy:
 • Detection runs entirely in the browser: the open-source polanon library run by Pyodide (WebAssembly), bundled in the extension package.
@@ -251,7 +261,7 @@ When the user clicks the toolbar icon, the popup reads the current tab's URL to 
 **Host permissions / content script on all sites (`<all_urls>`, all frames)**
 
 ```
-Text fields where users type personal data exist on any website and often inside frames (embedded editors and forms), not only in AI chats. The content script reads only the field the user is editing, skips password, payment card and one-time-code fields, and sends nothing outside the extension. On sites the user sets to "off" it does not analyse fields. On ChatGPT, Claude, Gemini, Grok and Perplexity it also restores the originals in answers on the user's screen.
+Text fields where users type personal data exist on any website and often inside frames (embedded editors and forms), not only in AI chats. The content script reads only the field the user is editing, skips password, payment card and one-time-code fields, and sends nothing outside the extension. On sites the user sets to "off" it does not analyse fields. On the supported AI chats (ChatGPT, Claude, Gemini and seven others) it also restores the originals in answers on the user's screen.
 ```
 
 ### Remote code

@@ -5,6 +5,24 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-24
+
+### Dodane
+
+- Wideo demonstracyjne 1080p (`assets/store/demo.mp4`, `npm run video`): wykrywanie, panel,
+  maskowanie, przywracanie oryginałów i maskowanie przy wysyłce, z kursorem i podpisami.
+- Zrzuty do sklepu także w 2560×1600 (`assets/store/hires/`), renderowane natywnie.
+
+### Zmienione
+
+- Zrzuty do sklepu odświeżone na obecny wygląd i ograniczone do 5 (tyle przyjmuje Chrome Web
+  Store): panel, przywrócona odpowiedź, popup, „Ogólne”, „Kategorie”. Bez kursora tekstowego i bez
+  technicznego identyfikatora rozmowy.
+- Opis trybu „Automatycznie przy wysyłce” w ustawieniach i podpowiedź w popupie wymieniają wszystkie
+  obsługiwane czaty, nie tylko pięć pierwszych; tak samo opis do sklepu.
+- Strona czatu do zrzutów obsługuje wysyłanie (przycisk i Enter), więc tryb przy wysyłce działa na
+  niej naprawdę.
+
 ## [0.4.2] - 2026-11-22
 
 Bez zmian w działaniu wtyczki.
@@ -187,7 +205,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/dkoryto/ainonim/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/dkoryto/ainonim/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/dkoryto/ainonim/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/dkoryto/ainonim/compare/v0.3.4...v0.4.0
