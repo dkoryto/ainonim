@@ -113,8 +113,12 @@ export async function streamAnswer(page, lines, delay = 0) {
           paragraph.textContent = line;
           continue;
         }
+        // Like a real chat, the text comes from the page's own state and is never read back from
+        // the DOM, where the extension has already put the originals in place of the tokens.
+        let written = '';
         for (const word of line.split(/(?<= )/)) {
-          paragraph.textContent += word;
+          written += word;
+          paragraph.textContent = written;
           main.scrollTop = main.scrollHeight;
           await pause();
         }
