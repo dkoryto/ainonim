@@ -289,9 +289,10 @@ Privacy policy URL: [[DO UZUPEŁNIENIA: publiczny adres URL polityki prywatnośc
 
 ### Screenshot captions
 
-1. "See personal data before you send it"
-2. "The model sees tokens, you see the originals"
-3. "Mask manually or automatically on send"
-4. "Your own words and patterns are masked too"
-5. "Masking log: counts only, no data"
-6. "Delete remembered data in one click"
+In the order of the files in `assets/store/` (the Polish captions above, translated):
+
+1. `screenshot-1-panel.png`: "See personal data before you send it"
+2. `screenshot-2-restored.png`: "The model sees tokens, you see the originals"
+3. `screenshot-3-popup.png`: "Everything at hand; delete remembered data in one click"
+4. `screenshot-4-options.png`: "Mask manually or automatically: on send or while typing"
+5. `screenshot-5-categories.png`: "You decide what to mask and how"
