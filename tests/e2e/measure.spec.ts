@@ -10,8 +10,11 @@ import { join, resolve } from 'node:path';
 import { analyzeInPage, expect, launchWithExtension, test } from './fixtures';
 
 const LIMITS = {
-  /** Median cold start: first analyze in a fresh profile, Pyodide and polanon load included. */
-  coldMedianRoundTripMs: 5_000,
+  /**
+   * Median cold start: first analyze in a fresh profile, Pyodide and polanon load included. CI
+   * medians ranged from 2.3 to 5.4 s over 15 runs (November 2026), so 5 s failed on noise alone.
+   */
+  coldMedianRoundTripMs: 8_000,
   /** Median warm analyze of 2000 characters, content script -> service worker -> offscreen. */
   warmMedianRoundTripMs: 200,
   /** Sum of file sizes of the production package (`npm run build`), in bytes (15 MB). */
