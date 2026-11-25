@@ -86,24 +86,45 @@ Proszę o korektę faktury. Klient: Jan Kowalski, PESEL 50810112354, e-mail jan.
 
 ## 6. Paczka
 
-- [ ] `npm run zip` → `.output/ainonim-<wersja>-chrome.zip`.
-- [ ] Zajrzyj do zipa (`unzip -l`): jest `NOTICE.txt`, brak map źródeł, plików testowych i
-      `.env`.
+Paczkę do sklepu buduje GitHub Actions (`.github/workflows/release.yml`), nie lokalny komputer,
+więc zawsze powstaje z czystego `npm ci` i z kodu oznaczonego tagiem.
+
+- [ ] `CHANGELOG.md` ma sekcję `## [<x.y.z>]` (z niej powstają notatki wydania), zmiany są w
+      `main`, CI jest zielone.
+- [ ] Tag:
+
+  ```
+  git tag -a v<x.y.z> -m "AInonim <x.y.z>"
+  git push origin v<x.y.z>
+  ```
+
+- [ ] Workflow „Release” (zakładka Actions) jest zielony. Sprawdza, że tag zgadza się z `version`
+      w `package.json`, uruchamia lint, typecheck i testy z pokryciem, buduje `npm run zip`
+      i kontroluje zip: jest `manifest.json` z tą samą wersją i `NOTICE.txt`, nie ma map źródeł,
+      `.env` ani plików testów. Na koniec tworzy **szkic** wydania GitHub z zipem, sumą SHA-256
+      i notatkami z CHANGELOG.
+- [ ] Pobierz zip ze szkicu wydania i sprawdź sumę:
+      `sha256sum -c ainonim-<x.y.z>-chrome.zip.sha256`.
+
+Paczka bez wydania, np. do sprawdzenia gałęzi: Actions → Release → Run workflow, zip jest w
+artefaktach przebiegu przez 30 dni. Lokalnie nadal działa `npm run zip`.
 
 ## 7. Wysłanie do Chrome Web Store
 
 1. [Developer Dashboard](https://chrome.google.com/webstore/devconsole) → AInonim → „Pakiet” →
-   prześlij nowy zip.
+   prześlij zip ze szkicu wydania.
 2. „Informacje o produkcie”: sprawdź opisy i zrzuty ekranu z `docs/store-listing.md`.
 3. „Prywatność”: jedyny cel, uzasadnienia uprawnień, zdalny kod, wykorzystanie danych i adres
    polityki prywatności zgodne z `docs/store-listing.md`.
 4. Wyślij do weryfikacji. Zanotuj datę.
 
-## 8. Tag
+## 8. Publikacja wydania
 
-Po zatwierdzeniu przez sklep (lub od razu po wysłaniu, zgodnie z ustaleniem w zespole):
+Po zatwierdzeniu przez sklep opublikuj szkic wydania:
 
 ```
-git tag -a v<x.y.z> -m "AInonim <x.y.z>"
-git push origin v<x.y.z>
+gh release edit v<x.y.z> --draft=false
 ```
+
+Jeśli sklep odrzuci paczkę: popraw, podbij wersję i zacznij od punktu 1; szkic i tag odrzuconej
+wersji usuń (`gh release delete v<x.y.z> --cleanup-tag`).

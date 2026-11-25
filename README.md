@@ -200,6 +200,11 @@ ani od lokalnego repo polanon. Przebudowanie z lokalnej kopii:
 Lista kontrolna: [docs/release.md](docs/release.md). Każda zmiana widoczna dla użytkownika trafia
 do [CHANGELOG.md](CHANGELOG.md) i podbija wersję w `package.json`.
 
+Paczkę do Chrome Web Store buduje GitHub Actions: tag `v<x.y.z>` uruchamia workflow
+`.github/workflows/release.yml` (testy, `npm run zip`, kontrola zawartości zipa), który tworzy
+szkic wydania GitHub z zipem i sumą SHA-256. „Run workflow” buduje paczkę z dowolnej gałęzi jako
+artefakt, bez wydania.
+
 ## Ograniczenia
 
 - To pseudonimizacja, nie anonimizacja w rozumieniu RODO.
