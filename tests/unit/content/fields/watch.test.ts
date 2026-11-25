@@ -59,6 +59,23 @@ describe('watchFields', () => {
     expect(onText).toHaveBeenCalledExactlyOnceWith(area, 'Jan Kowalski');
   });
 
+  it('reports a focused field that was typed in before watching started', () => {
+    const area = control('<textarea></textarea>', 'textarea');
+    area.focus();
+    area.value = 'Jan Kowalski';
+    watch();
+    vi.advanceTimersByTime(400);
+    expect(onText).toHaveBeenCalledExactlyOnceWith(area, 'Jan Kowalski');
+  });
+
+  it('does not report a focused field that is still empty when watching starts', () => {
+    const area = control('<textarea></textarea>', 'textarea');
+    area.focus();
+    watch();
+    vi.advanceTimersByTime(400);
+    expect(onText).not.toHaveBeenCalled();
+  });
+
   it('restarts the debounce on every edit and reports only the settled text', () => {
     watch({ debounceMs: 100 });
     const input = control('<input type="email">', 'input');

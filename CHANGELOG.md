@@ -5,6 +5,12 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+### Naprawione
+
+- Pole, w którym tekst był już wpisany, zanim AInonim zaczął działać na stronie (wolne
+  ładowanie, włączenie wtyczki dla strony w trakcie pisania), nie było analizowane, dopóki nie
+  dopisano kolejnego znaku. Teraz jest analizowane od razu.
+
 ## [0.4.4] - 2026-11-24
 
 Bez zmian w działaniu wtyczki.

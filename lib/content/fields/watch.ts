@@ -118,8 +118,13 @@ export function watchFields(options: WatchOptions): () => void {
 
   for (const type of EVENTS) root.addEventListener(type, onEdit, true);
   for (const type of OBSERVE_EVENTS) root.addEventListener(type, onObserveEvent, true);
-  // The content script may start after the user already focused an editor (or the page did).
-  if (!(root instanceof HTMLElement)) observe(fieldOf(root.activeElement));
+  // The content script may start after the user already focused a field (or the page did), and
+  // even after they typed in it: no edit event follows then, so text already there is reported.
+  if (!(root instanceof HTMLElement)) {
+    const active = fieldOf(root.activeElement);
+    observe(active);
+    if (active && readText(active) !== '') schedule(active);
+  }
   return () => {
     for (const type of EVENTS) root.removeEventListener(type, onEdit, true);
     for (const type of OBSERVE_EVENTS) root.removeEventListener(type, onObserveEvent, true);
