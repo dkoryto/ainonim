@@ -162,6 +162,12 @@ Mały kafelek promocyjny (440×280): `assets/store/promo-440x280.png`, generowan
 przez `node scripts/render-icons.js` z `assets/icon.svg`. Jego tekst („Maskuje polskie dane
 osobowe, zanim trafią do czatu AI. Lokalnie, bez wysyłania.”) jest nadal aktualny.
 
+Transparent promocyjny (1400×560, opcjonalny): `assets/store/marquee-1400x560.png`, ten sam
+skrypt. Po lewej logo, ten sam tekst i przykład znacznika, po prawej kadr ze zrzutu
+`hires/screenshot-1-panel.png` (panel nad polem wiadomości). Po odświeżeniu zrzutów uruchom
+`node scripts/render-icons.js` ponownie. Oba obrazy promocyjne to PNG bez kanału alfa, jak wymaga
+sklep.
+
 ### Do zrobienia przez właściciela (poza repozytorium)
 
 - [ ] Konto dewelopera Chrome Web Store i jednorazowa opłata rejestracyjna.
