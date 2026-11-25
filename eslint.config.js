@@ -92,7 +92,6 @@ export default tseslint.config(
       'lib/content/masking.ts',
       'lib/content/restore/observer.ts',
       'lib/content/typing-mask.ts',
-      'lib/content/ui/badge.ts',
       'lib/settings/site-patterns.ts',
       'lib/shared/custom-words.ts',
     ],

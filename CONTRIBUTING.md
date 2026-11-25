@@ -43,7 +43,8 @@ Zmiana w zachowaniu na stronie, w komunikacji lub w buildzie: także `npm run te
 ## Testy
 
 - Test modułu `lib/<obszar>/<moduł>.ts` jest w `tests/unit/<obszar>/<moduł>.test.ts`. Nowy moduł
-  dostaje nowy plik testu.
+  dostaje nowy plik testu. Wyjątek: moduł wydzielony z większego (np. `badge-*.ts` z `badge.ts`)
+  może być testowany przez API modułu, z którego go wydzielono, jeśli spełnia progi pokrycia.
 - Progi pokrycia (`vitest.config.ts`): łącznie 95% instrukcji, funkcji i linii, 90% gałęzi; każdy
   plik co najmniej 85% instrukcji i 75% gałęzi.
 - Testy sprawdzają zachowanie przez publiczne API modułu, nie jego wnętrze.
