@@ -21,6 +21,7 @@ import {
   parseSitePattern,
 } from '~/lib/settings';
 import { type SiteAdapter, adapters } from '~/lib/sites';
+import { button } from '~/lib/pages/controls';
 import { heading, make } from './dom';
 import { checkRadio, radioGroup } from './general';
 
@@ -63,39 +64,29 @@ export const SCOPE_OPTIONS: readonly { value: SiteScope; label: string; hint: st
   },
 ];
 
-function button(doc: Document, text: string, className?: string): HTMLButtonElement {
-  const element = make(doc, 'button', className, text);
-  element.type = 'button';
-  return element;
-}
-
 interface SiteListEditor {
   section: HTMLElement;
   show: (sites: readonly string[]) => void;
 }
 
-/**
- * A list of hostnames with a remove button each, and an input to add one. `add` and `remove`
- * write the setting; the list is redrawn from the change notification.
- */
-function siteListEditor(
+interface SiteListOptions {
+  className: string;
+  title: string;
+  hint: string;
+  empty: string;
+  placeholder: string;
+  allowWildcard: boolean;
+  max: number;
+  add: (pattern: string) => Promise<void>;
+  remove: (pattern: string) => Promise<void>;
+  saveError: (error: unknown) => string;
+}
+
+/** The form that adds a site: a text input and "Dodaj". */
+function siteForm(
   doc: Document,
-  options: {
-    className: string;
-    title: string;
-    hint: string;
-    empty: string;
-    placeholder: string;
-    allowWildcard: boolean;
-    max: number;
-    add: (pattern: string) => Promise<void>;
-    remove: (pattern: string) => Promise<void>;
-    saveError: (error: unknown) => string;
-  },
-): SiteListEditor {
-  const section = make(doc, 'section', `site-list ${options.className}`);
-  const list = make(doc, 'ul', 'sites');
-  const empty = make(doc, 'p', 'sites-empty', options.empty);
+  options: SiteListOptions,
+): { form: HTMLFormElement; input: HTMLInputElement } {
   const form = make(doc, 'form', 'site-add');
   const input = make(doc, 'input', 'site-input');
   input.type = 'text';
@@ -107,8 +98,32 @@ function siteListEditor(
   const addButton = button(doc, 'Dodaj');
   addButton.type = 'submit';
   form.append(input, addButton);
+  return { form, input };
+}
+
+function siteRow(doc: Document, site: string, onRemove: () => void): HTMLLIElement {
+  const row = make(doc, 'li', 'site-row');
+  const remove = button(doc, 'Usuń', 'site-remove');
+  remove.setAttribute('aria-label', `Usuń ${site}`);
+  remove.addEventListener('click', onRemove);
+  row.append(make(doc, 'span', 'site-name', site), remove);
+  return row;
+}
+
+/**
+ * A list of hostnames with a remove button each, and an input to add one. `add` and `remove`
+ * write the setting; the list is redrawn from the change notification.
+ */
+function siteListEditor(doc: Document, options: SiteListOptions): SiteListEditor {
+  const section = make(doc, 'section', `site-list ${options.className}`);
+  const list = make(doc, 'ul', 'sites');
+  const empty = make(doc, 'p', 'sites-empty', options.empty);
+  const { form, input } = siteForm(doc, options);
   const status = make(doc, 'p', 'status');
   status.setAttribute('role', 'status');
+  const showError = (error: unknown): void => {
+    status.textContent = options.saveError(error);
+  };
   let count = 0;
 
   form.addEventListener('submit', (event) => {
@@ -125,14 +140,9 @@ function siteListEditor(
     }
     input.removeAttribute('aria-invalid');
     status.textContent = '';
-    options.add(parsed.pattern).then(
-      () => {
-        input.value = '';
-      },
-      (error: unknown) => {
-        status.textContent = options.saveError(error);
-      },
-    );
+    options.add(parsed.pattern).then(() => {
+      input.value = '';
+    }, showError);
   });
   input.addEventListener('input', () => {
     input.removeAttribute('aria-invalid');
@@ -142,18 +152,11 @@ function siteListEditor(
   const show = (sites: readonly string[]): void => {
     count = sites.length;
     list.replaceChildren(
-      ...sites.map((site) => {
-        const row = make(doc, 'li', 'site-row');
-        const remove = button(doc, 'Usuń', 'site-remove');
-        remove.setAttribute('aria-label', `Usuń ${site}`);
-        remove.addEventListener('click', () => {
-          options.remove(site).catch((error: unknown) => {
-            status.textContent = options.saveError(error);
-          });
-        });
-        row.append(make(doc, 'span', 'site-name', site), remove);
-        return row;
-      }),
+      ...sites.map((site) =>
+        siteRow(doc, site, () => {
+          options.remove(site).catch(showError);
+        }),
+      ),
     );
     empty.hidden = sites.length > 0;
   };

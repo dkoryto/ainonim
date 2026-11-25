@@ -6,6 +6,7 @@ import { type LogEntry, summarize } from '~/lib/shared/log-entries';
 import { clearLog, onLogChange, readLog } from '~/lib/log/store';
 import { getLogEnabled, onLogEnabledChange } from '~/lib/settings';
 import { categoryName, entriesTable, rankList, summaryStats } from '~/lib/pages/log-view';
+import { type ConfirmPrompt, button, confirmPrompt } from '~/lib/pages/controls';
 import { heading, make } from './dom';
 
 /** Rows of the table shown at first and added by each "Pokaż więcej". */
@@ -13,12 +14,6 @@ export const PAGE_SIZE = 200;
 const TOP_CATEGORIES = 8;
 
 export const REPORT_PATH = '/report.html';
-
-function button(doc: Document, text: string, className?: string): HTMLButtonElement {
-  const element = make(doc, 'button', className, text);
-  element.type = 'button';
-  return element;
-}
 
 /** `ainonim-dziennik-2026-11-21.csv` */
 export function csvFileName(now: Date): string {
@@ -67,10 +62,25 @@ function defaultDeps(doc: Document): LogTabDeps {
   };
 }
 
-export async function mountLog(panel: HTMLElement, deps?: Partial<LogTabDeps>): Promise<void> {
-  const doc = panel.ownerDocument;
-  const use: LogTabDeps = { ...defaultDeps(doc), ...deps };
+/** The parts of the tab that change after it is drawn. */
+interface LogUi {
+  disabledNote: HTMLElement;
+  empty: HTMLElement;
+  summary: HTMLElement;
+  breakdown: HTMLElement;
+  exportCsv: HTMLButtonElement;
+  report: HTMLButtonElement;
+  clear: HTMLButtonElement;
+  confirm: ConfirmPrompt;
+  error: HTMLElement;
+  recent: HTMLElement;
+  tableWrap: HTMLElement;
+  more: HTMLButtonElement;
+}
 
+/** Draws the tab into `panel`, everything but the heading empty until the log is rendered. */
+function drawLogTab(panel: HTMLElement): LogUi {
+  const doc = panel.ownerDocument;
   const disabledNote = make(
     doc,
     'p',
@@ -86,18 +96,13 @@ export async function mountLog(panel: HTMLElement, deps?: Partial<LogTabDeps>): 
   const report = button(doc, 'Raport PDF');
   report.title = 'Otwiera raport do wydruku; w oknie drukowania wybierz „Zapisz jako PDF”.';
   const clear = button(doc, 'Wyczyść dziennik', 'danger-outline');
-  const confirmBox = make(doc, 'div', 'confirm');
-  confirmBox.setAttribute('role', 'group');
-  const confirmYes = button(doc, 'Tak, wyczyść', 'danger');
-  const confirmNo = button(doc, 'Anuluj');
-  confirmBox.append(
-    make(doc, 'span', 'confirm-question', 'Usunąć wszystkie wpisy dziennika?'),
-    confirmYes,
-    confirmNo,
-  );
-  confirmBox.hidden = true;
+  const confirm = confirmPrompt(doc, clear, {
+    question: 'Usunąć wszystkie wpisy dziennika?',
+    yes: 'Tak, wyczyść',
+    yesClass: 'danger',
+  });
   const actions = make(doc, 'div', 'log-actions');
-  actions.append(exportCsv, report, clear, confirmBox);
+  actions.append(exportCsv, report, clear, confirm.box);
   const error = make(doc, 'p', 'log-note log-error');
   error.setAttribute('role', 'alert');
   error.hidden = true;
@@ -122,58 +127,71 @@ export async function mountLog(panel: HTMLElement, deps?: Partial<LogTabDeps>): 
     error,
     recent,
   );
+  return {
+    disabledNote,
+    empty,
+    summary,
+    breakdown,
+    exportCsv,
+    report,
+    clear,
+    confirm,
+    error,
+    recent,
+    tableWrap,
+    more,
+  };
+}
+
+/** Shows `log`, the table limited to its latest `shown` entries. */
+function renderLog(ui: LogUi, log: readonly LogEntry[], shown: number): void {
+  const doc = ui.summary.ownerDocument;
+  const hasEntries = log.length > 0;
+  ui.empty.hidden = hasEntries;
+  for (const part of [ui.summary, ui.breakdown, ui.recent]) part.hidden = !hasEntries;
+  ui.exportCsv.disabled = !hasEntries;
+  ui.report.disabled = !hasEntries;
+  ui.clear.disabled = !hasEntries;
+  if (!hasEntries) {
+    ui.confirm.box.hidden = true;
+    ui.clear.hidden = false;
+    for (const part of [ui.summary, ui.breakdown, ui.tableWrap]) part.replaceChildren();
+    return;
+  }
+  const totals = summarize(log);
+  ui.summary.replaceChildren(summaryStats(doc, totals));
+  ui.breakdown.replaceChildren(
+    rankList(doc, 'Najczęstsze kategorie', totals.categories, categoryName, TOP_CATEGORIES),
+    rankList(doc, 'Strony (liczba maskowań)', totals.sites, (host) => host),
+  );
+  ui.tableWrap.replaceChildren(entriesTable(doc, log.slice(-shown).reverse()));
+  ui.more.hidden = log.length <= shown;
+}
+
+export async function mountLog(panel: HTMLElement, deps?: Partial<LogTabDeps>): Promise<void> {
+  const use: LogTabDeps = { ...defaultDeps(panel.ownerDocument), ...deps };
+  const ui = drawLogTab(panel);
+  const { yes } = ui.confirm;
 
   let log: LogEntry[] = [];
   let shown = PAGE_SIZE;
-
-  const showConfirm = (visible: boolean): void => {
-    confirmBox.hidden = !visible;
-    clear.hidden = visible;
-    (visible ? confirmNo : clear).focus();
-  };
-
   const render = (): void => {
-    const hasEntries = log.length > 0;
-    empty.hidden = hasEntries;
-    for (const part of [summary, breakdown, recent]) part.hidden = !hasEntries;
-    exportCsv.disabled = !hasEntries;
-    report.disabled = !hasEntries;
-    clear.disabled = !hasEntries;
-    if (!hasEntries) {
-      confirmBox.hidden = true;
-      clear.hidden = false;
-      for (const part of [summary, breakdown, tableWrap]) part.replaceChildren();
-      return;
-    }
-    const totals = summarize(log);
-    summary.replaceChildren(summaryStats(doc, totals));
-    breakdown.replaceChildren(
-      rankList(doc, 'Najczęstsze kategorie', totals.categories, categoryName, TOP_CATEGORIES),
-      rankList(doc, 'Strony (liczba maskowań)', totals.sites, (host) => host),
-    );
-    tableWrap.replaceChildren(entriesTable(doc, log.slice(-shown).reverse()));
-    more.hidden = log.length <= shown;
+    renderLog(ui, log, shown);
   };
 
-  more.addEventListener('click', () => {
+  ui.more.addEventListener('click', () => {
     shown += PAGE_SIZE;
     render();
   });
-  exportCsv.addEventListener('click', () => {
+  ui.exportCsv.addEventListener('click', () => {
     use.download(csvFileName(use.now()), toCsv(log));
   });
-  report.addEventListener('click', () => {
+  ui.report.addEventListener('click', () => {
     use.openReport();
   });
-  clear.addEventListener('click', () => {
-    showConfirm(true);
-  });
-  confirmNo.addEventListener('click', () => {
-    showConfirm(false);
-  });
-  confirmYes.addEventListener('click', () => {
-    confirmYes.disabled = true;
-    error.hidden = true;
+  yes.addEventListener('click', () => {
+    yes.disabled = true;
+    ui.error.hidden = true;
     use
       .clear()
       .then(() => {
@@ -181,11 +199,11 @@ export async function mountLog(panel: HTMLElement, deps?: Partial<LogTabDeps>): 
         render();
       })
       .catch(() => {
-        error.textContent = 'Nie udało się wyczyścić dziennika.';
-        error.hidden = false;
+        ui.error.textContent = 'Nie udało się wyczyścić dziennika.';
+        ui.error.hidden = false;
       })
       .finally(() => {
-        confirmYes.disabled = false;
+        yes.disabled = false;
       });
   });
 
@@ -195,10 +213,10 @@ export async function mountLog(panel: HTMLElement, deps?: Partial<LogTabDeps>): 
     render();
   });
   use.onEnabledChange((enabled) => {
-    disabledNote.hidden = enabled;
+    ui.disabledNote.hidden = enabled;
   });
   const [stored, enabled] = await Promise.all([use.read(), use.isEnabled().catch(() => true)]);
   log = stored;
-  disabledNote.hidden = enabled;
+  ui.disabledNote.hidden = enabled;
   render();
 }

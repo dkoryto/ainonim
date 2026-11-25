@@ -14,6 +14,7 @@ import {
   setDisabledCategories,
 } from '~/lib/settings';
 import { CUSTOM_ENTITY_TYPE, ENGINE_ENTITY_TYPES, labelFor } from '~/lib/shared/labels';
+import { button } from '~/lib/pages/controls';
 import { heading, make } from './dom';
 
 /** The groups of the tab; a type missing here (a newer polanon's) lands in "Inne". */
@@ -105,6 +106,68 @@ function modeSwitch(
   };
 }
 
+/** The fieldsets of the tab; `row` draws one type, with its checkbox if it can be switched off. */
+function categoryFieldsets(
+  doc: Document,
+  row: (entityType: string, box?: HTMLInputElement) => HTMLElement,
+  boxes: HTMLInputElement[],
+): { groups: HTMLFieldSetElement[]; custom: HTMLFieldSetElement } {
+  const groups = categoryGroups().map((group) => {
+    const fieldset = make(doc, 'fieldset', 'categories');
+    fieldset.append(make(doc, 'legend', undefined, group.title));
+    for (const entityType of group.types) {
+      const box = make(doc, 'input');
+      box.type = 'checkbox';
+      box.value = entityType;
+      boxes.push(box);
+      fieldset.append(row(entityType, box));
+    }
+    return fieldset;
+  });
+  // The user's own words cannot be switched off here (the "Własne słowa" tab lists them), but
+  // they have a default like any category.
+  const custom = make(doc, 'fieldset', 'categories');
+  custom.append(make(doc, 'legend', undefined, 'Własne słowa'), row(CUSTOM_ENTITY_TYPE));
+  return { groups, custom };
+}
+
+/** "Zaznacz wszystkie" and "Odznacz wszystkie". */
+function selectButtons(doc: Document, setAll: (checked: boolean) => void): HTMLElement {
+  const actions = make(doc, 'div', 'actions');
+  for (const [text, checked] of [
+    ['Zaznacz wszystkie', true],
+    ['Odznacz wszystkie', false],
+  ] as const) {
+    const element = button(doc, text);
+    element.addEventListener('click', () => {
+      setAll(checked);
+    });
+    actions.append(element);
+  }
+  return actions;
+}
+
+function introduction(doc: Document): HTMLElement[] {
+  return [
+    ...heading(
+      doc,
+      'Kategorie',
+      'Rodzaje danych, których szuka AInonim. Odznaczonych nie pokazuje w panelu, nie podświetla ' +
+        'i nie maskuje. Własne słowa działają niezależnie od tych ustawień.',
+    ),
+    make(
+      doc,
+      'p',
+      'hint',
+      'Obok każdej kategorii wybierasz, na co domyślnie zamieniać jej dane: „znacznik” (np. ' +
+        '<OSOBA_1>, odpowiedź czatu da się odtworzyć) albo „ogólnie” (np. [osoba]). Od tego ' +
+        'zaczyna przełącznik w panelu przy polu i tak maskuje maskowanie automatyczne.',
+    ),
+  ];
+}
+
+const SAVE_ERROR = 'Nie udało się zapisać ustawień kategorii.';
+
 export async function mountCategories(panel: HTMLElement): Promise<void> {
   const doc = panel.ownerDocument;
   const boxes: HTMLInputElement[] = [];
@@ -124,11 +187,12 @@ export async function mountCategories(panel: HTMLElement): Promise<void> {
     else next.set(entityType, mode);
     showModes(next);
     setCategoryMode(entityType, mode).catch(async () => {
-      status.textContent = 'Nie udało się zapisać ustawień kategorii.';
+      status.textContent = SAVE_ERROR;
       showModes(await getCategoryModes().catch(() => new Map<string, CategoryMode>()));
     });
   };
-  const row = (entityType: string, name: string, box?: HTMLInputElement): HTMLElement => {
+  const row = (entityType: string, box?: HTMLInputElement): HTMLElement => {
+    const name = capitalised(labelFor(entityType));
     const line = make(doc, 'div', 'category-row');
     const label = make(doc, 'label', 'category');
     if (box) label.append(box);
@@ -140,26 +204,7 @@ export async function mountCategories(panel: HTMLElement): Promise<void> {
     line.append(label, item.element);
     return line;
   };
-
-  const groups = categoryGroups().map((group) => {
-    const fieldset = make(doc, 'fieldset', 'categories');
-    fieldset.append(make(doc, 'legend', undefined, group.title));
-    for (const entityType of group.types) {
-      const box = make(doc, 'input');
-      box.type = 'checkbox';
-      box.value = entityType;
-      boxes.push(box);
-      fieldset.append(row(entityType, capitalised(labelFor(entityType)), box));
-    }
-    return fieldset;
-  });
-  // The user's own words cannot be switched off here (the "Własne słowa" tab lists them), but
-  // they have a default like any category.
-  const custom = make(doc, 'fieldset', 'categories');
-  custom.append(
-    make(doc, 'legend', undefined, 'Własne słowa'),
-    row(CUSTOM_ENTITY_TYPE, capitalised(labelFor(CUSTOM_ENTITY_TYPE))),
-  );
+  const { groups, custom } = categoryFieldsets(doc, row, boxes);
 
   const show = (disabled: readonly string[]): void => {
     for (const box of boxes) box.checked = !disabled.includes(box.value);
@@ -167,31 +212,19 @@ export async function mountCategories(panel: HTMLElement): Promise<void> {
   };
   const save = async (): Promise<void> => {
     status.textContent = '';
-    show(boxes.filter((box) => !box.checked).map((box) => box.value));
+    const disabled = boxes.filter((box) => !box.checked).map((box) => box.value);
+    show(disabled);
     try {
-      await setDisabledCategories(boxes.filter((box) => !box.checked).map((box) => box.value));
+      await setDisabledCategories(disabled);
     } catch {
-      status.textContent = 'Nie udało się zapisać ustawień kategorii.';
+      status.textContent = SAVE_ERROR;
       show(await getDisabledCategories().catch(() => []));
     }
   };
-  const setAll = (checked: boolean): void => {
+  const actions = selectButtons(doc, (checked) => {
     for (const box of boxes) box.checked = checked;
     void save();
-  };
-
-  const selectAll = make(doc, 'button', undefined, 'Zaznacz wszystkie');
-  selectAll.type = 'button';
-  selectAll.addEventListener('click', () => {
-    setAll(true);
   });
-  const clearAll = make(doc, 'button', undefined, 'Odznacz wszystkie');
-  clearAll.type = 'button';
-  clearAll.addEventListener('click', () => {
-    setAll(false);
-  });
-  const actions = make(doc, 'div', 'actions');
-  actions.append(selectAll, clearAll);
 
   for (const group of groups) {
     group.addEventListener('change', () => {
@@ -203,24 +236,5 @@ export async function mountCategories(panel: HTMLElement): Promise<void> {
   showModes(await getCategoryModes().catch(() => new Map<string, CategoryMode>()));
   onCategoryModesChange(showModes);
 
-  panel.replaceChildren(
-    ...heading(
-      doc,
-      'Kategorie',
-      'Rodzaje danych, których szuka AInonim. Odznaczonych nie pokazuje w panelu, nie podświetla ' +
-        'i nie maskuje. Własne słowa działają niezależnie od tych ustawień.',
-    ),
-    make(
-      doc,
-      'p',
-      'hint',
-      'Obok każdej kategorii wybierasz, na co domyślnie zamieniać jej dane: „znacznik” (np. ' +
-        '<OSOBA_1>, odpowiedź czatu da się odtworzyć) albo „ogólnie” (np. [osoba]). Od tego ' +
-        'zaczyna przełącznik w panelu przy polu i tak maskuje maskowanie automatyczne.',
-    ),
-    actions,
-    ...groups,
-    custom,
-    status,
-  );
+  panel.replaceChildren(...introduction(doc), actions, ...groups, custom, status);
 }

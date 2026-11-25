@@ -16,6 +16,7 @@ import {
   parseCustomWord,
   setCustomWords,
 } from '~/lib/settings';
+import { button } from '~/lib/pages/controls';
 import { heading, make } from './dom';
 
 export const EXPORT_FORMAT = 'ainonim-custom-words';
@@ -86,99 +87,126 @@ function binIcon(doc: Document): SVGSVGElement {
   return svg;
 }
 
-function button(doc: Document, text: string, className?: string): HTMLButtonElement {
-  const element = make(doc, 'button', className, text);
-  element.type = 'button';
-  return element;
+/** The fixed parts of the tab, drawn once; the rows of `list` come and go. */
+interface WordsUi {
+  list: HTMLUListElement;
+  status: HTMLElement;
+  add: HTMLButtonElement;
+  clearAll: HTMLButtonElement;
+  confirm: HTMLElement;
+  confirmText: HTMLElement;
+  confirmYes: HTMLButtonElement;
+  confirmNo: HTMLButtonElement;
+  exportButton: HTMLButtonElement;
+  importButton: HTMLButtonElement;
+  fileInput: HTMLInputElement;
 }
 
-export async function mountWords(panel: HTMLElement): Promise<void> {
-  const doc = panel.ownerDocument;
-  const list = make(doc, 'ul', 'words');
+function wordsUi(doc: Document): WordsUi {
   const status = make(doc, 'p', 'status');
   status.setAttribute('role', 'status');
-  const add = button(doc, '+ Dodaj słowo');
-  const clearAll = button(doc, 'Usuń wszystkie', 'danger-outline');
   const confirm = make(doc, 'span', 'confirm');
   const confirmText = make(doc, 'span');
   const confirmYes = button(doc, 'Usuń', 'danger');
   const confirmNo = button(doc, 'Anuluj');
   confirm.append(confirmText, confirmYes, confirmNo);
   confirm.hidden = true;
-  const exportButton = button(doc, 'Eksportuj');
-  const importButton = button(doc, 'Importuj');
   const fileInput = make(doc, 'input');
   fileInput.type = 'file';
   fileInput.accept = 'application/json,.json';
   fileInput.hidden = true;
-
-  /** The entries as typed, blank rows left out. */
-  const collect = (): CustomWord[] =>
-    [...list.querySelectorAll<HTMLInputElement>('input.word-input')].flatMap((input) => {
-      const value = input.value.trim();
-      return value === '' ? [] : [{ value, regex: input.dataset.regex === 'true' }];
-    });
-
-  // What this page wrote last, so its own change notification does not redraw the rows.
-  let saved = '';
-  const save = async (): Promise<void> => {
-    const words = collect();
-    saved = JSON.stringify(words);
-    try {
-      await setCustomWords(words);
-      status.textContent = '';
-    } catch (error) {
-      status.textContent = saveError(error);
-    }
+  return {
+    list: make(doc, 'ul', 'words'),
+    status,
+    add: button(doc, '+ Dodaj słowo'),
+    clearAll: button(doc, 'Usuń wszystkie', 'danger-outline'),
+    confirm,
+    confirmText,
+    confirmYes,
+    confirmNo,
+    exportButton: button(doc, 'Eksportuj'),
+    importButton: button(doc, 'Importuj'),
+    fileInput,
   };
+}
 
-  const refreshControls = (): void => {
-    const count = list.children.length;
-    add.disabled = count >= MAX_CUSTOM_WORDS;
-    clearAll.hidden = count < CLEAR_ALL_FROM || !confirm.hidden;
-    if (count < CLEAR_ALL_FROM) confirm.hidden = true;
-  };
-
-  const describe = (row: HTMLElement, input: HTMLInputElement): void => {
+/** The entries as typed, blank rows left out. */
+function collectWords(list: HTMLElement): CustomWord[] {
+  return [...list.querySelectorAll<HTMLInputElement>('input.word-input')].flatMap((input) => {
     const value = input.value.trim();
-    const kind = row.querySelector('.word-kind');
-    const problem = row.querySelector('.word-problem');
-    if (!kind || !problem) return;
-    if (value === '') {
-      kind.textContent = '';
-      problem.textContent = '';
-      input.removeAttribute('aria-invalid');
-      return;
-    }
-    const regex = input.dataset.regex === 'true';
-    kind.textContent = regex ? 'wzorzec' : 'słowo';
-    const checked = checkCustomWord({ value, regex });
-    problem.textContent = checked.ok
-      ? ''
-      : `${PROBLEM_TEXT[checked.problem]} – wpis jest pomijany.`;
-    if (checked.ok) input.removeAttribute('aria-invalid');
-    else input.setAttribute('aria-invalid', 'true');
-  };
+    return value === '' ? [] : [{ value, regex: input.dataset.regex === 'true' }];
+  });
+}
 
+/** Shows next to an entry whether it is a word or a pattern, and why it is skipped if it is. */
+function describeRow(row: HTMLElement, input: HTMLInputElement): void {
+  const value = input.value.trim();
+  const kind = row.querySelector('.word-kind');
+  const problem = row.querySelector('.word-problem');
+  if (!kind || !problem) return;
+  if (value === '') {
+    kind.textContent = '';
+    problem.textContent = '';
+    input.removeAttribute('aria-invalid');
+    return;
+  }
+  const regex = input.dataset.regex === 'true';
+  kind.textContent = regex ? 'wzorzec' : 'słowo';
+  const checked = checkCustomWord({ value, regex });
+  problem.textContent = checked.ok ? '' : `${PROBLEM_TEXT[checked.problem]} – wpis jest pomijany.`;
+  if (checked.ok) input.removeAttribute('aria-invalid');
+  else input.setAttribute('aria-invalid', 'true');
+}
+
+function wordRow(
+  doc: Document,
+  word: CustomWord | null,
+): { row: HTMLLIElement; input: HTMLInputElement; remove: HTMLButtonElement } {
+  const row = make(doc, 'li', 'word-row');
+  const input = make(doc, 'input', 'word-input');
+  input.type = 'text';
+  input.maxLength = MAX_CUSTOM_WORD_LENGTH;
+  input.value = word?.value ?? '';
+  input.dataset.regex = String(word?.regex ?? false);
+  input.setAttribute('aria-label', 'Słowo, fraza lub wyrażenie regularne');
+  input.placeholder = 'np. Projekt Feniks albo KS-\\d+/\\d+';
+  const remove = button(doc, '', 'word-delete');
+  remove.append(binIcon(doc));
+  remove.setAttribute('aria-label', 'Usuń wpis');
+  remove.title = 'Usuń wpis';
+  row.append(input, make(doc, 'span', 'word-kind'), remove, make(doc, 'span', 'word-problem'));
+  return { row, input, remove };
+}
+
+function refreshControls(ui: WordsUi): void {
+  const count = ui.list.children.length;
+  ui.add.disabled = count >= MAX_CUSTOM_WORDS;
+  ui.clearAll.hidden = count < CLEAR_ALL_FROM || !ui.confirm.hidden;
+  if (count < CLEAR_ALL_FROM) ui.confirm.hidden = true;
+}
+
+function downloadWords(doc: Document, words: readonly CustomWord[]): void {
+  const blob = new Blob([exportWords(words)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = make(doc, 'a');
+  link.href = url;
+  link.download = EXPORT_FILE_NAME;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Wires the rows and the list buttons ("+ Dodaj słowo", "Usuń wszystkie"); `save` is called when
+ * the list changes. Returns the function that redraws the rows.
+ */
+function wireList(ui: WordsUi, save: () => Promise<void>): (words: readonly CustomWord[]) => void {
+  const doc = ui.list.ownerDocument;
   const addRow = (word: CustomWord | null): HTMLInputElement => {
-    const row = make(doc, 'li', 'word-row');
-    const input = make(doc, 'input', 'word-input');
-    input.type = 'text';
-    input.maxLength = MAX_CUSTOM_WORD_LENGTH;
-    input.value = word?.value ?? '';
-    input.dataset.regex = String(word?.regex ?? false);
-    input.setAttribute('aria-label', 'Słowo, fraza lub wyrażenie regularne');
-    input.placeholder = 'np. Projekt Feniks albo KS-\\d+/\\d+';
-    const remove = button(doc, '', 'word-delete');
-    remove.append(binIcon(doc));
-    remove.setAttribute('aria-label', 'Usuń wpis');
-    remove.title = 'Usuń wpis';
-    row.append(input, make(doc, 'span', 'word-kind'), remove, make(doc, 'span', 'word-problem'));
-
+    const { row, input, remove } = wordRow(doc, word);
     input.addEventListener('input', () => {
       // Typing decides the kind again; an imported plain entry like "C++" keeps its flag until edited.
       input.dataset.regex = String(looksLikeRegex(input.value));
-      describe(row, input);
+      describeRow(row, input);
     });
     input.addEventListener('change', () => {
       void save();
@@ -186,52 +214,52 @@ export async function mountWords(panel: HTMLElement): Promise<void> {
     remove.addEventListener('click', () => {
       const wasBlank = input.value.trim() === '';
       row.remove();
-      refreshControls();
+      refreshControls(ui);
       if (!wasBlank) void save();
     });
-    list.append(row);
-    describe(row, input);
+    ui.list.append(row);
+    describeRow(row, input);
     return input;
   };
-
   const showWords = (words: readonly CustomWord[]): void => {
-    list.replaceChildren();
+    ui.list.replaceChildren();
     for (const word of words) addRow(word);
-    refreshControls();
+    refreshControls(ui);
   };
 
-  add.addEventListener('click', () => {
+  ui.add.addEventListener('click', () => {
     addRow(null).focus();
-    refreshControls();
+    refreshControls(ui);
   });
-
-  clearAll.addEventListener('click', () => {
-    confirmText.textContent = `Usunąć wszystkie wpisy (${String(list.children.length)})?`;
-    confirm.hidden = false;
-    refreshControls();
-    confirmNo.focus();
+  ui.clearAll.addEventListener('click', () => {
+    ui.confirmText.textContent = `Usunąć wszystkie wpisy (${String(ui.list.children.length)})?`;
+    ui.confirm.hidden = false;
+    refreshControls(ui);
+    ui.confirmNo.focus();
   });
-  confirmNo.addEventListener('click', () => {
-    confirm.hidden = true;
-    refreshControls();
+  ui.confirmNo.addEventListener('click', () => {
+    ui.confirm.hidden = true;
+    refreshControls(ui);
   });
-  confirmYes.addEventListener('click', () => {
-    confirm.hidden = true;
+  ui.confirmYes.addEventListener('click', () => {
+    ui.confirm.hidden = true;
     showWords([]);
     void save();
   });
+  return showWords;
+}
 
-  exportButton.addEventListener('click', () => {
-    const blob = new Blob([exportWords(collect())], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = make(doc, 'a');
-    link.href = url;
-    link.download = EXPORT_FILE_NAME;
-    link.click();
-    URL.revokeObjectURL(url);
+/** Wires "Eksportuj" and "Importuj"; an import is merged into the list and saved. */
+function wireFiles(
+  ui: WordsUi,
+  showWords: (words: readonly CustomWord[]) => void,
+  save: () => Promise<void>,
+): void {
+  const { status, fileInput } = ui;
+  ui.exportButton.addEventListener('click', () => {
+    downloadWords(ui.list.ownerDocument, collectWords(ui.list));
   });
-
-  importButton.addEventListener('click', () => {
+  ui.importButton.addEventListener('click', () => {
     fileInput.click();
   });
   fileInput.addEventListener('change', () => {
@@ -239,7 +267,7 @@ export async function mountWords(panel: HTMLElement): Promise<void> {
     fileInput.value = '';
     if (!file) return;
     void file.text().then(async (text) => {
-      const result = importWords(text, collect());
+      const result = importWords(text, collectWords(ui.list));
       if (!result.ok) {
         status.textContent = `Nie zaimportowano: ${result.error}`;
         return;
@@ -251,6 +279,26 @@ export async function mountWords(panel: HTMLElement): Promise<void> {
       }
     });
   });
+}
+
+export async function mountWords(panel: HTMLElement): Promise<void> {
+  const doc = panel.ownerDocument;
+  const ui = wordsUi(doc);
+
+  // What this page wrote last, so its own change notification does not redraw the rows.
+  let saved = '';
+  const save = async (): Promise<void> => {
+    const words = collectWords(ui.list);
+    saved = JSON.stringify(words);
+    try {
+      await setCustomWords(words);
+      ui.status.textContent = '';
+    } catch (error) {
+      ui.status.textContent = saveError(error);
+    }
+  };
+  const showWords = wireList(ui, save);
+  wireFiles(ui, showWords, save);
 
   onCustomWordsChange((words) => {
     // Another options tab or a sync from another device changed the list.
@@ -261,9 +309,9 @@ export async function mountWords(panel: HTMLElement): Promise<void> {
   showWords(words);
 
   const listActions = make(doc, 'div', 'actions');
-  listActions.append(add, clearAll, confirm);
+  listActions.append(ui.add, ui.clearAll, ui.confirm);
   const fileActions = make(doc, 'div', 'actions');
-  fileActions.append(exportButton, importButton, fileInput);
+  fileActions.append(ui.exportButton, ui.importButton, ui.fileInput);
 
   panel.replaceChildren(
     ...heading(
@@ -275,9 +323,9 @@ export async function mountWords(panel: HTMLElement): Promise<void> {
         'znacznikami <SLOWO_1>, <SLOWO_2>… Lista jest przechowywana w ustawieniach przeglądarki ' +
         '(synchronizowanych z jej kontem) i nigdzie indziej nie trafia.',
     ),
-    list,
+    ui.list,
     listActions,
     fileActions,
-    status,
+    ui.status,
   );
 }
