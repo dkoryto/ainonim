@@ -229,6 +229,7 @@ do [CHANGELOG.md](CHANGELOG.md) i podbija wersję w `package.json`.
 ## Dokumentacja
 
 - [CHANGELOG.md](CHANGELOG.md) – historia wersji
+- [CONTRIBUTING.md](CONTRIBUTING.md) – zasady pracy z kodem: limity, testy, commity
 - [docs/privacy-policy.md](docs/privacy-policy.md) – polityka prywatności (PL i EN)
 - [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) – model zagrożeń
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) – struktura kodu i granice między modułami
@@ -240,6 +241,5 @@ do [CHANGELOG.md](CHANGELOG.md) i podbija wersję w `package.json`.
 
 ## Licencje
 
-Licencja kodu AInonim nie jest jeszcze ustalona (`package.json` ma wpis `MIT`, ale w repozytorium
-nie ma pliku LICENSE). Licencje dołączonych bibliotek (Pyodide, polanon i inne): [NOTICE](NOTICE),
-w paczce jako `NOTICE.txt`.
+Kod AInonim: licencja MIT ([LICENSE](LICENSE)). Licencje dołączonych bibliotek (Pyodide, polanon
+i inne): [NOTICE](NOTICE), w paczce jako `NOTICE.txt`.
