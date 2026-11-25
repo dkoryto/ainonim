@@ -184,6 +184,11 @@ Przed wydaniem selektory sprawdza ręczna lista z [release.md](release.md).
   do paczki trafia kod zbundlowany przez WXT/Vite oraz skopiowane pliki Pyodide. Kompromitacja
   narzędzia budującego albo paczki npm w chwili instalacji nadal jest możliwa; ogranicza ją
   lock-file i przegląd diffu przed wydaniem (`docs/release.md`, sekcja 3).
+- Automatyczne wysyłanie do Chrome Web Store (`docs/chrome-web-store.md`) używa refresh tokenu
+  OAuth, który pozwala opublikować dowolną wersję wtyczki. Token jest tylko w sekretach środowiska
+  GitHub `chrome-web-store` (wymagane zatwierdzenie, tylko tagi `v*`); widzi go wyłącznie
+  `scripts/cws-publish.ts` z otagowanego commitu, bez instalacji zależności npm. Wyciek tokenu
+  unieważnia się w ustawieniach konta Google albo przez usunięcie klienta OAuth.
 - CSP stron rozszerzenia: `script-src 'self' 'wasm-unsafe-eval'; object-src 'self';`.
   `wasm-unsafe-eval` jest potrzebne dla WebAssembly; `unsafe-eval` nie jest włączone, więc ścieżki
   Emscripten z `eval` nie działają (zob. [spike T2](spikes/T2-pyodide.md)).
