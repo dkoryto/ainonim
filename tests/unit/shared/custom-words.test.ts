@@ -71,6 +71,52 @@ describe('regex entries', () => {
   });
 });
 
+describe('hasNestedQuantifier', () => {
+  // Pins the scan's verdicts on tricky shapes: escapes and classes never open a group or repeat,
+  // any `{` after a group counts as a repetition, and an inner repetition propagates outwards.
+  it.each([
+    ['(a+)+', true],
+    ['(a+)*', true],
+    ['(a+){2}', true],
+    ['(a+){2,}', true],
+    ['(a+)?', false],
+    ['(a{2})+', false],
+    ['(a{,})+', true],
+    ['(a{2,3})+', false],
+    ['((a+))+', true],
+    ['((a+)b)+', true],
+    ['[a+](b)+', false],
+    ['\\(a+)+', false],
+    ['(a\\+)+', false],
+    ['(a[+])+', false],
+    ['a+(b)+', false],
+    ['(a+)(b)+', false],
+    ['(a+|b)+', true],
+    ['(x[\\]+])+', false],
+    ['(a+', false],
+    ['a+)+', false],
+    ['(\\w+)+', true],
+    ['([^)]+)+', true],
+    ['(a+)\\+', false],
+    ['(?:a*)*', true],
+    ['(?<n>a+)+', true],
+    ['(?=a+)+', true],
+    ['[(]a+)+', false],
+    ['(a+)[+]', false],
+    ['a\\', false],
+    ['(a{2,}b){3}', true],
+    ['(a{1, }){2}', false],
+    ['((ab)*)?', false],
+    ['(((a)+)+)', true],
+    ['(ab]+)+', true],
+    ['([\\d]+x)+', true],
+    ['(a|b*)+?', true],
+    ['(.*)+', true],
+  ])('%s -> %s', (source, expected) => {
+    expect(hasNestedQuantifier(source)).toBe(expected);
+  });
+});
+
 describe('findCustomMatches', () => {
   it('returns sorted, non-overlapping matches: earlier start, then the longer one wins', () => {
     const text = 'Jan Feniks Kowalski';

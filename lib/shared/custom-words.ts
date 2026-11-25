@@ -53,40 +53,31 @@ function wordSource(value: string): string {
   return `${BEFORE_WORD}${body}${AFTER_WORD}`;
 }
 
+// What the nesting scan looks at, left to right: an escape or a character class (skipped whole, as
+// neither opens a group nor repeats one; an unclosed class runs to the end), a group bracket, or an
+// unbounded quantifier (`*`, `+`, `{n,}`).
+const QUANTIFIER_SCAN = /\\[\s\S]?|\[(?:\\[\s\S]?|[^\]\\])*\]?|[()*+]|\{\d*,\}/g;
+
 /**
  * Whether `source` repeats a group that itself holds an unbounded repetition, as in `(a+)+` or
  * `(\w*x)*`: the shape that makes a backtracking engine take exponential time. A rough scan,
- * erring towards refusing; escapes and character classes are skipped.
+ * erring towards refusing: any `*`, `+` or `{` right after a group counts as repeating it.
  */
 export function hasNestedQuantifier(source: string): boolean {
   // One entry per open group: whether an unbounded quantifier occurred inside it.
   const groups: boolean[] = [];
-  let inClass = false;
-  for (let index = 0; index < source.length; index++) {
-    const char = source[index];
-    if (char === '\\') {
-      index++;
-      continue;
-    }
-    if (inClass) {
-      if (char === ']') inClass = false;
-      continue;
-    }
-    if (char === '[') inClass = true;
-    else if (char === '(') groups.push(false);
-    else if (
-      char === '*' ||
-      char === '+' ||
-      (char === '{' && /^\{\d*,\}/.test(source.slice(index)))
-    ) {
-      if (groups.length > 0) groups[groups.length - 1] = true;
-    } else if (char === ')') {
-      const unboundedInside = groups.pop() ?? false;
-      const next = source[index + 1];
-      const repeated = next === '*' || next === '+' || next === '{';
-      if (unboundedInside && repeated) return true;
+  const markUnbounded = (): void => {
+    if (groups.length > 0) groups[groups.length - 1] = true;
+  };
+  for (const { 0: part, index } of source.matchAll(QUANTIFIER_SCAN)) {
+    if (part === '(') groups.push(false);
+    else if (part === ')') {
+      if (!(groups.pop() ?? false)) continue;
+      if (/^[*+{]/.test(source.slice(index + 1))) return true;
       // The group's repetition counts for the group around it.
-      if (unboundedInside && groups.length > 0) groups[groups.length - 1] = true;
+      markUnbounded();
+    } else if (/^[*+{]/.test(part)) {
+      markUnbounded();
     }
   }
   return false;

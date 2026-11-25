@@ -90,10 +90,7 @@ export default tseslint.config(
     files: [
       'lib/content/auto-mask.ts',
       'lib/content/masking.ts',
-      'lib/content/restore/observer.ts',
       'lib/content/typing-mask.ts',
-      'lib/settings/site-patterns.ts',
-      'lib/shared/custom-words.ts',
     ],
     rules: { complexity: 'off', 'max-lines': 'off', 'max-lines-per-function': 'off' },
   },
