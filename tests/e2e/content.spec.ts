@@ -130,6 +130,14 @@ test.describe('fields on a plain page', () => {
     await expect(panel(page)).toHaveCount(0);
   });
 
+  test('analyses a field that was filled before the content script started', async ({
+    context,
+  }) => {
+    const page = await context.newPage();
+    await page.goto(server.url('prefilled.html'));
+    await openPanel(page, page.locator('#prefilled'), 2);
+  });
+
   test('masks a textarea from the panel and undoes it', async ({ context }) => {
     const page = await context.newPage();
     await page.goto(server.url('fields.html'));
