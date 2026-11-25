@@ -1,5 +1,5 @@
 {
-  "anonymized": "NOTATKA WEWNĘTRZNA — migracja serwera pocztowego\n\nProwadzi: <OSOBA_1>, dział IT\nZastępstwo: <OSOBA_2> (urlop od poniedziałku)\n\nStan obecny:\nSerwer pocztowy <IP_1> zostanie wyłączony. Nowy adres to\n<IP_2>, a interfejs ma MAC <MAC_1>.\nKonto serwisowe: <EMAIL_1>, hasło <SEKRET_1>.\n\nKontakt do dostawcy:\n<FIRMA_1>, NIP <NIP_1>\nOpiekun: <OSOBA_3>, tel. <TELEFON_1>\nAdres: <ADRES_1>, <KOD_POCZTOWY_1> Katowice\n\nUwagi:\nFaktury wysyłamy na <EMAIL_2>. Samochód serwisowy\nnr rej. <REJESTRACJA_1> stoi na parkingu przy <ADRES_2>.\n",
+  "anonymized": "NOTATKA WEWNĘTRZNA — migracja serwera pocztowego\n\nProwadzi: <OSOBA_1>, dział IT\nZastępstwo: <OSOBA_2> (urlop od poniedziałku)\n\nStan obecny:\nSerwer pocztowy <IP_1> zostanie wyłączony. Nowy adres to\n<IP_2>, a interfejs ma MAC <MAC_1>.\nKonto serwisowe: <EMAIL_1>, hasło <SEKRET_1>.\n\nKontakt do dostawcy:\n<FIRMA_1>, NIP <NIP_1>\nOpiekun: <OSOBA_3>, tel. <TELEFON_1>\nAdres: <ADRES_1>, <KOD_POCZTOWY_1> <MIEJSCE_1>\n\nUwagi:\nFaktury wysyłamy na <EMAIL_2>. Samochód serwisowy\nnr rej. <REJESTRACJA_1> stoi na parkingu przy <ADRES_2>.\n",
   "spans": [
     {
       "start": 60,
@@ -93,6 +93,13 @@
       "token": "<KOD_POCZTOWY_1>"
     },
     {
+      "start": 510,
+      "end": 518,
+      "entity_type": "LOCATION",
+      "score": 1.0,
+      "token": "<MIEJSCE_1>"
+    },
+    {
       "start": 547,
       "end": 576,
       "entity_type": "EMAIL",
@@ -128,6 +135,7 @@
     "<TELEFON_1>": "0048601234567",
     "<ADRES_1>": "ul. Przemysłowa 7",
     "<KOD_POCZTOWY_1>": "40-020",
+    "<MIEJSCE_1>": "Katowice",
     "<EMAIL_2>": "kadry@nowak-transport.example",
     "<REJESTRACJA_1>": "KR 8492J",
     "<ADRES_2>": "ul. Długiej 145"

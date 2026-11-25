@@ -1,5 +1,5 @@
 {
-  "anonymized": "FAKTURA / INVOICE 20261093\n\n<FIRMA_1>\n<ADRES_1>\n<KOD_POCZTOWY_1> Stockholm\nSweden\nOrg.nr: <NR_REJESTROWY_1>\nMomsreg.nr: <NR_PODATKOWY_1>\nTfn: <TELEFON_1>\nE-post: <EMAIL_1>\nBankgiro: <KONTO_1>\nPlusgiro: <KONTO_2>\n\nKund / Customer:\n<FIRMA_2>\n<ADRES_2>\n<KOD_POCZTOWY_2> Katowice\n\nEr referens / Your reference: <OSOBA_1>\nVår referens / Our reference: <OSOBA_2>\n\nKonsulttimmar augusti 2026        12 h    1 150,00 SEK    13 800,00 SEK\nMoms 0 % (omvänd skattskyldighet)                                0,00 SEK\nAtt betala / Amount due                                     13 800,00 SEK\n\nFörfallodatum / Due date: 2026-09-30\nOCR: 20261093\n",
+  "anonymized": "FAKTURA / INVOICE 20261093\n\n<FIRMA_1>\n<ADRES_1>\n<KOD_POCZTOWY_1> Stockholm\nSweden\nOrg.nr: <NR_REJESTROWY_1>\nMomsreg.nr: <NR_PODATKOWY_1>\nTfn: <TELEFON_1>\nE-post: <EMAIL_1>\nBankgiro: <KONTO_1>\nPlusgiro: <KONTO_2>\n\nKund / Customer:\n<FIRMA_2>\n<ADRES_2>\n<KOD_POCZTOWY_2> <MIEJSCE_1>\n\nEr referens / Your reference: <OSOBA_1>\nVår referens / Our reference: <OSOBA_2>\n\nKonsulttimmar augusti 2026        12 h    1 150,00 SEK    13 800,00 SEK\nMoms 0 % (omvänd skattskyldighet)                                0,00 SEK\nAtt betala / Amount due                                     13 800,00 SEK\n\nFörfallodatum / Due date: 2026-09-30\nOCR: 20261093\n",
   "spans": [
     {
       "start": 28,
@@ -86,6 +86,13 @@
       "token": "<KOD_POCZTOWY_2>"
     },
     {
+      "start": 292,
+      "end": 300,
+      "entity_type": "LOCATION",
+      "score": 1.0,
+      "token": "<MIEJSCE_1>"
+    },
+    {
       "start": 332,
       "end": 348,
       "entity_type": "PERSON",
@@ -113,6 +120,7 @@
     "<FIRMA_2>": "Malinowski Handel S.A.",
     "<ADRES_2>": "ul. Przemysłowa 7",
     "<KOD_POCZTOWY_2>": "40-020",
+    "<MIEJSCE_1>": "Katowice",
     "<OSOBA_1>": "Tomasz Kowalczyk",
     "<OSOBA_2>": "Karin Lindqvist"
   }
