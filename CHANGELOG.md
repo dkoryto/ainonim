@@ -5,6 +5,23 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-25
+
+Bez zmian w działaniu wtyczki.
+
+### Dodane
+
+- Automatyczne wysyłanie paczki do Chrome Web Store po wydaniu: job `store` w workflow wydania
+  wysyła zip z wydania GitHub i zgłasza go do weryfikacji, po zatwierdzeniu przez właściciela.
+  Wymaga jednorazowej konfiguracji (`docs/chrome-web-store.md`); bez niej jest pomijany.
+- Transparent promocyjny do sklepu 1400×560 (`assets/store/marquee-1400x560.png`).
+- README: animacja pokazująca działanie wtyczki, link do wideo i zrzuty ekranu z opisami.
+
+### Zmienione
+
+- Angielskie podpisy zrzutów w `docs/store-listing.md` odpowiadają pięciu obecnym zrzutom.
+- `@types/node` 26.6.6 (narzędzia deweloperskie).
+
 ## [0.5.1] - 2026-11-25
 
 Bez zmian w działaniu wtyczki.
@@ -252,7 +269,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/dkoryto/ainonim/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/dkoryto/ainonim/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/dkoryto/ainonim/compare/v0.4.4...v0.5.0
 [0.4.4]: https://github.com/dkoryto/ainonim/compare/v0.4.3...v0.4.4

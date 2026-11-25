@@ -1,7 +1,7 @@
 {
   "name": "ainonim",
   "description": "Maskowanie polskich danych osobowych w czatach AI i formularzach (polanon + Pyodide).",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "license": "MIT",
