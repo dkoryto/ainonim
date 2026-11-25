@@ -30,7 +30,7 @@ Zmiana w zachowaniu na stronie, w komunikacji lub w buildzie: także `npm run te
   czyste funkcje (obliczenia, budowanie DOM) i zostaw w niej samo wiązanie stanu ze zdarzeniami.
 - **Typy**: TypeScript `strict` z `noUncheckedIndexedAccess`; ESLint `strictTypeChecked`. Bez
   `any` i bez `as` tam, gdzie wystarczy strażnik typu. Dane z wiadomości i `storage` sprawdzaj
-  strażnikiem (`lib/shared/messages.ts`) przed użyciem.
+  strażnikiem (`lib/shared/messages/`) przed użyciem.
 - **Błędy w komunikacji** nie rzucają wyjątków: funkcje klienta zwracają `{ ok: true, … }` albo
   `{ ok: false, code, error }`.
 - **Dane osobowe**: żadnych wartości ani znaczników w logach konsoli, dzienniku i komunikatach

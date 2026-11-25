@@ -155,7 +155,7 @@ zakładki w `lib/pages/options/`) i raport do druku (`entrypoints/report/`); ich
   zgadza się z adresem ramki nadawcy (`lib/background/mapping/access.ts`); inaczej odpowiada
   `forbidden`.
   Listę i usuwanie zapamiętanych danych obsługują tylko strony rozszerzenia.
-- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/shared/messages.ts`).
+- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/shared/messages/`).
 - Limit tekstu: 50 000 znaków, sprawdzany w kliencie, w service workerze i w offscreen.
 - Czas: do 20 s na gotowość silnika (utworzenie offscreen i ładowanie Pyodide), potem 5 s na samo
   `analyze`/`restore`. Po przekroczeniu czasu service worker zamyka dokument offscreen, bo Pythona

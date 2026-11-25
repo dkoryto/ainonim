@@ -16,7 +16,7 @@ entrypoints/        punkty wejścia WXT: tylko wiązanie modułów z lib/, HTML 
   test-bridge.content.ts    mostek testowy, tylko w buildzie --mode e2e
 lib/
   shared/           kod wspólny dla wszystkich kontekstów, bez zależności od innych obszarów:
-                    wiadomości i ich walidatory (messages.ts), limity czasu, zakresy (spans.ts),
+                    wiadomości i ich walidatory (messages/, jeden moduł na kanał), limity czasu, zakresy (spans.ts),
                     nazwy kategorii (labels.ts), znaczniki (tokens.ts), klucze rozmów,
                     własne słowa (custom-words.ts), model wpisu dziennika (log-entries.ts)
   settings/         ustawienia w storage.sync, po jednym module na obszar; index.ts to publiczne
