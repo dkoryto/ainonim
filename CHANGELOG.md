@@ -5,6 +5,8 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-25
+
 ### Dodane
 
 - Pełne teksty licencji dołączonych bibliotek w paczce (`licenses/`: MPL-2.0 dla Pyodide,
@@ -236,7 +238,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/dkoryto/ainonim/compare/v0.4.4...v0.5.0
 [0.4.4]: https://github.com/dkoryto/ainonim/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/dkoryto/ainonim/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/dkoryto/ainonim/compare/v0.4.1...v0.4.2
