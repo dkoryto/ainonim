@@ -4,7 +4,7 @@ Rozszerzenie Chrome (Manifest V3), które wykrywa polskie dane osobowe w polach 
 zamienia je na znaczniki, zanim trafią do czatu AI albo formularza. W czatach AI pokazuje potem
 oryginały z powrotem w odpowiedziach, tylko na ekranie użytkownika.
 
-Wykrywaniem zajmuje się biblioteka [polanon](https://github.com/dkoryto/polanon) uruchomiona w
+Wykrywaniem zajmuje się biblioteka [polanon](https://github.com/boromat/polanon) uruchomiona w
 przeglądarce przez [Pyodide](https://pyodide.org). Wszystko działa lokalnie: Pyodide i polanon są
 w paczce rozszerzenia, wtyczka niczego nie pobiera i nie wysyła.
 
