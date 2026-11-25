@@ -188,7 +188,7 @@ granice między obszarami `lib/` ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 
 ### polanon
 
-Koło `vendor/polanon-0.4.1-py3-none-any.whl` jest w repozytorium, żeby build nie zależał od sieci
+Koło `vendor/polanon-0.4.4-py3-none-any.whl` jest w repozytorium, żeby build nie zależał od sieci
 ani od lokalnego repo polanon. Przebudowanie z lokalnej kopii:
 
 ```

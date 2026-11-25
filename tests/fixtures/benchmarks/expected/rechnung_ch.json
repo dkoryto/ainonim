@@ -1,5 +1,5 @@
 {
-  "anonymized": "RECHNUNG Nr. 2026-311\n\n<FIRMA_1>\n<ADRES_1>\n<KOD_POCZTOWY_1> Zürich\nUID: <NR_PODATKOWY_1>\nTelefon <TELEFON_1>\n<EMAIL_1>\n\nAn:\n<FIRMA_2>\nz. Hd. Frau <OSOBA_1>\n<ADRES_2>\n<KOD_POCZTOWY_2> Kraków\n\nZürich, 3. September 2026\n\nSehr geehrte Frau <OSOBA_1>\n\nFür die Buchhaltung im August stellen wir Ihnen in Rechnung:\n\nBuchhaltung und Lohnabrechnung, August 2026        CHF 2 400.00\nMWST 0 %                                          CHF     0.00\nTotal                                             CHF 2 400.00\n\nZahlbar innert 30 Tagen auf:\nPostkonto: <KONTO_1>\nIBAN: <IBAN_1>\n\nMit freundlichen Grüßen\n<OSOBA_2>\nGeschäftsführer\n",
+  "anonymized": "RECHNUNG Nr. 2026-311\n\n<FIRMA_1>\n<ADRES_1>\n<KOD_POCZTOWY_1> Zürich\nUID: <NR_PODATKOWY_1>\nTelefon <TELEFON_1>\n<EMAIL_1>\n\nAn:\n<FIRMA_2>\nz. Hd. Frau <OSOBA_1>\n<ADRES_2>\n<KOD_POCZTOWY_2> <MIEJSCE_1>\n\nZürich, 3. September 2026\n\nSehr geehrte Frau <OSOBA_1>\n\nFür die Buchhaltung im August stellen wir Ihnen in Rechnung:\n\nBuchhaltung und Lohnabrechnung, August 2026        CHF 2 400.00\nMWST 0 %                                          CHF     0.00\nTotal                                             CHF 2 400.00\n\nZahlbar innert 30 Tagen auf:\nPostkonto: <KONTO_1>\nIBAN: <IBAN_1>\n\nMit freundlichen Grüßen\n<OSOBA_2>\nGeschäftsführer\n",
   "spans": [
     {
       "start": 23,
@@ -72,6 +72,13 @@
       "token": "<KOD_POCZTOWY_2>"
     },
     {
+      "start": 232,
+      "end": 238,
+      "entity_type": "LOCATION",
+      "score": 1.0,
+      "token": "<MIEJSCE_1>"
+    },
+    {
       "start": 285,
       "end": 295,
       "entity_type": "PERSON",
@@ -111,6 +118,7 @@
     "<OSOBA_1>": "Wiśniewska",
     "<ADRES_2>": "ul. Długa 145",
     "<KOD_POCZTOWY_2>": "31-147",
+    "<MIEJSCE_1>": "Kraków",
     "<KONTO_1>": "80-470-3",
     "<IBAN_1>": "CH93 0076 2011 6238 5295 7",
     "<OSOBA_2>": "Lukas Meier"

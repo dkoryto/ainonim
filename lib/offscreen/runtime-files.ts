@@ -8,4 +8,4 @@ export const PYODIDE_FILES = [
   'python_stdlib.zip',
 ] as const;
 export const PYODIDE_LOCK_FILE = 'pyodide-lock.json';
-export const POLANON_WHEEL = 'python/polanon-0.4.1-py3-none-any.whl';
+export const POLANON_WHEEL = 'python/polanon-0.4.4-py3-none-any.whl';

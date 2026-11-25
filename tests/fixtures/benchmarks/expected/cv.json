@@ -1,5 +1,5 @@
 {
-  "anonymized": "ŻYCIORYS ZAWODOWY\n\n<OSOBA_1>\n<ADRES_1>, <KOD_POCZTOWY_1> Kraków\ntel. <TELEFON_1>\ne-mail: <EMAIL_1>\nPESEL: <PESEL_1>\nDowód osobisty: <DOWOD_1>\n\nDOŚWIADCZENIE\n2019-2026  Kierownik działu logistyki, <FIRMA_1>, Kraków\n2015-2019  Specjalista ds. zakupów, <FIRMA_2>, Katowice\n\nWYKSZTAŁCENIE\n2010-2015  Uniwersytet Ekonomiczny w Krakowie, logistyka\n\nREFERENCJE\n<OSOBA_2>, dyrektor operacyjny, tel. <TELEFON_2>, <EMAIL_2>\n",
+  "anonymized": "ŻYCIORYS ZAWODOWY\n\n<OSOBA_1>\n<ADRES_1>, <KOD_POCZTOWY_1> <MIEJSCE_1>\ntel. <TELEFON_1>\ne-mail: <EMAIL_1>\nPESEL: <PESEL_1>\nDowód osobisty: <DOWOD_1>\n\nDOŚWIADCZENIE\n2019-2026  Kierownik działu logistyki, <FIRMA_1>, <MIEJSCE_1>\n2015-2019  Specjalista ds. zakupów, <FIRMA_2>, Katowice\n\nWYKSZTAŁCENIE\n2010-2015  Uniwersytet Ekonomiczny w Krakowie, logistyka\n\nREFERENCJE\n<OSOBA_2>, dyrektor operacyjny, tel. <TELEFON_2>, <EMAIL_2>\n",
   "spans": [
     {
       "start": 19,
@@ -21,6 +21,13 @@
       "entity_type": "POSTAL_CODE",
       "score": 1.0,
       "token": "<KOD_POCZTOWY_1>"
+    },
+    {
+      "start": 61,
+      "end": 67,
+      "entity_type": "LOCATION",
+      "score": 1.0,
+      "token": "<MIEJSCE_1>"
     },
     {
       "start": 73,
@@ -58,6 +65,13 @@
       "token": "<FIRMA_1>"
     },
     {
+      "start": 255,
+      "end": 261,
+      "entity_type": "LOCATION",
+      "score": 0.9,
+      "token": "<MIEJSCE_1>"
+    },
+    {
       "start": 298,
       "end": 320,
       "entity_type": "ORG",
@@ -90,6 +104,7 @@
     "<OSOBA_1>": "Anna Wiśniewska",
     "<ADRES_1>": "ul. Kwiatowa 12/4",
     "<KOD_POCZTOWY_1>": "30-001",
+    "<MIEJSCE_1>": "Kraków",
     "<TELEFON_1>": "+48 601 234 567",
     "<EMAIL_1>": "anna.wisniewska@poczta.example",
     "<PESEL_1>": "45831523452",

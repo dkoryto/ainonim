@@ -5,6 +5,13 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+### Zmienione
+
+- Silnik wykrywania polanon 0.4.1 → 0.4.4. Wykrywa nazwy miejscowości (po kodzie pocztowym i w
+  polach formularzy), nazwiska w innych przypadkach niż pierwsze wystąpienie i imiona po znakach
+  ucieczki (`\n`, `\u015b`) w tekście JSON i logach. Na dokumentach testowych 175 znalezionych
+  wartości zamiast 160, bez utraty wcześniejszych; czas analizy bez zmian.
+
 ### Naprawione
 
 - Pole, w którym tekst był już wpisany, zanim AInonim zaczął działać na stronie (wolne

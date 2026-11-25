@@ -4,9 +4,9 @@ The extension package (.output/chrome-mv3 and its zip) bundles the third-party s
 Only runtime files are listed; development tools (WXT CLI, Vite, Vitest, Playwright, ESLint,
 Prettier, TypeScript) are not shipped.
 
-polanon 0.4.1 (python/polanon-0.4.1-py3-none-any.whl)
+polanon 0.4.4 (python/polanon-0.4.4-py3-none-any.whl)
   MIT License. https://github.com/boromat/polanon
-  The licence text is inside the wheel: polanon-0.4.1.dist-info/licenses/LICENSE
+  The licence text is inside the wheel: polanon-0.4.4.dist-info/licenses/LICENSE
 
 Pyodide 314.0.8 (pyodide/pyodide.mjs, pyodide.asm.mjs, pyodide.asm.wasm, python_stdlib.zip,
 pyodide-lock.json reduced to its "info" block)
