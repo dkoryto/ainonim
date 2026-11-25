@@ -5,6 +5,20 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-25
+
+Bez zmian w działaniu wtyczki.
+
+### Zmienione
+
+- Najdłuższe moduły podzielone na mniejsze, bez zmiany ich publicznego API: sesja maskowania
+  (`startMasking` z 359 do 68 linii), ikona i panel (`badge.ts` z 659 do 156 linii), przywracanie
+  w odpowiedziach, zakładki ustawień i lista zapamiętanych danych; wiadomości (`lib/shared/messages/`)
+  po jednym module na kanał. 1032 testy jednostkowe (było 947), pokrycie 99% instrukcji.
+- Standardy repozytorium: `CONTRIBUTING.md` (zasady kodu, testów i commitów), `.editorconfig`,
+  `.nvmrc`, Dependabot dla npm i akcji GitHub, limity rozmiaru w ESLint (funkcja do 80 linii,
+  plik do 400, złożoność do 15).
+
 ## [0.5.0] - 2026-11-25
 
 ### Dodane
@@ -238,7 +252,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/dkoryto/ainonim/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/dkoryto/ainonim/compare/v0.4.4...v0.5.0
 [0.4.4]: https://github.com/dkoryto/ainonim/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/dkoryto/ainonim/compare/v0.4.2...v0.4.3
