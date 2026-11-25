@@ -245,7 +245,9 @@ Paczkę do Chrome Web Store buduje GitHub Actions: tag `v<x.y.z>` uruchamia work
 `.github/workflows/release.yml`. Najpierw przechodzi całe CI (lint, typecheck, testy jednostkowe
 z pokryciem, e2e z testem prywatności, pomiary), potem `npm run zip`, kontrola zawartości zipa
 i test „smoke” rozpakowanego zipa w Chromium. Dopiero wtedy powstaje wydanie GitHub z zipem i sumą
-SHA-256 do pobrania. „Run workflow” buduje paczkę z dowolnej gałęzi jako artefakt, bez wydania.
+SHA-256 do pobrania. Po skonfigurowaniu i zatwierdzeniu ten sam zip trafia też automatycznie do
+Chrome Web Store do weryfikacji ([docs/chrome-web-store.md](docs/chrome-web-store.md)). „Run
+workflow” buduje paczkę z dowolnej gałęzi jako artefakt, bez wydania.
 
 ## Ograniczenia
 
@@ -281,6 +283,7 @@ SHA-256 do pobrania. „Run workflow” buduje paczkę z dowolnej gałęzi jako 
 - [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) – model zagrożeń
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) – struktura kodu i granice między modułami
 - [docs/store-listing.md](docs/store-listing.md) – opis i formularze Chrome Web Store
+- [docs/chrome-web-store.md](docs/chrome-web-store.md) – automatyczne wysyłanie do Chrome Web Store
 - [docs/release.md](docs/release.md) – lista kontrolna wydania
 - [docs/decisions/](docs/decisions/) – decyzje projektowe
 - [docs/spikes/T2-pyodide.md](docs/spikes/T2-pyodide.md) – pomiary Pyodide

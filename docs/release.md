@@ -116,12 +116,21 @@ artefaktach przebiegu przez 30 dni. Lokalnie nadal działa `npm run zip`.
 
 ## 7. Wysłanie do Chrome Web Store
 
-1. [Developer Dashboard](https://chrome.google.com/webstore/devconsole) → AInonim → „Pakiet” →
-   prześlij zip z wydania GitHub.
-2. „Informacje o produkcie”: sprawdź opisy i zrzuty ekranu z `docs/store-listing.md`.
-3. „Prywatność”: jedyny cel, uzasadnienia uprawnień, zdalny kod, wykorzystanie danych i adres
+**Automatycznie** (gdy skonfigurowane, zob. [chrome-web-store.md](chrome-web-store.md)): przebieg
+„Release” czeka na jobie `store`; zatwierdź go („Review deployments”). Job wysyła zip z wydania i
+zgłasza wersję do weryfikacji; w logu jest stan pozycji (zwykle `PENDING_REVIEW`).
+
+**Ręcznie** (bez konfiguracji albo gdy job `store` zawiedzie):
+[Developer Dashboard](https://chrome.google.com/webstore/devconsole) → AInonim → „Pakiet” →
+prześlij zip z wydania GitHub i wyślij do weryfikacji.
+
+W obu przypadkach:
+
+1. „Informacje o produkcie”: sprawdź opisy i zrzuty ekranu z `docs/store-listing.md` (API zmienia
+   tylko paczkę, nie opis).
+2. „Prywatność”: jedyny cel, uzasadnienia uprawnień, zdalny kod, wykorzystanie danych i adres
    polityki prywatności zgodne z `docs/store-listing.md`.
-4. Wyślij do weryfikacji. Zanotuj datę.
+3. Zanotuj datę wysłania.
 
 ## 8. Gdy sklep odrzuci paczkę
 
