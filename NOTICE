@@ -2,27 +2,33 @@ AInonim – third-party notices
 
 The extension package (.output/chrome-mv3 and its zip) bundles the third-party software below.
 Only runtime files are listed; development tools (WXT CLI, Vite, Vitest, Playwright, ESLint,
-Prettier, TypeScript) are not shipped.
+Prettier, TypeScript) are not shipped. The full licence texts are in the package under
+licenses/; the file each text belongs to is named below.
 
 polanon 0.4.1 (python/polanon-0.4.1-py3-none-any.whl)
   MIT License. https://github.com/boromat/polanon
-  The licence text is inside the wheel: polanon-0.4.1.dist-info/licenses/LICENSE
+  Licence text: licenses/polanon.txt (also inside the wheel: polanon-0.4.1.dist-info/licenses/LICENSE)
 
 Pyodide 314.0.8 (pyodide/pyodide.mjs, pyodide.asm.mjs, pyodide.asm.wasm, python_stdlib.zip,
 pyodide-lock.json reduced to its "info" block)
-  Mozilla Public License 2.0. https://github.com/pyodide/pyodide
-  Source of the files: https://www.npmjs.com/package/pyodide/v/314.0.8
+  Mozilla Public License 2.0, licence text: licenses/MPL-2.0-Pyodide.txt.
+  https://github.com/pyodide/pyodide
+  These files remain under MPL-2.0. pyodide.mjs and pyodide.asm.mjs are shipped in Source Code
+  Form, as the modified pyodide.mjs is. Source of every file: https://www.npmjs.com/package/pyodide/v/314.0.8
   Modification: in pyodide.mjs the default package base URL (Pyodide's jsDelivr CDN address) is
   replaced with an empty string at build time (wxt.config.ts); AInonim always passes its own
   package URL instead. The other files are unmodified.
 
   Pyodide contains, compiled into pyodide.asm.wasm or in python_stdlib.zip:
-  - CPython 3.14.2: Python Software Foundation License Version 2. https://docs.python.org/3/license.html
-  - Emscripten runtime: MIT / University of Illinois NCSA Open Source License.
+  - CPython 3.14.2: Python Software Foundation License Version 2, with CPython's licence history
+    and copyright notices: licenses/Python-3.14.txt.
+    https://docs.python.org/3/license.html
+  - Emscripten runtime: MIT / University of Illinois NCSA Open Source License:
+    licenses/Emscripten.txt.
   - Libraries linked into the interpreter (identified from the binary; see CPython's licence page
     for their full texts): zlib (zlib License), bzip2 (bzip2 License), XZ Utils / liblzma (0BSD),
     mpdecimal (BSD-2-Clause), Expat (MIT), SQLite (public domain), HACL* (MIT),
     libb2 / BLAKE2 (CC0-1.0), Zstandard (BSD-3-Clause).
 
 WXT 0.21.5 runtime helpers and @wxt-dev/browser (bundled into background.js and the content script)
-  MIT License. https://github.com/wxt-dev/wxt
+  MIT License, licence text: licenses/WXT.txt. https://github.com/wxt-dev/wxt

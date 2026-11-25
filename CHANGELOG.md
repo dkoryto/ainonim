@@ -5,6 +5,13 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+### Dodane
+
+- Pełne teksty licencji dołączonych bibliotek w paczce (`licenses/`: MPL-2.0 dla Pyodide,
+  licencja Pythona, Emscripten, polanon, WXT); `NOTICE.txt` wskazuje, który tekst dotyczy którego
+  pliku.
+- Licencja MIT kodu AInonim (`LICENSE`).
+
 ### Naprawione
 
 - Pole, w którym tekst był już wpisany, zanim AInonim zaczął działać na stronie (wolne

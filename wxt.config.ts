@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { defineConfig } from 'wxt';
 import {
@@ -75,6 +75,12 @@ export default defineConfig({
         absoluteSrc: resolve(import.meta.dirname, 'NOTICE'),
         relativeDest: 'NOTICE.txt',
       });
+      // Full texts of the bundled licences: MPL-2.0 and the PSF licence require them alongside
+      // the files they cover (NOTICE lists which file each one belongs to).
+      const licenses = resolve(import.meta.dirname, 'licenses');
+      for (const name of readdirSync(licenses)) {
+        files.push({ absoluteSrc: resolve(licenses, name), relativeDest: `licenses/${name}` });
+      }
     },
   },
 });
