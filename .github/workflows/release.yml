@@ -1,8 +1,9 @@
 name: Release
 
-# Builds the Chrome Web Store package (.output/ainonim-<version>-chrome.zip).
-# - A pushed tag v<x.y.z> builds it and attaches it to a draft GitHub release, which is published
-#   by hand once the package is accepted by the store (docs/release.md).
+# Builds the Chrome Web Store package (.output/ainonim-<version>-chrome.zip) after every check
+# passed: the whole CI (lint, typecheck, unit tests with coverage, e2e including the privacy test,
+# measurements), then checks of the zip itself and a smoke test of the unpacked zip in Chromium.
+# - A pushed tag v<x.y.z> publishes it as a GitHub release, for download (docs/release.md).
 # - "Run workflow" on any branch builds it as a workflow artifact only, without a release.
 on:
   push:
@@ -17,7 +18,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
   package:
+    needs: verify
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -40,9 +45,6 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:coverage
       # wxt zip, then scripts/check-production-build.js (no test bridge, no CDN URLs).
       - run: npm run zip
       - name: Check the package contents
@@ -52,7 +54,9 @@ jobs:
         run: |
           unzip -Z1 "$ZIP" > files.txt
           grep -qx 'manifest.json' files.txt || { echo "::error::manifest.json missing"; exit 1; }
-          grep -qx 'NOTICE.txt' files.txt || { echo "::error::NOTICE.txt missing"; exit 1; }
+          for required in NOTICE.txt licenses/MPL-2.0-Pyodide.txt licenses/Python-3.14.txt; do
+            grep -qx "$required" files.txt || { echo "::error::$required missing"; exit 1; }
+          done
           if grep -E '\.map$|(^|/)\.env|(^|/)tests?/' files.txt; then
             echo "::error::Source maps, .env or test files in the package."
             exit 1
@@ -62,6 +66,24 @@ jobs:
             echo "::error::manifest.json has version $manifest_version, package.json $VERSION."
             exit 1
           }
+      # The zip that goes to the store, loaded in Chromium: type, mask, undo.
+      - id: playwright
+        run: echo "version=$(npx playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: browser-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps --no-shell chromium
+      - if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Smoke test of the unpacked zip
+        env:
+          ZIP: .output/ainonim-${{ steps.version.outputs.version }}-chrome.zip
+        run: |
+          unzip -q "$ZIP" -d "$RUNNER_TEMP/package"
+          AINONIM_PACKAGE_DIR="$RUNNER_TEMP/package" npx playwright test package-smoke
       - name: Collect the release files
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -91,7 +113,7 @@ jobs:
     if: github.ref_type == 'tag'
     needs: package
     runs-on: ubuntu-latest
-    # Only this job can write, and it runs no project code: it uploads what `package` built.
+    # Only this job can write, and it runs no project code: it publishes what `package` built.
     permissions:
       contents: write
     steps:
@@ -99,7 +121,7 @@ jobs:
         with:
           name: ainonim-${{ needs.package.outputs.version }}-chrome
           path: release/
-      - name: Create a draft release
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -108,5 +130,5 @@ jobs:
         run: |
           prerelease=()
           case "$VERSION" in *-*) prerelease=(--prerelease) ;; esac
-          gh release create "$TAG" release/assets/* --repo "$REPO" --verify-tag --draft \
+          gh release create "$TAG" release/assets/* --repo "$REPO" --verify-tag \
             "${prerelease[@]}" --title "AInonim $VERSION" --notes-file release/notes.md

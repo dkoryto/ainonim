@@ -98,13 +98,18 @@ więc zawsze powstaje z czystego `npm ci` i z kodu oznaczonego tagiem.
   git push origin v<x.y.z>
   ```
 
-- [ ] Workflow „Release” (zakładka Actions) jest zielony. Sprawdza, że tag zgadza się z `version`
-      w `package.json`, uruchamia lint, typecheck i testy z pokryciem, buduje `npm run zip`
-      i kontroluje zip: jest `manifest.json` z tą samą wersją i `NOTICE.txt`, nie ma map źródeł,
-      `.env` ani plików testów. Na koniec tworzy **szkic** wydania GitHub z zipem, sumą SHA-256
-      i notatkami z CHANGELOG.
-- [ ] Pobierz zip ze szkicu wydania i sprawdź sumę:
-      `sha256sum -c ainonim-<x.y.z>-chrome.zip.sha256`.
+- [ ] Workflow „Release” (zakładka Actions) jest zielony. Kolejno:
+  1. `verify`: całe CI (`ci.yml`): lint, typecheck, testy jednostkowe z pokryciem, build, e2e z
+     testem prywatności i pomiary;
+  2. `package`: zgodność tagu z `version` w `package.json`, `npm run zip`, kontrola zipa (jest
+     `manifest.json` z tą samą wersją, `NOTICE.txt` i teksty licencji w `licenses/`, nie ma map
+     źródeł, `.env` ani plików testów) i test „smoke” rozpakowanego zipa w Chromium
+     (`tests/e2e/package-smoke.spec.ts`: wpisanie danych, panel, maskowanie, cofnięcie);
+  3. `release`: wydanie GitHub z zipem, sumą SHA-256 i notatkami z sekcji CHANGELOG.
+
+  Jeśli któryś krok nie przejdzie, wydanie nie powstaje.
+
+- [ ] Pobierz zip z wydania i sprawdź sumę: `sha256sum -c ainonim-<x.y.z>-chrome.zip.sha256`.
 
 Paczka bez wydania, np. do sprawdzenia gałęzi: Actions → Release → Run workflow, zip jest w
 artefaktach przebiegu przez 30 dni. Lokalnie nadal działa `npm run zip`.
@@ -112,19 +117,13 @@ artefaktach przebiegu przez 30 dni. Lokalnie nadal działa `npm run zip`.
 ## 7. Wysłanie do Chrome Web Store
 
 1. [Developer Dashboard](https://chrome.google.com/webstore/devconsole) → AInonim → „Pakiet” →
-   prześlij zip ze szkicu wydania.
+   prześlij zip z wydania GitHub.
 2. „Informacje o produkcie”: sprawdź opisy i zrzuty ekranu z `docs/store-listing.md`.
 3. „Prywatność”: jedyny cel, uzasadnienia uprawnień, zdalny kod, wykorzystanie danych i adres
    polityki prywatności zgodne z `docs/store-listing.md`.
 4. Wyślij do weryfikacji. Zanotuj datę.
 
-## 8. Publikacja wydania
+## 8. Gdy sklep odrzuci paczkę
 
-Po zatwierdzeniu przez sklep opublikuj szkic wydania:
-
-```
-gh release edit v<x.y.z> --draft=false
-```
-
-Jeśli sklep odrzuci paczkę: popraw, podbij wersję i zacznij od punktu 1; szkic i tag odrzuconej
-wersji usuń (`gh release delete v<x.y.z> --cleanup-tag`).
+Popraw, podbij wersję i zacznij od punktu 1. Wydanie odrzuconej wersji oznacz w opisie albo usuń
+razem z tagiem (`gh release delete v<x.y.z> --cleanup-tag`).

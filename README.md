@@ -201,9 +201,10 @@ Lista kontrolna: [docs/release.md](docs/release.md). Każda zmiana widoczna dla 
 do [CHANGELOG.md](CHANGELOG.md) i podbija wersję w `package.json`.
 
 Paczkę do Chrome Web Store buduje GitHub Actions: tag `v<x.y.z>` uruchamia workflow
-`.github/workflows/release.yml` (testy, `npm run zip`, kontrola zawartości zipa), który tworzy
-szkic wydania GitHub z zipem i sumą SHA-256. „Run workflow” buduje paczkę z dowolnej gałęzi jako
-artefakt, bez wydania.
+`.github/workflows/release.yml`. Najpierw przechodzi całe CI (lint, typecheck, testy jednostkowe
+z pokryciem, e2e z testem prywatności, pomiary), potem `npm run zip`, kontrola zawartości zipa
+i test „smoke” rozpakowanego zipa w Chromium. Dopiero wtedy powstaje wydanie GitHub z zipem i sumą
+SHA-256 do pobrania. „Run workflow” buduje paczkę z dowolnej gałęzi jako artefakt, bez wydania.
 
 ## Ograniczenia
 
@@ -245,6 +246,5 @@ artefakt, bez wydania.
 
 ## Licencje
 
-Licencja kodu AInonim nie jest jeszcze ustalona (`package.json` ma wpis `MIT`, ale w repozytorium
-nie ma pliku LICENSE). Licencje dołączonych bibliotek (Pyodide, polanon i inne): [NOTICE](NOTICE),
-w paczce jako `NOTICE.txt`.
+Kod AInonim: licencja MIT ([LICENSE](LICENSE)). Licencje dołączonych bibliotek (Pyodide, polanon
+i inne): [NOTICE](NOTICE), w paczce jako `NOTICE.txt`.
