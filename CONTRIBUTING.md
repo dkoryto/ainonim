@@ -64,3 +64,12 @@ Zmiana w zachowaniu na stronie, w komunikacji lub w buildzie: także `npm run te
 - Wersje w `package.json` są przypięte dokładnie (bez `^`). Dependabot co tydzień proponuje
   aktualizacje npm i akcji GitHub (akcje są przypięte do SHA).
 - Nowa zależność trafiająca do paczki rozszerzenia: wpis w `NOTICE` i przegląd licencji.
+
+## Zrzuty i wideo
+
+Zrzuty do sklepu i README (`assets/store/`) tworzy `npm run screenshots`, wideo
+(`assets/store/demo.mp4`) `npm run video`. Po zmianie wyglądu odśwież oba i animację w README:
+
+```
+ffmpeg -y -i assets/store/demo.mp4 -vf "fps=10,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" -loop 0 docs/media/demo.gif
+```

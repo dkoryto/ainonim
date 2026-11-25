@@ -12,8 +12,49 @@ Wersja: 0.5.1 (zob. [CHANGELOG.md](CHANGELOG.md)). Przetestowana automatycznie n
 testowych; adaptery czatów sprawdzone na żywo tylko częściowo (zob. [Ograniczenia](#ograniczenia)).
 Rozszerzenie nie jest jeszcze opublikowane w Chrome Web Store.
 
+## Jak to wygląda
+
+![AInonim w działaniu: wykrycie danych w wiadomości, maskowanie jednym kliknięciem, wysłanie i
+oryginały przywrócone w odpowiedzi czatu](docs/media/demo.gif)
+
+Pełne wideo demonstracyjne (1080p, 56 s, bez dźwięku):
+[assets/store/demo.mp4](assets/store/demo.mp4).
+
+<table>
+  <tr>
+    <td width="50%"><img src="assets/store/screenshot-1-panel.png" alt="Panel AInonim nad polem wiadomości z trzema znalezionymi wartościami: imię i nazwisko, PESEL i IBAN"></td>
+    <td width="50%"><img src="assets/store/screenshot-2-restored.png" alt="Odpowiedź czatu z przywróconymi oryginałami i podpowiedzią, jaki znacznik dostał model"></td>
+  </tr>
+  <tr>
+    <td><b>Wykrywanie i panel.</b> Znalezione dane są podkreślone w polu, a ikona w rogu pokazuje ich
+    liczbę. W panelu przy każdej wartości wybierasz „znacznik” albo „ogólnie” i maskujesz
+    zaznaczone jednym przyciskiem.</td>
+    <td><b>Oryginały w odpowiedzi.</b> Model dostaje <code>&lt;OSOBA_1&gt;</code>, a Ty widzisz
+    „Janie Kowalski”, także w odmianie. Przywrócone wartości są podświetlone; po najechaniu widać,
+    co dokładnie trafiło do modelu.</td>
+  </tr>
+  <tr>
+    <td><img src="assets/store/screenshot-3-popup.png" alt="Okienko wtyczki: działanie na stronie, tryb maskowania, wygląd odpowiedzi i zapamiętane dane rozmowy"></td>
+    <td><img src="assets/store/screenshot-4-options.png" alt="Ustawienia, zakładka Ogólne: trzy tryby maskowania i wygląd odpowiedzi czatu"></td>
+  </tr>
+  <tr>
+    <td><b>Okienko wtyczki.</b> Włączanie i wyłączanie na bieżącej stronie, tryb maskowania, wygląd
+    odpowiedzi oraz pary znacznik → oryginał zapamiętane dla każdej rozmowy, z możliwością
+    usunięcia.</td>
+    <td><b>Tryby maskowania.</b> Ręcznie z panelu, automatycznie przy wysyłce w obsługiwanych
+    czatach albo automatycznie po przerwie w pisaniu, na każdej stronie.</td>
+  </tr>
+  <tr>
+    <td><img src="assets/store/screenshot-5-categories.png" alt="Ustawienia, zakładka Kategorie: rodzaje danych z przełącznikami znacznik i ogólnie"></td>
+    <td><b>Kategorie.</b> Każdy rodzaj danych (osoby, firmy, identyfikatory, kontakt, adresy i
+    inne) można wyłączyć albo ustawić mu domyślną zamianę. Kolejne zakładki: strony, własne słowa
+    i dziennik maskowania.</td>
+  </tr>
+</table>
+
 ## Spis treści
 
+- [Jak to wygląda](#jak-to-wygląda)
 - [Funkcje](#funkcje)
 - [Instalacja](#instalacja)
 - [Ustawienia](#ustawienia)
