@@ -5,6 +5,13 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+### Dodane
+
+- Pełne teksty licencji dołączonych bibliotek w paczce (`licenses/`: MPL-2.0 dla Pyodide,
+  licencja Pythona, Emscripten, polanon, WXT); `NOTICE.txt` wskazuje, który tekst dotyczy którego
+  pliku.
+- Licencja MIT kodu AInonim (`LICENSE`).
+
 ### Zmienione
 
 - Silnik wykrywania polanon 0.4.1 → 0.4.4. Wykrywa nazwy miejscowości (po kodzie pocztowym i w

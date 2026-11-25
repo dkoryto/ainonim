@@ -18,15 +18,18 @@ export interface LaunchOptions {
   userDataDir?: string;
   /** Extra Chromium switches. */
   args?: string[];
+  /** Unpacked extension to load; the e2e build when empty. */
+  extensionPath?: string;
 }
 
 export async function launchWithExtension(options: LaunchOptions = {}): Promise<BrowserContext> {
+  const extension = options.extensionPath ?? EXTENSION_PATH;
   // The "chromium" channel runs the new headless mode, which supports extensions.
   return chromium.launchPersistentContext(options.userDataDir ?? '', {
     channel: 'chromium',
     args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
+      `--disable-extensions-except=${extension}`,
+      `--load-extension=${extension}`,
       // No DNS except the local test server: a CDN fetch anywhere in the pipeline would fail.
       '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
       ...(options.args ?? []),
