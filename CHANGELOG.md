@@ -5,6 +5,23 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+### Naprawione
+
+- Pole, w którym tekst był już wpisany, zanim AInonim zaczął działać na stronie (wolne
+  ładowanie, włączenie wtyczki dla strony w trakcie pisania), nie było analizowane, dopóki nie
+  dopisano kolejnego znaku. Teraz jest analizowane od razu.
+
+## [0.4.4] - 2026-11-24
+
+Bez zmian w działaniu wtyczki.
+
+### Naprawione
+
+- Wideo demonstracyjne: część przywróconych wartości („Anno Nowak”, IBAN) nie była podświetlona.
+  Przyczyną była strona czatu do nagrań, nie wtyczka: dopisywała strumieniowane słowa, odczytując
+  tekst z DOM, w którym wtyczka zdążyła już wstawić oryginały, więc „wchłaniała” je jako zwykły
+  tekst. Teraz, jak prawdziwe czaty, buduje tekst ze swojego stanu.
+
 ## [0.4.3] - 2026-11-24
 
 ### Dodane
@@ -205,7 +222,8 @@ Pierwsza wersja (MVP).
 - Mapowania znacznik → oryginał tylko w pamięci sesji service workera, z kontrolą dostępu per strona.
 - Testy jednostkowe i e2e, w tym test, że dane nie opuszczają przeglądarki; CI na GitHub Actions.
 
-[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/dkoryto/ainonim/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/dkoryto/ainonim/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/dkoryto/ainonim/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/dkoryto/ainonim/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/dkoryto/ainonim/compare/v0.4.0...v0.4.1

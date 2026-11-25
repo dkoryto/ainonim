@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Prefilled field</title>
+<textarea id="prefilled"></textarea>
+<script>
+  // Text typed before the content script started: focused, filled, and no input event since.
+  const field = document.getElementById('prefilled');
+  field.value = 'Jan Kowalski, PESEL 50810112354';
+  field.focus();
+</script>

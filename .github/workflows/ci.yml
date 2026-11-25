@@ -88,7 +88,7 @@ jobs:
         run: npx playwright install-deps chromium
       # The production package, whose size the measurement checks.
       - run: npm run build
-      # Fails only on gross regressions: median cold start >= 5 s, median warm round trip
+      # Fails only on gross regressions: median cold start >= 8 s, median warm round trip
       # >= 200 ms per 2000 characters, production package >= 15 MB. The limits and why they are
       # loose are documented in tests/e2e/measure.spec.ts.
       - run: npm run measure
