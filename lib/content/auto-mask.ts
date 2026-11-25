@@ -84,6 +84,8 @@ function pressEnter(field: EditableField): void {
     new KeyboardEvent('keydown', {
       key: 'Enter',
       code: 'Enter',
+      // Deprecated, but chat pages that handle Enter themselves may still read it.
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       keyCode: 13,
       bubbles: true,
       cancelable: true,

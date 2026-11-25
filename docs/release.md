@@ -86,24 +86,44 @@ Proszę o korektę faktury. Klient: Jan Kowalski, PESEL 50810112354, e-mail jan.
 
 ## 6. Paczka
 
-- [ ] `npm run zip` → `.output/ainonim-<wersja>-chrome.zip`.
-- [ ] Zajrzyj do zipa (`unzip -l`): jest `NOTICE.txt`, brak map źródeł, plików testowych i
-      `.env`.
+Paczkę do sklepu buduje GitHub Actions (`.github/workflows/release.yml`), nie lokalny komputer,
+więc zawsze powstaje z czystego `npm ci` i z kodu oznaczonego tagiem.
+
+- [ ] `CHANGELOG.md` ma sekcję `## [<x.y.z>]` (z niej powstają notatki wydania), zmiany są w
+      `main`, CI jest zielone.
+- [ ] Tag:
+
+  ```
+  git tag -a v<x.y.z> -m "AInonim <x.y.z>"
+  git push origin v<x.y.z>
+  ```
+
+- [ ] Workflow „Release” (zakładka Actions) jest zielony. Kolejno:
+  1. `verify`: całe CI (`ci.yml`): lint, typecheck, testy jednostkowe z pokryciem, build, e2e z
+     testem prywatności i pomiary;
+  2. `package`: zgodność tagu z `version` w `package.json`, `npm run zip`, kontrola zipa (jest
+     `manifest.json` z tą samą wersją, `NOTICE.txt` i teksty licencji w `licenses/`, nie ma map
+     źródeł, `.env` ani plików testów) i test „smoke” rozpakowanego zipa w Chromium
+     (`tests/e2e/package-smoke.spec.ts`: wpisanie danych, panel, maskowanie, cofnięcie);
+  3. `release`: wydanie GitHub z zipem, sumą SHA-256 i notatkami z sekcji CHANGELOG.
+
+  Jeśli któryś krok nie przejdzie, wydanie nie powstaje.
+
+- [ ] Pobierz zip z wydania i sprawdź sumę: `sha256sum -c ainonim-<x.y.z>-chrome.zip.sha256`.
+
+Paczka bez wydania, np. do sprawdzenia gałęzi: Actions → Release → Run workflow, zip jest w
+artefaktach przebiegu przez 30 dni. Lokalnie nadal działa `npm run zip`.
 
 ## 7. Wysłanie do Chrome Web Store
 
 1. [Developer Dashboard](https://chrome.google.com/webstore/devconsole) → AInonim → „Pakiet” →
-   prześlij nowy zip.
+   prześlij zip z wydania GitHub.
 2. „Informacje o produkcie”: sprawdź opisy i zrzuty ekranu z `docs/store-listing.md`.
 3. „Prywatność”: jedyny cel, uzasadnienia uprawnień, zdalny kod, wykorzystanie danych i adres
    polityki prywatności zgodne z `docs/store-listing.md`.
 4. Wyślij do weryfikacji. Zanotuj datę.
 
-## 8. Tag
+## 8. Gdy sklep odrzuci paczkę
 
-Po zatwierdzeniu przez sklep (lub od razu po wysłaniu, zgodnie z ustaleniem w zespole):
-
-```
-git tag -a v<x.y.z> -m "AInonim <x.y.z>"
-git push origin v<x.y.z>
-```
+Popraw, podbij wersję i zacznij od punktu 1. Wydanie odrzuconej wersji oznacz w opisie albo usuń
+razem z tagiem (`gh release delete v<x.y.z> --cleanup-tag`).

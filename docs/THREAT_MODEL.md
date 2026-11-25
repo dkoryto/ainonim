@@ -178,7 +178,7 @@ Przed wydaniem selektory sprawdza ręczna lista z [release.md](release.md).
 
 ### Łańcuch dostaw
 
-- Pyodide (`pyodide` 314.0.8 z npm) i koło polanon (`vendor/polanon-0.4.1-py3-none-any.whl`, w
+- Pyodide (`pyodide` 314.0.8 z npm) i koło polanon (`vendor/polanon-0.4.4-py3-none-any.whl`, w
   repozytorium) są w paczce; nic nie jest ładowane z CDN w czasie działania.
 - Wszystkie zależności npm są w `devDependencies` z dokładnymi wersjami i `package-lock.json`;
   do paczki trafia kod zbundlowany przez WXT/Vite oraz skopiowane pliki Pyodide. Kompromitacja

@@ -1,5 +1,5 @@
 {
-  "anonymized": "Od: <OSOBA_1> <<EMAIL_1>>\nDo: <EMAIL_2>\nTemat: Reklamacja zamówienia 88213\n\nDzień dobry,\n\nzamówienie 88213 dotarło uszkodzone. Proszę o zwrot na konto\n<IBAN_1>. Moje dane do korekty faktury:\n\n<OSOBA_1>\n<ADRES_1>, <KOD_POCZTOWY_1> Poznań\nPESEL <PESEL_1>\ntel. <TELEFON_1>\n\nSprawę prowadził u Państwa pan <OSOBA_2>, kierownik jedynego\noddziału w Lesznie. Prosiłabym o kontakt w tej sprawie.\n\nPozdrawiam\n<OSOBA_1>\n",
+  "anonymized": "Od: <OSOBA_1> <<EMAIL_1>>\nDo: <EMAIL_2>\nTemat: Reklamacja zamówienia 88213\n\nDzień dobry,\n\nzamówienie 88213 dotarło uszkodzone. Proszę o zwrot na konto\n<IBAN_1>. Moje dane do korekty faktury:\n\n<OSOBA_1>\n<ADRES_1>, <KOD_POCZTOWY_1> <MIEJSCE_1>\nPESEL <PESEL_1>\ntel. <TELEFON_1>\n\nSprawę prowadził u Państwa pan <OSOBA_2>, kierownik jedynego\noddziału w Lesznie. Prosiłabym o kontakt w tej sprawie.\n\nPozdrawiam\n<OSOBA_1>\n",
   "spans": [
     {
       "start": 4,
@@ -51,6 +51,13 @@
       "token": "<KOD_POCZTOWY_1>"
     },
     {
+      "start": 301,
+      "end": 307,
+      "entity_type": "LOCATION",
+      "score": 1.0,
+      "token": "<MIEJSCE_1>"
+    },
+    {
       "start": 314,
       "end": 325,
       "entity_type": "PESEL",
@@ -86,6 +93,7 @@
     "<IBAN_1>": "PL27114020040000300201355387",
     "<ADRES_1>": "ul. Ogrodowa 3",
     "<KOD_POCZTOWY_1>": "61-004",
+    "<MIEJSCE_1>": "Poznań",
     "<PESEL_1>": "51871109879",
     "<TELEFON_1>": "785 112 334",
     "<OSOBA_2>": "Marek Dąbrowski"

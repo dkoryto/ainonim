@@ -1,5 +1,5 @@
 {
-  "anonymized": "Zgłoszenie serwisowe nr INC-2026-0912\n\nZgłaszający: <OSOBA_1>, dział IT\nKontakt: <EMAIL_1>, tel. <TELEFON_1>\n\nOpis:\nPo aktualizacji serwer aplikacyjny <IP_1> przestał odpowiadać.\nW logu widać próbę połączenia z hosta o adresie MAC <MAC_1>.\nKonfiguracja, którą przysłał dostawca:\n\n  DB_PASSWORD=<SEKRET_1>\n  OPENROUTER_KEY=<SEKRET_2>\n  smtp_login: <EMAIL_2>\n\nDostawca: <FIRMA_1>, NIP <NIP_1>, REGON <REGON_1>\nSamochód serwisowy: nr rej. <REJESTRACJA_1>, VIN <VIN_1>\n\nProsimy o kontakt z panią <OSOBA_2>, PESEL <PESEL_1>,\n<ADRES_1>, <KOD_POCZTOWY_1> Kraków.\n",
+  "anonymized": "Zgłoszenie serwisowe nr INC-2026-0912\n\nZgłaszający: <OSOBA_1>, dział IT\nKontakt: <EMAIL_1>, tel. <TELEFON_1>\n\nOpis:\nPo aktualizacji serwer aplikacyjny <IP_1> przestał odpowiadać.\nW logu widać próbę połączenia z hosta o adresie MAC <MAC_1>.\nKonfiguracja, którą przysłał dostawca:\n\n  DB_PASSWORD=<SEKRET_1>\n  OPENROUTER_KEY=<SEKRET_2>\n  smtp_login: <EMAIL_2>\n\nDostawca: <FIRMA_1>, NIP <NIP_1>, REGON <REGON_1>\nSamochód serwisowy: nr rej. <REJESTRACJA_1>, VIN <VIN_1>\n\nProsimy o kontakt z panią <OSOBA_2>, PESEL <PESEL_1>,\n<ADRES_1>, <KOD_POCZTOWY_1> <MIEJSCE_1>.\n",
   "spans": [
     {
       "start": 52,
@@ -119,6 +119,13 @@
       "entity_type": "POSTAL_CODE",
       "score": 1.0,
       "token": "<KOD_POCZTOWY_1>"
+    },
+    {
+      "start": 666,
+      "end": 672,
+      "entity_type": "LOCATION",
+      "score": 1.0,
+      "token": "<MIEJSCE_1>"
     }
   ],
   "mapping": {
@@ -138,6 +145,7 @@
     "<OSOBA_2>": "Anną Wiśniewską",
     "<PESEL_1>": "45831523452",
     "<ADRES_1>": "ul. Kwiatowa 12/4",
-    "<KOD_POCZTOWY_1>": "30-001"
+    "<KOD_POCZTOWY_1>": "30-001",
+    "<MIEJSCE_1>": "Kraków"
   }
 }

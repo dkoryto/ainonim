@@ -8,7 +8,7 @@ Wykrywaniem zajmuje się biblioteka [polanon](https://github.com/boromat/polanon
 przeglądarce przez [Pyodide](https://pyodide.org). Wszystko działa lokalnie: Pyodide i polanon są
 w paczce rozszerzenia, wtyczka niczego nie pobiera i nie wysyła.
 
-Wersja: 0.4.4 (zob. [CHANGELOG.md](CHANGELOG.md)). Przetestowana automatycznie na stronach
+Wersja: 0.5.0 (zob. [CHANGELOG.md](CHANGELOG.md)). Przetestowana automatycznie na stronach
 testowych; adaptery czatów sprawdzone na żywo tylko częściowo (zob. [Ograniczenia](#ograniczenia)).
 Rozszerzenie nie jest jeszcze opublikowane w Chrome Web Store.
 
@@ -188,7 +188,7 @@ granice między obszarami `lib/` ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 
 ### polanon
 
-Koło `vendor/polanon-0.4.1-py3-none-any.whl` jest w repozytorium, żeby build nie zależał od sieci
+Koło `vendor/polanon-0.4.4-py3-none-any.whl` jest w repozytorium, żeby build nie zależał od sieci
 ani od lokalnego repo polanon. Przebudowanie z lokalnej kopii:
 
 ```
@@ -199,6 +199,12 @@ ani od lokalnego repo polanon. Przebudowanie z lokalnej kopii:
 
 Lista kontrolna: [docs/release.md](docs/release.md). Każda zmiana widoczna dla użytkownika trafia
 do [CHANGELOG.md](CHANGELOG.md) i podbija wersję w `package.json`.
+
+Paczkę do Chrome Web Store buduje GitHub Actions: tag `v<x.y.z>` uruchamia workflow
+`.github/workflows/release.yml`. Najpierw przechodzi całe CI (lint, typecheck, testy jednostkowe
+z pokryciem, e2e z testem prywatności, pomiary), potem `npm run zip`, kontrola zawartości zipa
+i test „smoke” rozpakowanego zipa w Chromium. Dopiero wtedy powstaje wydanie GitHub z zipem i sumą
+SHA-256 do pobrania. „Run workflow” buduje paczkę z dowolnej gałęzi jako artefakt, bez wydania.
 
 ## Ograniczenia
 
