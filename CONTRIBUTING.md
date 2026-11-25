@@ -34,7 +34,7 @@ Zmiana w zachowaniu na stronie, w komunikacji lub w buildzie: także `npm run te
 - **Błędy w komunikacji** nie rzucają wyjątków: funkcje klienta zwracają `{ ok: true, … }` albo
   `{ ok: false, code, error }`.
 - **Dane osobowe**: żadnych wartości ani znaczników w logach konsoli, dzienniku i komunikatach
-  błędów (zob. `safeDetail` w `lib/content/masking.ts`). W testach tylko dane fikcyjne.
+  błędów (zob. `safeDetail` w `lib/content/masking-warn.ts`). W testach tylko dane fikcyjne.
 - **Sieć**: rozszerzenie niczego nie pobiera ani nie wysyła. Nowy `fetch`, uprawnienie lub host w
   manifeście wymaga aktualizacji `docs/THREAT_MODEL.md` i `docs/privacy-policy.md`.
 - **Komentarze** wyjaśniają, dlaczego, nie co. Kod i komentarze po angielsku, dokumentacja i

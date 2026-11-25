@@ -45,6 +45,29 @@ function hasFocus(field: EditableField): boolean {
   return active !== null && (active === field || field.contains(active));
 }
 
+/**
+ * Listen in the capture phase for `doc` events of the given types that come from an editable
+ * field, and hand each handler that field. Returns a function that stops listening.
+ */
+function listenForFields(
+  doc: Document,
+  handlers: Record<string, (field: EditableField) => void>,
+): () => void {
+  const listeners = Object.entries(handlers).map(([type, handle]) => {
+    const listener = (event: Event): void => {
+      const field = findField(event);
+      if (field) handle(field);
+    };
+    doc.addEventListener(type, listener, true);
+    return () => {
+      doc.removeEventListener(type, listener, true);
+    };
+  });
+  return () => {
+    for (const remove of listeners) remove();
+  };
+}
+
 export function startTypingMask(options: TypingMaskOptions): TypingMasker {
   const { doc, isActive, mask } = options;
   const pauseMs = options.pauseMs ?? TYPING_PAUSE_MS;
@@ -78,9 +101,7 @@ export function startTypingMask(options: TypingMaskOptions): TypingMasker {
     // A keystroke landed after the analysis but did not change the text (an arrow key, say).
     const due = (lastEdit.get(field) ?? 0) + pauseMs;
     if (due > now()) {
-      entry.timer = setTimeout(() => {
-        fire(field);
-      }, due - now());
+      plan(field, due - now());
       return;
     }
     cancel(field);
@@ -91,46 +112,31 @@ export function startTypingMask(options: TypingMaskOptions): TypingMasker {
     const entry = pending.get(field);
     if (!entry) return;
     clearTimeout(entry.timer);
-    entry.timer = setTimeout(
-      () => {
-        fire(field);
-      },
-      Math.max(delayMs, 0),
-    );
+    entry.timer = setTimeout(fire, Math.max(delayMs, 0), field);
   };
 
-  const onEdit = (event: Event): void => {
-    const field = findField(event);
-    if (!field) return;
+  const onEdit = (field: EditableField): void => {
     lastEdit.set(field, now());
     // The new text gets its own analysis; the pending one is of a text that is gone.
     const entry = pending.get(field);
     if (entry && readText(field) !== entry.text) cancel(field);
   };
 
-  const onCompositionStart = (event: Event): void => {
-    const field = findField(event);
-    if (field) composing.add(field);
-  };
-
-  const onCompositionEnd = (event: Event): void => {
-    const field = findField(event);
-    if (!field) return;
-    composing.delete(field);
-    lastEdit.set(field, now());
-    plan(field, pauseMs);
-  };
-
-  const onFocusIn = (event: Event): void => {
-    const field = findField(event);
-    if (field && pending.get(field)?.timer === undefined) plan(field, pauseMs);
-  };
-
-  doc.addEventListener('input', onEdit, true);
-  doc.addEventListener('keydown', onEdit, true);
-  doc.addEventListener('compositionstart', onCompositionStart, true);
-  doc.addEventListener('compositionend', onCompositionEnd, true);
-  doc.addEventListener('focusin', onFocusIn, true);
+  const unlisten = listenForFields(doc, {
+    input: onEdit,
+    keydown: onEdit,
+    compositionstart: (field) => {
+      composing.add(field);
+    },
+    compositionend: (field) => {
+      composing.delete(field);
+      lastEdit.set(field, now());
+      plan(field, pauseMs);
+    },
+    focusin: (field) => {
+      if (pending.get(field)?.timer === undefined) plan(field, pauseMs);
+    },
+  });
 
   return {
     analysed(field, text) {
@@ -150,11 +156,7 @@ export function startTypingMask(options: TypingMaskOptions): TypingMasker {
     stop() {
       stopped = true;
       for (const field of [...pending.keys()]) cancel(field);
-      doc.removeEventListener('input', onEdit, true);
-      doc.removeEventListener('keydown', onEdit, true);
-      doc.removeEventListener('compositionstart', onCompositionStart, true);
-      doc.removeEventListener('compositionend', onCompositionEnd, true);
-      doc.removeEventListener('focusin', onFocusIn, true);
+      unlisten();
     },
   };
 }

@@ -86,15 +86,6 @@ export default tseslint.config(
     },
   },
   {
-    // Code written before the limits; each entry goes away when its module is split up.
-    files: [
-      'lib/content/auto-mask.ts',
-      'lib/content/masking.ts',
-      'lib/content/typing-mask.ts',
-    ],
-    rules: { complexity: 'off', 'max-lines': 'off', 'max-lines-per-function': 'off' },
-  },
-  {
     files: ['entrypoints/**/*.ts'],
     rules: {
       'no-restricted-imports': [
