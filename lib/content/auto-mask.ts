@@ -65,6 +65,35 @@ function nextFrame(view: Window): Promise<void> {
   });
 }
 
+/** The send `event` starts, or null. Cheap checks first: this runs for every key and click. */
+function sendOf(event: Event, doc: Document, adapter: AutoMaskOptions['adapter']): Send | null {
+  if (event instanceof KeyboardEvent && !isSendKey(event)) return null;
+  const target = event.composedPath()[0];
+  if (!(target instanceof Node)) return null;
+  const field = adapter.composer(doc);
+  if (!field) return null;
+  if (event instanceof KeyboardEvent)
+    return field.contains(target) ? { field, button: null } : null;
+  const button = adapter.sendButton?.(doc) ?? null;
+  return button?.contains(target) ? { field, button } : null;
+}
+
+/** Send with Enter, for sites whose composer has no send button to click. */
+function pressEnter(field: EditableField): void {
+  field.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      // Deprecated, but chat pages that handle Enter themselves may still read it.
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      keyCode: 13,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    }),
+  );
+}
+
 /** Start catching sends. Returns a function that stops it. */
 export function interceptSends(options: AutoMaskOptions): () => void {
   const { doc, adapter, masking, isActive } = options;
@@ -82,19 +111,6 @@ export function interceptSends(options: AutoMaskOptions): () => void {
   let passUntil = 0;
   let stopped = false;
 
-  /** The send `event` starts, or null. Cheap checks first: this runs for every key and click. */
-  const sendOf = (event: Event): Send | null => {
-    if (event instanceof KeyboardEvent && !isSendKey(event)) return null;
-    const target = event.composedPath()[0];
-    if (!(target instanceof Node)) return null;
-    const field = adapter.composer(doc);
-    if (!field) return null;
-    if (event instanceof KeyboardEvent)
-      return field.contains(target) ? { field, button: null } : null;
-    const button = adapter.sendButton?.(doc) ?? null;
-    return button?.contains(target) ? { field, button } : null;
-  };
-
   const resend = async (send: Send): Promise<void> => {
     await nextFrame(view);
     if (stopped) return;
@@ -102,20 +118,7 @@ export function interceptSends(options: AutoMaskOptions): () => void {
     resending = true;
     try {
       if (button && !isDisabled(button)) button.click();
-      else {
-        send.field.dispatchEvent(
-          new KeyboardEvent('keydown', {
-            key: 'Enter',
-            code: 'Enter',
-            // Deprecated, but chat pages that handle Enter themselves may still read it.
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
-            keyCode: 13,
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          }),
-        );
-      }
+      else pressEnter(send.field);
     } finally {
       resending = false;
     }
@@ -139,7 +142,7 @@ export function interceptSends(options: AutoMaskOptions): () => void {
 
   const onSend = (event: Event): void => {
     if (resending || stopped || !isActive()) return;
-    const send = sendOf(event);
+    const send = sendOf(event, doc, adapter);
     if (!send) return;
     const stop = (): void => {
       event.preventDefault();

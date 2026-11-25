@@ -4,7 +4,7 @@ Rozszerzenie Chrome (Manifest V3), które wykrywa polskie dane osobowe w polach 
 zamienia je na znaczniki, zanim trafią do czatu AI albo formularza. W czatach AI pokazuje potem
 oryginały z powrotem w odpowiedziach, tylko na ekranie użytkownika.
 
-Wykrywaniem zajmuje się biblioteka [polanon](https://github.com/dkoryto/polanon) uruchomiona w
+Wykrywaniem zajmuje się biblioteka [polanon](https://github.com/boromat/polanon) uruchomiona w
 przeglądarce przez [Pyodide](https://pyodide.org). Wszystko działa lokalnie: Pyodide i polanon są
 w paczce rozszerzenia, wtyczka niczego nie pobiera i nie wysyła.
 
@@ -155,7 +155,7 @@ zakładki w `lib/pages/options/`) i raport do druku (`entrypoints/report/`); ich
   zgadza się z adresem ramki nadawcy (`lib/background/mapping/access.ts`); inaczej odpowiada
   `forbidden`.
   Listę i usuwanie zapamiętanych danych obsługują tylko strony rozszerzenia.
-- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/shared/messages.ts`).
+- Każda wiadomość ma `id` żądania i jest sprawdzana strażnikami typów (`lib/shared/messages/`).
 - Limit tekstu: 50 000 znaków, sprawdzany w kliencie, w service workerze i w offscreen.
 - Czas: do 20 s na gotowość silnika (utworzenie offscreen i ładowanie Pyodide), potem 5 s na samo
   `analyze`/`restore`. Po przekroczeniu czasu service worker zamyka dokument offscreen, bo Pythona
@@ -235,6 +235,7 @@ SHA-256 do pobrania. „Run workflow” buduje paczkę z dowolnej gałęzi jako 
 ## Dokumentacja
 
 - [CHANGELOG.md](CHANGELOG.md) – historia wersji
+- [CONTRIBUTING.md](CONTRIBUTING.md) – zasady pracy z kodem: limity, testy, commity
 - [docs/privacy-policy.md](docs/privacy-policy.md) – polityka prywatności (PL i EN)
 - [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) – model zagrożeń
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) – struktura kodu i granice między modułami

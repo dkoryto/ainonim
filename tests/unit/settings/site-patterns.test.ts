@@ -65,6 +65,61 @@ describe('parseSitePattern', () => {
   });
 });
 
+describe('parseSitePattern with and without wildcards', () => {
+  // With and without the wildcard allowed: the outcome for addresses, odd wildcards and hosts.
+  it.each([
+    [
+      'HTTPS://EXAMPLE.com',
+      { ok: true, pattern: 'example.com' },
+      { ok: true, pattern: 'example.com' },
+    ],
+    [
+      'https://*.example.com',
+      { ok: true, pattern: '*.example.com' },
+      { ok: false, problem: 'wildcard' },
+    ],
+    [
+      '*.example.com/path',
+      { ok: true, pattern: '*.example.com' },
+      { ok: false, problem: 'wildcard' },
+    ],
+    [
+      'http://user@example.com',
+      { ok: false, problem: 'invalid' },
+      { ok: false, problem: 'invalid' },
+    ],
+    ['https://', { ok: false, problem: 'invalid' }, { ok: false, problem: 'invalid' }],
+    ['*.[::1]', { ok: false, problem: 'invalid' }, { ok: false, problem: 'wildcard' }],
+    ['*.localhost', { ok: false, problem: 'too-broad' }, { ok: false, problem: 'wildcard' }],
+    ['mailto:x', { ok: false, problem: 'invalid' }, { ok: false, problem: 'invalid' }],
+    [
+      'http://example.com:99999',
+      { ok: false, problem: 'invalid' },
+      { ok: false, problem: 'invalid' },
+    ],
+    ['*.*.example.com', { ok: false, problem: 'invalid' }, { ok: false, problem: 'wildcard' }],
+    ['example.com?x=1', { ok: true, pattern: 'example.com' }, { ok: true, pattern: 'example.com' }],
+    ['#frag', { ok: false, problem: 'invalid' }, { ok: false, problem: 'invalid' }],
+    ['/path', { ok: false, problem: 'invalid' }, { ok: false, problem: 'invalid' }],
+    ['*.', { ok: false, problem: 'invalid' }, { ok: false, problem: 'wildcard' }],
+    ['http://[::1]/', { ok: true, pattern: '[::1]' }, { ok: true, pattern: '[::1]' }],
+    [
+      'https://xn--za-6ja4f8n1l.pl',
+      { ok: true, pattern: 'xn--za-6ja4f8n1l.pl' },
+      { ok: true, pattern: 'xn--za-6ja4f8n1l.pl' },
+    ],
+    ['chrome://extensions', { ok: false, problem: 'invalid' }, { ok: false, problem: 'invalid' }],
+    [
+      '*.a_b.example.com',
+      { ok: true, pattern: '*.a_b.example.com' },
+      { ok: false, problem: 'wildcard' },
+    ],
+  ])('%j -> %j / single site: %j', (input, withWildcard, singleSite) => {
+    expect(parseSitePattern(input)).toEqual(withWildcard);
+    expect(parseSitePattern(input, false)).toEqual(singleSite);
+  });
+});
+
 describe('matchesSitePattern', () => {
   it.each([
     ['example.com', 'example.com', true],

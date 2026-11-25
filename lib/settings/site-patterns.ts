@@ -34,36 +34,32 @@ function canonicalHost(text: string): string | undefined {
   return host.split('.').every((label) => LABEL.test(label)) ? host : undefined;
 }
 
+/** The host part of what was typed: of a whole http(s) address, else everything before a path. */
+function typedHost(text: string): string | undefined {
+  if (!SCHEME.test(text)) return text.replace(/[/?#].*$/, '');
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return undefined;
+  }
+  const web = url.protocol === 'http:' || url.protocol === 'https:';
+  return web && url.username === '' && url.password === '' ? url.host : undefined;
+}
+
 /**
  * Read what the user typed or pasted: a hostname, `*.hostname` (when `allowWildcard`), or a whole
  * address, of which only the host counts. Returns the canonical pattern or why it is not usable.
  */
 export function parseSitePattern(input: string, allowWildcard = true): SitePatternResult {
-  let text = input.trim().toLowerCase();
-  if (text === '') return { ok: false, problem: 'empty' };
-
-  if (SCHEME.test(text)) {
-    let url: URL;
-    try {
-      url = new URL(text);
-    } catch {
-      return { ok: false, problem: 'invalid' };
-    }
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      return { ok: false, problem: 'invalid' };
-    }
-    if (url.username !== '' || url.password !== '') return { ok: false, problem: 'invalid' };
-    text = url.host;
-  } else {
-    text = text.replace(/[/?#].*$/, '');
-  }
+  const typed = input.trim().toLowerCase();
+  if (typed === '') return { ok: false, problem: 'empty' };
+  const text = typedHost(typed);
+  if (text === undefined) return { ok: false, problem: 'invalid' };
 
   const wildcard = text.startsWith('*.');
-  if (wildcard) {
-    if (!allowWildcard) return { ok: false, problem: 'wildcard' };
-    text = text.slice(2);
-  }
-  const host = canonicalHost(text);
+  if (wildcard && !allowWildcard) return { ok: false, problem: 'wildcard' };
+  const host = canonicalHost(wildcard ? text.slice(2) : text);
   if (host === undefined) return { ok: false, problem: 'invalid' };
   if (!wildcard) return { ok: true, pattern: host };
 

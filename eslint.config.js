@@ -75,6 +75,17 @@ export default tseslint.config(
   },
   ...AREAS.map(boundaryRule),
   {
+    // Size limits (CONTRIBUTING.md). Long closures that build a whole UI or session were the
+    // hardest code to change; these keep new code from growing that way.
+    files: ['lib/**/*.ts', 'entrypoints/**/*.ts'],
+    rules: {
+      complexity: ['error', 15],
+      'max-depth': ['error', 4],
+      'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['error', { max: 80, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
     files: ['entrypoints/**/*.ts'],
     rules: {
       'no-restricted-imports': [

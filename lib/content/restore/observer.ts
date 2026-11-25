@@ -26,14 +26,17 @@
 
 import { mapText } from '~/lib/content/fields/text';
 import type { SiteAdapter } from '~/lib/sites/types';
-import { type MessageKind, type RestoredValue, createRestoredMarks, restoredTitle } from './marks';
-import { type DeclensionCache, type Mapping, findTokens, resolveToken } from '~/lib/shared/tokens';
+import type { DeclensionCache, Mapping } from '~/lib/shared/tokens';
+import { createLegends } from './legend';
+import type { MessageKind } from './marks';
+import { createPatchedTexts } from './patched-texts';
+import { planRun, resolvedTokens } from './run-plan';
+import { scanRoot } from './scan';
+import { createTitles } from './titles';
 
-export const RESTORED_ATTRIBUTE = 'data-ainonim-restored';
-export const LEGEND_ATTRIBUTE = 'data-ainonim-legend';
+export { LEGEND_ATTRIBUTE } from './legend';
+export { RESTORED_ATTRIBUTE } from './titles';
 
-const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'NOSCRIPT']);
-const EDITABLE = '[contenteditable]:not([contenteditable="false"])';
 const COPY_TEXT_ATTRIBUTE = 'data-markdown-copy-text';
 
 export interface ObserveMessagesOptions {
@@ -46,19 +49,13 @@ export interface ObserveMessagesOptions {
 /** Stops observing and puts the tokens back. `refresh()` re-applies, e.g. after a new mapping. */
 export type StopObserving = (() => void) & { refresh(): void };
 
-interface Patch {
-  /** The text the site wrote. */
-  source: string;
-  /** The text AInonim wrote instead. */
-  patched: string;
-}
+type Root = [HTMLElement, MessageKind];
 
-/** A value shown in a text node: the original (restore) or its token (peek), with its offsets. */
-type Shown = RestoredValue & { start: number; end: number };
-
-function isEditable(el: Element): boolean {
-  const value = el.getAttribute('contenteditable');
-  return value !== null && value.toLowerCase() !== 'false';
+function allRoots(adapter: SiteAdapter, doc: Document): Root[] {
+  return [
+    ...adapter.answerRoots(doc).map((root): Root => [root, 'answer']),
+    ...adapter.sentMessageRoots(doc).map((root): Root => [root, 'sent']),
+  ];
 }
 
 export function observeMessages(
@@ -69,213 +66,58 @@ export function observeMessages(
 ): StopObserving {
   const decline = options.declensions?.decline;
   const isPeek = options.peek ?? (() => false);
-  const patches = new Map<Text, Patch>();
-  const shown = new Map<Text, Shown[]>();
-  const marks = createRestoredMarks();
-  const titled = new Set<HTMLElement>();
-  const legends = new Map<HTMLElement, HTMLElement>();
-  const legendContent = new WeakMap<HTMLElement, string>();
+  const texts = createPatchedTexts();
+  const titles = createTitles();
+  const legends = createLegends(doc);
+  // What AInonim changed on the page, each pruned of what left it and cleared on stop.
+  const parts = [texts, titles, legends];
   const seenRoots = new WeakSet<HTMLElement>();
   let stopped = false;
 
-  const sourceOf = (node: Text): string => {
-    const patch = patches.get(node);
-    return patch && node.data === patch.patched ? patch.source : node.data;
-  };
-
-  const write = (node: Text, source: string, text: string, values: Shown[]): void => {
-    if (text === source) {
-      if (patches.delete(node) && node.data !== source) node.data = source;
-    } else {
-      patches.set(node, { source, patched: text });
-      if (node.data !== text) node.data = text;
-    }
-    if (values.length === 0) {
-      shown.delete(node);
-      marks.delete(node);
-    } else {
-      shown.set(node, values);
-      marks.set(node, values);
-    }
-  };
-
   // Restore the tokens of a run of adjacent text nodes, read as one string.
   const restoreRun = (nodes: Text[], mapping: Mapping, peek: boolean): void => {
-    const sources = nodes.map(sourceOf);
-    const full = sources.join('');
-    const replacements = findTokens(full).flatMap((found) => {
-      const value = resolveToken(found, mapping, decline);
-      return value === undefined ? [] : [{ ...found, value }];
-    });
-    let start = 0;
+    const sources = nodes.map((node) => texts.sourceOf(node));
+    const replacements = resolvedTokens(sources.join(''), mapping, decline);
+    const plans = planRun(sources, replacements, peek);
     for (const [index, node] of nodes.entries()) {
-      const source = sources[index] ?? '';
-      const end = start + source.length;
-      let text = '';
-      let position = start;
-      const restored: Shown[] = [];
-      for (const replacement of replacements) {
-        if (replacement.end <= start || replacement.start >= end) continue;
-        if (peek) {
-          // The token stays; only the part of it inside this node is marked.
-          const { token, value } = replacement;
-          const from = Math.max(replacement.start, start) - start;
-          const to = Math.min(replacement.end, end) - start;
-          restored.push({ token, value, start: from, end: to });
-          continue;
-        }
-        text += full.slice(position, Math.max(replacement.start, start));
-        // The original goes where the token starts; the token's tail in later nodes is dropped.
-        if (replacement.start >= start) {
-          const { token, value } = replacement;
-          restored.push({ token, value, start: text.length, end: text.length + value.length });
-          text += value;
-        }
-        position = Math.min(replacement.end, end);
-      }
-      text = peek ? source : text + full.slice(position, end);
-      write(node, source, text, restored);
-      start = end;
+      const plan = plans[index];
+      if (plan) texts.write(node, sources[index] ?? '', plan);
     }
-  };
-
-  const updateTitle = (element: HTMLElement, kind: MessageKind, peek: boolean): void => {
-    const values: RestoredValue[] = [];
-    for (const child of element.childNodes) {
-      if (child instanceof Text) values.push(...(shown.get(child) ?? []));
-    }
-    if (values.length === 0) {
-      if (titled.delete(element)) {
-        element.removeAttribute('title');
-        element.removeAttribute(RESTORED_ATTRIBUTE);
-      }
-      return;
-    }
-    // Never take over a title the site set itself.
-    if (!titled.has(element) && element.hasAttribute('title')) return;
-    titled.add(element);
-    const title = restoredTitle(kind, values, peek);
-    if (element.getAttribute('title') === title) return;
-    element.setAttribute(RESTORED_ATTRIBUTE, '');
-    element.setAttribute('title', title);
-  };
-
-  const renderLegend = (block: HTMLElement, entries: [string, string][]): void => {
-    let host = legends.get(block);
-    if (entries.length === 0) {
-      host?.remove();
-      legends.delete(block);
-      return;
-    }
-    if (!host) {
-      host = doc.createElement('div');
-      host.setAttribute(LEGEND_ATTRIBUTE, '');
-      host.attachShadow({ mode: 'open' });
-      legends.set(block, host);
-    }
-    if (host.nextElementSibling !== block) block.before(host);
-    const key = JSON.stringify(entries);
-    if (legendContent.get(host) === key) return;
-    legendContent.set(host, key);
-    const shadow = host.shadowRoot;
-    if (!shadow) return;
-    const box = doc.createElement('div');
-    box.setAttribute('part', 'legend');
-    box.style.cssText =
-      'font: 12px/1.4 system-ui, sans-serif; margin: 4px 0; padding: 4px 8px; ' +
-      'border-left: 3px solid #888; opacity: 0.85; user-select: text;';
-    const heading = doc.createElement('div');
-    heading.textContent = 'AInonim – oryginały danych w bloku poniżej:';
-    box.append(heading);
-    for (const [token, original] of entries) {
-      const line = doc.createElement('div');
-      line.textContent = `${token} → ${original}`;
-      box.append(line);
-    }
-    shadow.replaceChildren(box);
   };
 
   // An editable block is annotated from outside: tokens read from the editor and the copy text.
   const annotateEditable = (editor: HTMLElement, mapping: Mapping): void => {
     const block = adapter.editableAnswerBlock?.(editor) ?? editor;
     const text = `${mapText(editor).text}\n${block.getAttribute(COPY_TEXT_ATTRIBUTE) ?? ''}`;
-    const entries = new Map<string, string>();
-    for (const found of findTokens(text)) {
-      const value = resolveToken(found, mapping, decline);
-      if (value !== undefined) entries.set(found.token, value);
-    }
-    renderLegend(block, [...entries]);
+    const entries = new Map(resolvedTokens(text, mapping, decline).map((r) => [r.token, r.value]));
+    legends.render(block, [...entries]);
   };
 
   const processRoot = (
-    root: HTMLElement,
-    kind: MessageKind,
+    [root, kind]: Root,
     mapping: Mapping,
     composer: HTMLElement | null,
     peek: boolean,
   ): void => {
     seenRoots.add(root);
-    const editors: HTMLElement[] = [];
-    const parents = new Set<HTMLElement>();
-    const walk = (element: Element): void => {
-      let run: Text[] = [];
-      const flush = (): void => {
-        if (run.length > 0) restoreRun(run, mapping, peek);
-        run = [];
-      };
-      for (const child of element.childNodes) {
-        if (child instanceof Text) {
-          run.push(child);
-          continue;
-        }
-        flush();
-        if (!(child instanceof HTMLElement)) continue;
-        if (child === composer || SKIPPED_TAGS.has(child.tagName)) continue;
-        if (child.hasAttribute(LEGEND_ATTRIBUTE)) continue;
-        if (isEditable(child)) {
-          if (kind === 'answer') editors.push(child);
-          continue;
-        }
-        walk(child);
-      }
-      flush();
-      if (element instanceof HTMLElement) parents.add(element);
-    };
-    const editableAncestor = root.closest(EDITABLE);
-    if (!(editableAncestor instanceof HTMLElement)) walk(root);
-    else if (kind === 'answer') editors.push(editableAncestor);
-    for (const parent of parents) updateTitle(parent, kind, peek);
+    const { runs, parents, editors } = scanRoot(root, kind, composer);
+    for (const run of runs) restoreRun(run, mapping, peek);
+    for (const parent of parents) titles.update(parent, kind, texts.valuesIn(parent), peek);
     for (const editor of editors) annotateEditable(editor, mapping);
   };
 
   const prune = (): void => {
-    for (const node of new Set([...patches.keys(), ...shown.keys()])) {
-      if (node.isConnected) continue;
-      patches.delete(node);
-      shown.delete(node);
-      marks.delete(node);
-    }
-    for (const element of titled) if (!element.isConnected) titled.delete(element);
-    for (const [block, host] of legends) {
-      if (block.isConnected) continue;
-      host.remove();
-      legends.delete(block);
-    }
+    for (const part of parts) part.prune();
   };
 
-  const allRoots = (): [HTMLElement, MessageKind][] => [
-    ...adapter.answerRoots(doc).map((root): [HTMLElement, MessageKind] => [root, 'answer']),
-    ...adapter.sentMessageRoots(doc).map((root): [HTMLElement, MessageKind] => [root, 'sent']),
-  ];
-
-  const run = (roots: [HTMLElement, MessageKind][]): void => {
+  const run = (roots: Root[]): void => {
     if (stopped) return;
     // Any failure (a site change we did not foresee) means no restore, never a broken page.
     try {
       const mapping = getMapping();
       const composer = adapter.composer(doc);
       const peek = isPeek();
-      for (const [root, kind] of roots) processRoot(root, kind, mapping, composer, peek);
+      for (const root of roots) processRoot(root, mapping, composer, peek);
       prune();
     } catch {
       // Leave the page as it is.
@@ -285,7 +127,7 @@ export function observeMessages(
   };
 
   const observer = new MutationObserver((records) => {
-    const roots = allRoots().filter(
+    const roots = allRoots(adapter, doc).filter(
       ([root]) => !seenRoots.has(root) || records.some((record) => root.contains(record.target)),
     );
     if (roots.length > 0) run(roots);
@@ -293,7 +135,7 @@ export function observeMessages(
   });
 
   const refresh = (): void => {
-    run(allRoots());
+    run(allRoots(adapter, doc));
   };
 
   const unsubscribe = options.declensions?.onChange(refresh);
@@ -305,17 +147,7 @@ export function observeMessages(
     stopped = true;
     observer.disconnect();
     unsubscribe?.();
-    for (const [node, patch] of patches) if (node.data === patch.patched) node.data = patch.source;
-    patches.clear();
-    shown.clear();
-    marks.clear();
-    for (const element of titled) {
-      element.removeAttribute('title');
-      element.removeAttribute(RESTORED_ATTRIBUTE);
-    }
-    titled.clear();
-    for (const host of legends.values()) host.remove();
-    legends.clear();
+    for (const part of parts) part.clear();
   };
   return Object.assign(stop, { refresh });
 }
