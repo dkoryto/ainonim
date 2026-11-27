@@ -6,6 +6,7 @@ import {
   LEGEND_ATTRIBUTE,
   RESTORED_ATTRIBUTE,
   type StopObserving,
+  legendShadowRoot,
   observeMessages,
 } from '~/lib/content/restore/observer';
 import { RESTORED_HIGHLIGHT } from '~/lib/content/restore/marks';
@@ -327,13 +328,28 @@ describe('a re-rendered answer', () => {
     expect(markdown.textContent).toBe('Odświeżone: 50810112354');
   });
 
-  it('leaves the composer alone while streaming', async () => {
+  it('leaves the composer alone while streaming and skips re-querying roots', async () => {
     load('claude-conversation.html');
+    const answerRoots = vi.spyOn(claude, 'answerRoots');
+    const sentRoots = vi.spyOn(claude, 'sentMessageRoots');
     const composer = element('[data-testid="chat-input"] p');
     stop = observeMessages(claude, document, () => mapping);
+    answerRoots.mockClear();
+    sentRoots.mockClear();
+
     composer.append(document.createTextNode(' i <PESEL_1>'));
     await settle();
     expect(composer.textContent).toBe('Pytanie o <OSOBA_1> i <PESEL_1>');
+    expect(answerRoots).not.toHaveBeenCalled();
+    expect(sentRoots).not.toHaveBeenCalled();
+
+    // Streaming characterData in an existing answer reuses known roots without re-querying DOM.
+    const streamed = element('.standard-markdown p').firstChild as Text;
+    streamed.data = 'Streaming: <OSOBA_1>';
+    await settle();
+    expect(element('.standard-markdown p').textContent).toBe('Streaming: Jan Kowalski');
+    expect(answerRoots).not.toHaveBeenCalled();
+    expect(sentRoots).not.toHaveBeenCalled();
   });
 
   it('drops the highlight of a removed message', async () => {
@@ -361,15 +377,18 @@ describe('the ChatGPT writing block', () => {
     expect(element('.markdown > p').textContent).toBe('Oto e-mail do Jan Kowalski:');
     const legend = block.previousElementSibling;
     expect(legend?.hasAttribute(LEGEND_ATTRIBUTE)).toBe(true);
-    expect(legend?.shadowRoot?.textContent).toContain('<OSOBA_1> → Jan Kowalski');
-    expect(legend?.shadowRoot?.textContent).toContain('<IBAN_1> → PL61109010140000071219812874');
+    expect(legend?.shadowRoot).toBeNull();
+    expect(legend && legendShadowRoot(legend)?.textContent).toContain('<OSOBA_1> → Jan Kowalski');
+    expect(legend && legendShadowRoot(legend)?.textContent).toContain(
+      '<IBAN_1> → PL61109010140000071219812874',
+    );
     expect(chatgpt.isAnswerElement(legend as Element)).toBe(true);
 
     // Text streamed into the editor updates the legend, still without touching the editor.
     editor.insertAdjacentHTML('beforeend', '<p>PESEL &lt;PESEL_1&gt;</p>');
     await settle();
     expect(editor.textContent).toContain('PESEL <PESEL_1>');
-    expect(legend?.shadowRoot?.textContent).toContain('<PESEL_1> → 50810112354');
+    expect(legend && legendShadowRoot(legend)?.textContent).toContain('<PESEL_1> → 50810112354');
 
     stop();
     stop = undefined;
@@ -398,13 +417,13 @@ describe('a mapping that changes', () => {
     load('chatgpt-writing-block.html');
     stop = observeMessages(chatgpt, document, () => mapping);
     const legend = document.querySelector(`[${LEGEND_ATTRIBUTE}]`);
-    const content = legend?.shadowRoot?.textContent;
+    const content = legend ? legendShadowRoot(legend)?.textContent : undefined;
 
     stop.refresh();
 
     expect(document.querySelectorAll(`[${LEGEND_ATTRIBUTE}]`)).toHaveLength(1);
     expect(document.querySelector(`[${LEGEND_ATTRIBUTE}]`)).toBe(legend);
-    expect(legend?.shadowRoot?.textContent).toBe(content);
+    expect(legend && legendShadowRoot(legend)?.textContent).toBe(content);
   });
 
   it('removes the legend of a block that left the page', async () => {
@@ -459,7 +478,7 @@ describe('pages the adapters did not foresee', () => {
     expect(editor.textContent).toBe('<PESEL_1>');
     const legend = editor.previousElementSibling;
     expect(legend?.hasAttribute(LEGEND_ATTRIBUTE)).toBe(true);
-    expect(legend?.shadowRoot?.textContent).toContain('<PESEL_1> → 50810112354');
+    expect(legend && legendShadowRoot(legend)?.textContent).toContain('<PESEL_1> → 50810112354');
   });
 
   it('annotates an answer that is itself inside an editor, and leaves a sent one there alone', () => {
@@ -472,7 +491,9 @@ describe('pages the adapters did not foresee', () => {
     expect(element('.sent').textContent).toBe('<PESEL_1>');
     const legends = document.querySelectorAll(`[${LEGEND_ATTRIBUTE}]`);
     expect(legends).toHaveLength(1);
-    expect(legends[0]?.shadowRoot?.textContent).toContain('<OSOBA_1> → Jan Kowalski');
+    expect(legends[0] && legendShadowRoot(legends[0])?.textContent).toContain(
+      '<OSOBA_1> → Jan Kowalski',
+    );
   });
 
   it('leaves the page as it is when reading the mapping fails', () => {

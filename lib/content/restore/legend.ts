@@ -4,6 +4,14 @@
 
 export const LEGEND_ATTRIBUTE = 'data-ainonim-legend';
 
+// Closed shadow roots are unreachable from outside; tests read them through this map.
+const legendRoots = new WeakMap<Element, ShadowRoot>();
+
+/** The legend's shadow root. Only for tests: the page cannot get at it. */
+export function legendShadowRoot(host: Element): ShadowRoot | undefined {
+  return legendRoots.get(host);
+}
+
 /** The legends on the page, one per editable block. */
 export interface Legends {
   /** Show `entries` (token, original) before `block`; none removes its legend. */
@@ -41,16 +49,18 @@ export function createLegends(doc: Document): Legends {
     hosts.delete(block);
   };
 
-  const hostFor = (block: HTMLElement): HTMLElement => {
+  const hostFor = (block: HTMLElement): { host: HTMLElement; root: ShadowRoot } => {
     let host = hosts.get(block);
-    if (!host) {
+    let root = host ? legendRoots.get(host) : undefined;
+    if (!host || !root) {
       host = doc.createElement('div');
       host.setAttribute(LEGEND_ATTRIBUTE, '');
-      host.attachShadow({ mode: 'open' });
+      root = host.attachShadow({ mode: 'closed' });
+      legendRoots.set(host, root);
       hosts.set(block, host);
     }
     if (host.nextElementSibling !== block) block.before(host);
-    return host;
+    return { host, root };
   };
 
   return {
@@ -59,11 +69,11 @@ export function createLegends(doc: Document): Legends {
         remove(block);
         return;
       }
-      const host = hostFor(block);
+      const { host, root } = hostFor(block);
       const key = JSON.stringify(entries);
       if (content.get(host) === key) return;
       content.set(host, key);
-      host.shadowRoot?.replaceChildren(legendBox(doc, entries));
+      root.replaceChildren(legendBox(doc, entries));
     },
     prune() {
       for (const block of hosts.keys()) if (!block.isConnected) remove(block);

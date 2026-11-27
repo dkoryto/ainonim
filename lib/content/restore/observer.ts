@@ -34,7 +34,7 @@ import { planRun, resolvedTokens } from './run-plan';
 import { scanRoot } from './scan';
 import { createTitles } from './titles';
 
-export { LEGEND_ATTRIBUTE } from './legend';
+export { LEGEND_ATTRIBUTE, legendShadowRoot } from './legend';
 export { RESTORED_ATTRIBUTE } from './titles';
 
 const COPY_TEXT_ATTRIBUTE = 'data-markdown-copy-text';
@@ -58,6 +58,54 @@ function allRoots(adapter: SiteAdapter, doc: Document): Root[] {
   ];
 }
 
+function uniqueTargets(records: readonly MutationRecord[]): Node[] {
+  const targets = new Set<Node>();
+  for (const record of records) targets.add(record.target);
+  return [...targets];
+}
+
+function createRootTracker(adapter: SiteAdapter, doc: Document) {
+  const seen = new WeakSet<HTMLElement>();
+  const known = new Map<HTMLElement, MessageKind>();
+
+  const sync = (): Root[] => {
+    const roots = allRoots(adapter, doc);
+    known.clear();
+    for (const [root, kind] of roots) known.set(root, kind);
+    return roots;
+  };
+
+  const connected = (): Root[] => {
+    const roots: Root[] = [];
+    for (const entry of known) {
+      if (entry[0].isConnected) roots.push(entry);
+      else known.delete(entry[0]);
+    }
+    return roots;
+  };
+
+  const prune = (): void => {
+    for (const root of known.keys()) if (!root.isConnected) known.delete(root);
+  };
+
+  return {
+    markSeen: (root: HTMLElement): void => {
+      seen.add(root);
+    },
+    sync,
+    prune,
+    affected(records: readonly MutationRecord[], targets: readonly Node[]): Root[] {
+      // Only childList additions can introduce new message roots; pure text/removal batches reuse known ones.
+      const candidates = records.some((record) => record.addedNodes.length > 0)
+        ? sync()
+        : connected();
+      return candidates.filter(
+        ([root]) => !seen.has(root) || targets.some((target) => root.contains(target)),
+      );
+    },
+  };
+}
+
 export function observeMessages(
   adapter: SiteAdapter,
   doc: Document,
@@ -71,7 +119,7 @@ export function observeMessages(
   const legends = createLegends(doc);
   // What AInonim changed on the page, each pruned of what left it and cleared on stop.
   const parts = [texts, titles, legends];
-  const seenRoots = new WeakSet<HTMLElement>();
+  const tracker = createRootTracker(adapter, doc);
   let stopped = false;
 
   // Restore the tokens of a run of adjacent text nodes, read as one string.
@@ -99,7 +147,7 @@ export function observeMessages(
     composer: HTMLElement | null,
     peek: boolean,
   ): void => {
-    seenRoots.add(root);
+    tracker.markSeen(root);
     const { runs, parents, editors } = scanRoot(root, kind, composer);
     for (const run of runs) restoreRun(run, mapping, peek);
     for (const parent of parents) titles.update(parent, kind, texts.valuesIn(parent), peek);
@@ -108,14 +156,14 @@ export function observeMessages(
 
   const prune = (): void => {
     for (const part of parts) part.prune();
+    tracker.prune();
   };
 
-  const run = (roots: Root[]): void => {
+  const run = (roots: Root[], composer = adapter.composer(doc)): void => {
     if (stopped) return;
     // Any failure (a site change we did not foresee) means no restore, never a broken page.
     try {
       const mapping = getMapping();
-      const composer = adapter.composer(doc);
       const peek = isPeek();
       for (const root of roots) processRoot(root, mapping, composer, peek);
       prune();
@@ -127,15 +175,17 @@ export function observeMessages(
   };
 
   const observer = new MutationObserver((records) => {
-    const roots = allRoots(adapter, doc).filter(
-      ([root]) => !seenRoots.has(root) || records.some((record) => root.contains(record.target)),
-    );
-    if (roots.length > 0) run(roots);
+    const targets = uniqueTargets(records);
+    const composer = adapter.composer(doc);
+    // Edits inside the composer never introduce or change a message root.
+    if (composer && targets.every((target) => composer.contains(target))) return;
+    const roots = tracker.affected(records, targets);
+    if (roots.length > 0) run(roots, composer);
     else prune();
   });
 
   const refresh = (): void => {
-    run(allRoots(adapter, doc));
+    run(tracker.sync());
   };
 
   const unsubscribe = options.declensions?.onChange(refresh);
