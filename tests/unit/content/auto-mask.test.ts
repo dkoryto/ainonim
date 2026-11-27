@@ -442,6 +442,74 @@ describe('which events are sends', () => {
     expect(sent).toEqual(['']);
   });
 
+  it('ignores clicks on a disabled send button', () => {
+    const { field, send } = page();
+    send.disabled = true;
+    const { masking } = stubMasking();
+    stops.push(
+      interceptSends({
+        doc: document,
+        adapter: { composer: () => field, sendButton: () => send },
+        masking,
+        isActive: () => true,
+      }),
+    );
+
+    send.click();
+
+    expect(masking.maskForSend).not.toHaveBeenCalled();
+    expect(sent).toEqual([]);
+  });
+
+  it('ignores clicks on an aria-disabled send button', () => {
+    const { field, send } = page();
+    send.setAttribute('aria-disabled', 'true');
+    const { masking } = stubMasking();
+    stops.push(
+      interceptSends({
+        doc: document,
+        adapter: { composer: () => field, sendButton: () => send },
+        masking,
+        isActive: () => true,
+      }),
+    );
+
+    send.click();
+
+    expect(masking.maskForSend).not.toHaveBeenCalled();
+  });
+
+  it('replays Ctrl+Enter and Cmd+Enter with the same modifier when there is no send button', async () => {
+    const field = document.createElement('textarea');
+    document.body.append(field);
+    const replayed: { ctrlKey: boolean; metaKey: boolean }[] = [];
+    field.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') replayed.push({ ctrlKey: event.ctrlKey, metaKey: event.metaKey });
+    });
+    const { masking, finish } = stubMasking();
+    stops.push(
+      interceptSends({
+        doc: document,
+        adapter: { composer: () => field },
+        masking,
+        isActive: () => true,
+      }),
+    );
+
+    field.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Enter',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    finish({ kind: 'masked', count: 1 });
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(replayed).toEqual([{ ctrlKey: true, metaKey: false }]);
+  });
+
   it('does nothing for a document without a window', () => {
     const detached = document.implementation.createHTMLDocument('');
     const { masking } = stubMasking();

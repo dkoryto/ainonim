@@ -34,6 +34,9 @@ interface Send {
   field: EditableField;
   /** The send button that was clicked, or null for Enter. */
   button: HTMLElement | null;
+  /** Modifier keys held on Enter, replayed when there is no send button. */
+  ctrlKey: boolean;
+  metaKey: boolean;
 }
 
 function isSendKey(event: KeyboardEvent): boolean {
@@ -72,18 +75,25 @@ function sendOf(event: Event, doc: Document, adapter: AutoMaskOptions['adapter']
   if (!(target instanceof Node)) return null;
   const field = adapter.composer(doc);
   if (!field) return null;
-  if (event instanceof KeyboardEvent)
-    return field.contains(target) ? { field, button: null } : null;
+  if (event instanceof KeyboardEvent) {
+    return field.contains(target)
+      ? { field, button: null, ctrlKey: event.ctrlKey, metaKey: event.metaKey }
+      : null;
+  }
   const button = adapter.sendButton?.(doc) ?? null;
-  return button?.contains(target) ? { field, button } : null;
+  return button && !isDisabled(button) && button.contains(target)
+    ? { field, button, ctrlKey: false, metaKey: false }
+    : null;
 }
 
 /** Send with Enter, for sites whose composer has no send button to click. */
-function pressEnter(field: EditableField): void {
-  field.dispatchEvent(
+function pressEnter(send: Send): void {
+  send.field.dispatchEvent(
     new KeyboardEvent('keydown', {
       key: 'Enter',
       code: 'Enter',
+      ctrlKey: send.ctrlKey,
+      metaKey: send.metaKey,
       // Deprecated, but chat pages that handle Enter themselves may still read it.
       // eslint-disable-next-line @typescript-eslint/no-deprecated
       keyCode: 13,
@@ -118,7 +128,7 @@ export function interceptSends(options: AutoMaskOptions): () => void {
     resending = true;
     try {
       if (button && !isDisabled(button)) button.click();
-      else pressEnter(send.field);
+      else pressEnter(send);
     } finally {
       resending = false;
     }
