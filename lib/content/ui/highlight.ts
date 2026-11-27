@@ -11,7 +11,7 @@
 // the new text arrive.
 //
 // `<input>` and `<textarea>` have no text nodes to put ranges on; they are not highlighted
-// (`paintSpans` returns false) until the overlay planned for v0.2.
+// (`paintSpans` returns false), while the badge and panel still work for them.
 
 import { type EditableField, isTextControl, mapText, rangeFor } from '~/lib/content/fields/text';
 

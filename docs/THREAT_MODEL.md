@@ -5,15 +5,18 @@ Ograniczenia samej biblioteki wykrywającej opisuje
 [model zagrożeń polanon](https://github.com/boromat/polanon/blob/main/docs/THREAT_MODEL.md); tu
 jest to, co dokłada rozszerzenie i przeglądarka.
 
-Stan (20.11.2026): opisany projekt jest zaimplementowany i pokryty testami e2e na stronach
-testowych; nie był jeszcze sprawdzony na żywych ChatGPT, Claude.ai, Gemini, Grok i Perplexity.
+Stan: opisany projekt (`v0.5.2`) jest zaimplementowany i pokryty testami e2e na stronach
+testowych; adaptery czatów zostały sprawdzone na żywo tylko częściowo (zob. sekcję
+„Ograniczenia” w [README](../README.md)).
 
 ## Do czego służy rozszerzenie
 
 Użytkownik pisze w polu tekstowym (czat AI, formularz). AInonim wykrywa w tekście polskie dane
-osobowe i po kliknięciu „Zamaskuj” zastępuje je znacznikami, np. `<OSOBA_1>`. Do operatora strony
-trafia wtedy tekst ze znacznikami. W ChatGPT, Claude.ai, Gemini, Grok i Perplexity znaczniki w odpowiedzi modelu są
-podmieniane z powrotem na oryginały, tylko w widoku strony.
+osobowe i po kliknięciu „Zamaskuj” (albo automatycznie w trybach „Przy wysyłce” i „Przy pisaniu”)
+zastępuje je znacznikami, np. `<OSOBA_1>`. Do operatora strony trafia wtedy tekst ze znacznikami.
+W obsługiwanych czatach AI (ChatGPT, Claude.ai, Gemini, Grok, Perplexity, Kimi, DeepSeek,
+Mistral Le Chat, Microsoft Copilot i Qwen) znaczniki w odpowiedzi modelu są podmieniane z powrotem
+na oryginały, tylko w widoku strony.
 
 ## Zasoby
 
@@ -77,17 +80,17 @@ zapisać w historii. Dotyczy to:
 - zakresów podświetlenia (CSS Custom Highlight API, `CSS.highlights`), które wskazują przywrócone
   wartości w tych samych węzłach tekstowych,
 - legendy „znacznik → oryginał” przy edytowalnym bloku ChatGPT („writing block”). Legenda jest w
-  **otwartym** shadow root (`attachShadow({ mode: 'open' })` w
-  `lib/content/restore/observer.ts`), więc skrypt strony dosięga jej przez `element.shadowRoot`.
+  zamkniętym shadow root (`attachShadow({ mode: 'closed' })` w `lib/content/restore/legend.ts`), co
+  utrudnia odczyt przez `element.shadowRoot`, ale nie stanowi pełnej bariery (element jest
+  wstawiony do DOM-u strony).
 
 AInonim chroni przed wysłaniem danych **w prompcie**, nie przed odczytaniem przez stronę tego,
 co wyświetla w swoim własnym DOM-ie. Przywracanie jest wygodą dla użytkownika, nie mechanizmem
 ochrony. Kto nie chce, żeby oryginały pojawiły się na stronie, nie powinien polegać na
-przywracaniu.
+przywracaniu (może też użyć opcji pokazywania samych znaczników z podglądem po najechaniu).
 
-Możliwe zmiany na przyszłość (niezaplanowane w MVP): legenda w zamkniętym shadow root (utrudnia,
-ale nie uniemożliwia odczytu, bo tekst nadal jest renderowany w stronie), pokazywanie oryginałów
-w panelu bocznym rozszerzenia (`side_panel`), poza DOM-em strony, zamiast podmiany w odpowiedzi.
+Możliwa zmiana na przyszłość: pokazywanie oryginałów w panelu bocznym rozszerzenia (`side_panel`),
+poza DOM-em strony, zamiast podmiany w odpowiedzi.
 
 Ikona przy polu i panel z listą znalezionych wartości są w zamkniętych shadow root
 (`lib/content/ui/badge.ts`, `lib/content/ui/icon.ts`); skrypty strony nie sięgają do ich treści
@@ -103,9 +106,11 @@ przygotować tekst poza stroną.
 
 ### Pisanie bez maskowania
 
-W trybie `warn` (domyślnym) nic nie jest maskowane automatycznie: odznaka tylko pokazuje, co
-znalazła. Tekst wysłany bez kliknięcia „Zamaskuj” idzie w całości, z danymi. W trybie `off`
-rozszerzenie na danej stronie nie działa wcale. Tryb automatyczny nie istnieje w MVP.
+W trybie ręcznym (domyślnym) nic nie jest maskowane automatycznie: odznaka tylko pokazuje, co
+znalazła, a tekst wysłany bez kliknięcia „Zamaskuj” idzie w całości, z danymi. Tryb „Przy
+wysyłce” działa tylko w obsługiwanych czatach dla Entera i przycisku wysyłania; tryb „Przy
+pisaniu” maskuje po ok. 1,5 s przerwy (tekst wysłany wcześniej może wyjść bez maskowania). W trybie
+`off` dla danej strony rozszerzenie nie działa wcale.
 
 ### Braki wykrywania
 
@@ -143,7 +148,7 @@ AInonim nie widzi albo nie zmienia tekstu w:
 Pola `input` i `textarea` nie mają podświetlenia wykrytych wartości (Custom Highlight API działa
 tylko na węzłach tekstowych); odznaka i maskowanie działają.
 
-### Zmiany selektorów w czatach (ChatGPT, Claude.ai, Gemini, Grok, Perplexity)
+### Zmiany selektorów w obsługiwanych czatach
 
 Adaptery stron (`lib/sites/chatgpt.ts`, `lib/sites/claude.ts`) opierają się na selektorach z
 2026-11-20 z zapasowymi wariantami. Po zmianie znaczników na stronie:
